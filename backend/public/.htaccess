@@ -1,0 +1,27 @@
+# Quermy — Apache configuration
+# Drop into a LAMP environment, point a vhost (or alias) at this directory.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Don't rewrite real files / directories (CSS, JS, images, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # API requests go through the PHP front controller
+    RewriteRule ^api/.*$ index.php [L,QSA]
+
+    # Everything else is the SPA — serve index.html
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Lock down the storage directory just in case it ends up under the docroot
+<IfModule mod_authz_core.c>
+    <DirectoryMatch ".*/storage(/|$)">
+        Require all denied
+    </DirectoryMatch>
+</IfModule>
+
+# Sensible defaults
+Options -Indexes

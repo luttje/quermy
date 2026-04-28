@@ -1,0 +1,188 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Quermy API — front controller.
+ *
+ * Drop-in deploy: point Apache/Nginx at this directory or rewrite /api/* to it.
+ * For Apache the included .htaccess does the rewriting.
+ */
+
+require __DIR__ . '/autoload.php';
+
+use Quermy\Http\Json;
+use Quermy\Http\ConnectionSession;
+use Quermy\Drivers\DriverFactory;
+use Quermy\Storage\CredentialVault;
+
+// Session cookies are HTTPOnly to prevent JavaScript access, mitigating XSS risks.
+// SameSite=Lax to prevent CSRF on state-changing endpoints while allowing normal navigation.
+// Secure flag is set if we're on HTTPS, ensuring cookies are only sent over secure connections.
+session_name('quermy_sid');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'httponly' => true,
+    'samesite' => 'Lax',
+    'secure'   => !empty($_SERVER['HTTPS']),
+]);
+session_start();
+
+// Dependencies
+$storageDir = realpath(__DIR__ . '/../storage') ?: __DIR__ . '/../storage';
+$vault   = new CredentialVault(
+    vaultPath: $storageDir . '/connections.json',
+    keyPath:   $storageDir . '/quermy.key',
+);
+$session = new ConnectionSession($vault);
+
+// Routing
+$method = $_SERVER['REQUEST_METHOD'];
+$path   = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+
+// Strip the script's directory so deployments under /quermy/ still work.
+$base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+if ($base !== '' && str_starts_with($path, $base)) {
+    $path = substr($path, strlen($base));
+}
+$path = '/' . ltrim($path, '/');
+
+// CORS only for local dev — same-origin in production.
+if (($_SERVER['HTTP_ORIGIN'] ?? '') !== '') {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Headers: Content-Type');
+    header('Access-Control-Allow-Methods: GET,POST,DELETE,OPTIONS');
+}
+if ($method === 'OPTIONS') { http_response_code(204); exit; }
+
+try {
+    switch (true) {
+
+        /*
+         * Meta
+         */
+        case $method === 'GET' && $path === '/api/engines':
+            Json::send(['engines' => DriverFactory::supportedEngines()]);
+            break;
+
+        case $method === 'GET' && $path === '/api/session':
+            Json::send(['active' => $session->describe()]);
+            break;
+
+        case $method === 'POST' && $path === '/api/session/disconnect':
+            $session->clear();
+            Json::send(['ok' => true]);
+            break;
+
+        /*
+         * Saved connections
+         */
+        case $method === 'GET' && $path === '/api/connections':
+            Json::send(['connections' => $vault->listPublic()]);
+            break;
+
+        case $method === 'POST' && $path === '/api/connections':
+            $body = Json::readBody();
+            requireFields($body, ['engine','host','port','username']);
+            $saved = $vault->save($body);
+            Json::send(['connection' => $saved], 201);
+            break;
+
+        case $method === 'DELETE' && preg_match('#^/api/connections/([a-f0-9]+)$#', $path, $m):
+            $ok = $vault->delete($m[1]);
+            Json::send(['ok' => $ok], $ok ? 200 : 404);
+            break;
+
+        /*
+         * Connect (and optionally save)
+         */
+        case $method === 'POST' && $path === '/api/connect':
+            $body = Json::readBody();
+            requireFields($body, ['engine','host','port','username']);
+
+            // First test the connection by actually opening it.
+            $driver = DriverFactory::make($body['engine']);
+            $driver->connect([
+                'host'     => $body['host'],
+                'port'     => (int)$body['port'],
+                'username' => $body['username'],
+                'password' => (string)($body['password'] ?? ''),
+                'database' => $body['database'] ?? null,
+            ]);
+            $driver->disconnect();
+
+            // Optionally persist.
+            $savedRecord = null;
+            if (!empty($body['save'])) {
+                $savedRecord = $vault->save($body);
+                $session->bindSaved($savedRecord['id']);
+            } else {
+                $session->bindAdhoc($body);
+            }
+
+            Json::send(['ok' => true, 'saved' => $savedRecord]);
+            break;
+
+        case $method === 'POST' && preg_match('#^/api/connect/saved/([a-f0-9]+)$#', $path, $m):
+            // Open a previously saved connection.
+            $creds = $vault->loadCredentials($m[1]);
+            if (!$creds) Json::error('Connection not found', 404);
+            $driver = DriverFactory::make($creds['engine']);
+            $driver->connect($creds);
+            $driver->disconnect();
+            $session->bindSaved($m[1]);
+            Json::send(['ok' => true]);
+            break;
+
+        /*
+         * Data operations (require active session)
+         */
+        case $method === 'GET' && $path === '/api/databases':
+            $driver = $session->open();
+            try { Json::send(['databases' => $driver->listDatabases()]); }
+            finally { $driver->disconnect(); }
+            break;
+
+        case $method === 'GET' && preg_match('#^/api/databases/([^/]+)/tables$#', $path, $m):
+            $driver = $session->open();
+            try { Json::send(['tables' => $driver->listTables(rawurldecode($m[1]))]); }
+            finally { $driver->disconnect(); }
+            break;
+
+        case $method === 'GET' && preg_match('#^/api/databases/([^/]+)/tables/([^/]+)$#', $path, $m):
+            $limit  = (int)($_GET['limit'] ?? 100);
+            $offset = (int)($_GET['offset'] ?? 0);
+            $driver = $session->open();
+            try {
+                $data = $driver->browseTable(rawurldecode($m[1]), rawurldecode($m[2]), $limit, $offset);
+                Json::send($data);
+            } finally { $driver->disconnect(); }
+            break;
+
+        case $method === 'POST' && $path === '/api/query':
+            $body = Json::readBody();
+            $sql = trim((string)($body['sql'] ?? ''));
+            $db  = (string)($body['database'] ?? '');
+            if ($sql === '') Json::error('SQL is empty', 400);
+
+            $driver = $session->open();
+            try {
+                Json::send($driver->runQuery($db, $sql));
+            } finally { $driver->disconnect(); }
+            break;
+
+        default:
+            Json::error('Not found: ' . $method . ' ' . $path, 404);
+    }
+} catch (\Throwable $e) {
+    Json::error($e->getMessage(), 500);
+}
+
+function requireFields(array $body, array $fields): void {
+    foreach ($fields as $f) {
+        if (!array_key_exists($f, $body) || $body[$f] === '') {
+            Json::error("Missing field: $f", 422);
+        }
+    }
+}
