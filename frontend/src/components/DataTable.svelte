@@ -518,6 +518,14 @@
                                 class:row-selected={!editing &&
                                     selectedRow === i}
                                 on:click={(e) => handleRowClick(i, e)}
+                                on:dblclick={(e) => {
+                                    if (
+                                        canEditRows &&
+                                        !editing &&
+                                        e.target.tagName !== "INPUT"
+                                    )
+                                        startEditRow(i);
+                                }}
                             >
                                 <td class="rownum mono">{i + 1}</td>
                                 {#each columns as c}
@@ -690,6 +698,14 @@
                             class:row-selected={editingColIdx !== i &&
                                 selectedCol === i}
                             on:click={(e) => handleColClick(i, e)}
+                            on:dblclick={(e) => {
+                                if (
+                                    isEditable &&
+                                    editingColIdx !== i &&
+                                    e.target.tagName !== "INPUT"
+                                )
+                                    startEditCol(i);
+                            }}
                             style="cursor: pointer"
                         >
                             <td class="rownum mono">{i + 1}</td>
