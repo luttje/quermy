@@ -4,6 +4,7 @@
     import { toast } from "../lib/store.js";
 
     export let databases = [];
+    export let busy = false;
 
     const dispatch = createEventDispatcher();
 
@@ -71,18 +72,67 @@
         }
         dispatch("runSql", { db, sql });
     }
+
+    let searchQuery = "";
+    let filteredDatabases = databases;
+
+    $: {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) {
+            filteredDatabases = databases;
+        } else {
+            filteredDatabases = databases.filter((db) => {
+                if (db.toLowerCase().includes(q)) return true;
+                const tables = tableMap[db];
+                return (
+                    tables &&
+                    tables.some((t) => t.name.toLowerCase().includes(q))
+                );
+            });
+        }
+    }
+
+    function visibleTables(db, _tableMap) {
+        const tables = _tableMap[db];
+        if (!tables) return null;
+        const q = searchQuery.trim().toLowerCase();
+        if (!q || db.toLowerCase().includes(q)) return tables;
+        return tables.filter((t) => t.name.toLowerCase().includes(q));
+    }
+
+    function collapseAll() {
+        expandedDbs = new Set();
+        expandedTables = new Set();
+    }
 </script>
 
 <nav class="tree">
     <div class="tree-header">
-        <span class="tree-title mono">Explorer</span>
+        <div class="tree-header-row">
+            <span class="tree-title mono">Explorer</span>
+            <button class="icon-btn" title="Collapse all" on:click={collapseAll}
+                >⊟</button
+            >
+        </div>
+        {#if databases.length > 0}
+            <div class="tree-search-row">
+                <input
+                    class="tree-search mono"
+                    type="search"
+                    placeholder="filter…"
+                    bind:value={searchQuery}
+                />
+            </div>
+        {/if}
     </div>
 
     <div class="tree-body">
-        {#if databases.length === 0}
-            <div class="tree-empty mono">no databases</div>
+        {#if filteredDatabases.length === 0}
+            <div class="tree-empty mono">
+                {#if searchQuery.trim()}no match{:else}no databases{/if}
+            </div>
         {:else}
-            {#each databases as db}
+            {#each filteredDatabases as db}
                 <div class="db-group">
                     <button
                         class="tree-node db-node"
@@ -96,92 +146,107 @@
                         <span class="node-icon db-icon">◎</span>
                         <span class="node-label">{db}</span>
                         {#if loadingDbs.has(db)}
-                            <span class="spin mono">…</span>
+                            <span class="spinner" aria-label="Loading"></span>
                         {/if}
                     </button>
 
-                    {#if expandedDbs.has(db) && tableMap[db]}
-                        <div class="db-children">
-                            {#if tableMap[db].length === 0}
-                                <div class="tree-empty-inner mono">
-                                    no tables
-                                </div>
-                            {:else}
-                                {#each tableMap[db] as t}
-                                    {@const tk = tableKey(db, t.name)}
-                                    <div class="table-group">
-                                        <button
-                                            class="tree-node table-node"
-                                            on:click={() =>
-                                                toggleTable(db, t.name)}
-                                            title={t.name}
-                                        >
-                                            <span
-                                                class="node-arrow"
-                                                class:open={expandedTables.has(
-                                                    tk,
-                                                )}>›</span
-                                            >
-                                            <span class="node-icon">▦</span>
-                                            <span class="node-label"
-                                                >{t.name}</span
-                                            >
-                                        </button>
-
-                                        {#if expandedTables.has(tk)}
-                                            <div class="table-children">
-                                                <button
-                                                    class="tree-node leaf-node"
-                                                    class:active={activeNode ===
-                                                        leafKey(
-                                                            db,
-                                                            t.name,
-                                                            "data",
-                                                        )}
-                                                    on:click={() =>
-                                                        selectLeaf(
-                                                            db,
-                                                            t.name,
-                                                            "data",
-                                                        )}
-                                                >
-                                                    <span
-                                                        class="node-icon leaf-icon"
-                                                        >≡</span
-                                                    >
-                                                    <span class="node-label"
-                                                        >Data</span
-                                                    >
-                                                </button>
-                                                <button
-                                                    class="tree-node leaf-node"
-                                                    class:active={activeNode ===
-                                                        leafKey(
-                                                            db,
-                                                            t.name,
-                                                            "structure",
-                                                        )}
-                                                    on:click={() =>
-                                                        selectLeaf(
-                                                            db,
-                                                            t.name,
-                                                            "structure",
-                                                        )}
-                                                >
-                                                    <span
-                                                        class="node-icon leaf-icon"
-                                                        >#</span
-                                                    >
-                                                    <span class="node-label"
-                                                        >Structure</span
-                                                    >
-                                                </button>
-                                            </div>
-                                        {/if}
+                    {#if expandedDbs.has(db)}
+                        {@const vt = visibleTables(db, tableMap)}
+                        {#if vt}
+                            <div class="db-children">
+                                {#if vt.length === 0}
+                                    <div class="tree-empty-inner mono">
+                                        no tables
                                     </div>
-                                {/each}
-                            {/if}
-                        </div>
+                                {:else}
+                                    {#each vt as t}
+                                        {@const tk = tableKey(db, t.name)}
+                                        <div class="table-group">
+                                            <button
+                                                class="tree-node table-node"
+                                                on:click={() =>
+                                                    toggleTable(db, t.name)}
+                                                title={t.name}
+                                            >
+                                                <span
+                                                    class="node-arrow"
+                                                    class:open={expandedTables.has(
+                                                        tk,
+                                                    )}>›</span
+                                                >
+                                                <span class="node-icon">▦</span>
+                                                <span class="node-label"
+                                                    >{t.name}</span
+                                                >
+                                            </button>
+
+                                            {#if expandedTables.has(tk)}
+                                                <div class="table-children">
+                                                    <button
+                                                        class="tree-node leaf-node"
+                                                        class:active={activeNode ===
+                                                            leafKey(
+                                                                db,
+                                                                t.name,
+                                                                "data",
+                                                            )}
+                                                        on:click={() =>
+                                                            selectLeaf(
+                                                                db,
+                                                                t.name,
+                                                                "data",
+                                                            )}
+                                                    >
+                                                        <span
+                                                            class="node-icon leaf-icon"
+                                                            >≡</span
+                                                        >
+                                                        <span class="node-label"
+                                                            >Data</span
+                                                        >
+                                                        {#if busy && activeNode === leafKey(db, t.name, "data")}
+                                                            <span
+                                                                class="spinner"
+                                                                aria-label="Loading"
+                                                            ></span>
+                                                        {/if}
+                                                    </button>
+                                                    <button
+                                                        class="tree-node leaf-node"
+                                                        class:active={activeNode ===
+                                                            leafKey(
+                                                                db,
+                                                                t.name,
+                                                                "structure",
+                                                            )}
+                                                        on:click={() =>
+                                                            selectLeaf(
+                                                                db,
+                                                                t.name,
+                                                                "structure",
+                                                            )}
+                                                    >
+                                                        <span
+                                                            class="node-icon leaf-icon"
+                                                            >#</span
+                                                        >
+                                                        <span class="node-label"
+                                                            >Structure</span
+                                                        >
+                                                        {#if busy && activeNode === leafKey(db, t.name, "structure")}
+                                                            <span
+                                                                class="spinner"
+                                                                aria-label="Loading"
+                                                            ></span>
+                                                        {/if}
+                                                    </button>
+                                                </div>
+                                            {/if}
+                                        </div>
+                                    {/each}
+                                {/if}
+                            </div>
+                        {/if}
                     {/if}
                 </div>
             {/each}
@@ -198,17 +263,66 @@
     }
 
     .tree-header {
-        padding: 9px 12px 8px;
         border-bottom: 1px solid var(--line);
         flex-shrink: 0;
     }
 
+    .tree-header-row {
+        display: flex;
+        align-items: center;
+        padding: 9px 8px 8px 12px;
+    }
+
     .tree-title {
+        flex: 1;
         font-size: 9.5px;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         color: var(--ink-3);
         font-weight: 600;
+    }
+
+    .icon-btn {
+        background: transparent;
+        border: 0;
+        color: var(--ink-3);
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 13px;
+        line-height: 1;
+        transition:
+            background 60ms,
+            color 60ms;
+    }
+
+    .icon-btn:hover {
+        background: var(--bg-2);
+        color: var(--ink-1);
+    }
+
+    .tree-search-row {
+        padding: 0 8px 8px;
+    }
+
+    .tree-search {
+        width: 100%;
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--ink-1);
+        font-size: 11px;
+        padding: 4px 7px;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .tree-search::placeholder {
+        color: var(--ink-3);
+    }
+
+    .tree-search:focus {
+        border-color: var(--acc, #c8ff5a);
     }
 
     .tree-body {
@@ -321,9 +435,19 @@
         color: inherit;
     }
 
-    .spin {
-        color: var(--ink-3);
-        font-size: 11px;
+    .spinner {
         flex-shrink: 0;
+        width: 10px;
+        height: 10px;
+        border: 1.5px solid var(--ink-3);
+        border-top-color: var(--acc, #c8ff5a);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>

@@ -166,7 +166,7 @@
         <div class="workspace">
             <!-- Left: Explorer tree -->
             <aside class="sidebar-left" style="width: {leftWidth}px">
-                <TreeView {databases} on:runSql={handleRunSql} />
+                <TreeView {databases} {busy} on:runSql={handleRunSql} />
             </aside>
             <ResizeHandle orientation="vertical" on:resize={handleLeftResize} />
 
