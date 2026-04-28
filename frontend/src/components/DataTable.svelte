@@ -205,12 +205,14 @@
         default: "",
     };
     let structBusy = false;
+    let selectedCol = null; // index of selected column row
 
     let _prevCols = null;
     $: if (columns !== _prevCols) {
         _prevCols = columns;
         editingColIdx = null;
         addingCol = false;
+        selectedCol = null;
     }
 
     function startEditCol(idx) {
@@ -229,6 +231,27 @@
 
     function cancelEditCol() {
         editingColIdx = null;
+    }
+
+    function handleColClick(i, e) {
+        if (e.target.tagName === "INPUT") return;
+        selectedCol = selectedCol === i ? (editingColIdx === i ? i : null) : i;
+    }
+
+    async function deleteSelectedCol() {
+        if (structBusy || selectedCol === null) return;
+        const colName = columns[selectedCol].name;
+        structBusy = true;
+        try {
+            await api.deleteColumn(db, table, colName);
+            toast(`Column "${colName}" deleted`, "success");
+            selectedCol = null;
+            dispatch("refresh");
+        } catch (e) {
+            toast(e.message, "error");
+        } finally {
+            structBusy = false;
+        }
     }
 
     async function saveEditCol() {
@@ -537,19 +560,59 @@
             {/if}
             {#if isEditable}
                 <div class="toolbar-right">
-                    <button
-                        class="tb-btn tb-add"
-                        on:click={() => {
-                            addingCol = true;
-                            newColForm = {
-                                name: "",
-                                type: "VARCHAR(255)",
-                                nullable: true,
-                                default: "",
-                            };
-                        }}
-                        disabled={structBusy}>+ Add Column</button
-                    >
+                    {#if editingColIdx !== null}
+                        <button
+                            class="tb-btn tb-discard"
+                            on:click={cancelEditCol}
+                            disabled={structBusy}>Cancel</button
+                        >
+                        <button
+                            class="tb-btn tb-save"
+                            on:click={saveEditCol}
+                            disabled={structBusy}
+                            >{structBusy ? "Saving…" : "Save Column"}</button
+                        >
+                    {:else if addingCol}
+                        <button
+                            class="tb-btn tb-discard"
+                            on:click={() => {
+                                addingCol = false;
+                            }}
+                            disabled={structBusy}>Cancel</button
+                        >
+                        <button
+                            class="tb-btn tb-save"
+                            on:click={saveNewCol}
+                            disabled={structBusy}
+                            >{structBusy ? "Adding…" : "Add Column"}</button
+                        >
+                    {:else}
+                        {#if selectedCol !== null}
+                            <button
+                                class="tb-btn tb-edit"
+                                on:click={() => startEditCol(selectedCol)}
+                                disabled={structBusy}>Edit</button
+                            >
+                            <button
+                                class="tb-btn tb-delete"
+                                on:click={deleteSelectedCol}
+                                disabled={structBusy}>Delete</button
+                            >
+                        {/if}
+                        <button
+                            class="tb-btn tb-add"
+                            on:click={() => {
+                                addingCol = true;
+                                newColForm = {
+                                    name: "",
+                                    type: "VARCHAR(255)",
+                                    nullable: true,
+                                    default: "",
+                                };
+                            }}
+                            disabled={structBusy}>+ Add Column</button
+                        >
+                    {/if}
                 </div>
             {/if}
         </div>
@@ -564,12 +627,17 @@
                         <th>Nullable</th>
                         <th>Key</th>
                         <th>Default</th>
-                        {#if isEditable}<th class="actions-th"></th>{/if}
                     </tr>
                 </thead>
                 <tbody>
                     {#each columns as col, i}
-                        <tr class:row-editing={editingColIdx === i}>
+                        <tr
+                            class:row-editing={editingColIdx === i}
+                            class:row-selected={editingColIdx !== i &&
+                                selectedCol === i}
+                            on:click={(e) => handleColClick(i, e)}
+                            style="cursor: pointer"
+                        >
                             <td class="rownum mono">{i + 1}</td>
                             {#if editingColIdx === i}
                                 <td class="edit-cell">
@@ -607,19 +675,6 @@
                                         placeholder="NULL"
                                     />
                                 </td>
-                                <td class="actions-cell actions-cell-pair">
-                                    <button
-                                        class="row-btn row-ok"
-                                        title="Save"
-                                        on:click={saveEditCol}
-                                        disabled={structBusy}>✓</button
-                                    >
-                                    <button
-                                        class="row-btn row-x"
-                                        title="Cancel"
-                                        on:click={cancelEditCol}>✕</button
-                                    >
-                                </td>
                             {:else}
                                 <td class="mono col-name">{col.name}</td>
                                 <td class="mono">{col.type}</td>
@@ -634,16 +689,6 @@
                                         <span class="null-tag">NULL</span>
                                     {/if}
                                 </td>
-                                {#if isEditable}
-                                    <td class="actions-cell">
-                                        <button
-                                            class="row-btn row-edit"
-                                            title="Edit column"
-                                            on:click={() => startEditCol(i)}
-                                            >✎</button
-                                        >
-                                    </td>
-                                {/if}
                             {/if}
                         </tr>
                     {/each}
@@ -686,21 +731,6 @@
                                     placeholder="NULL"
                                 /></td
                             >
-                            <td class="actions-cell actions-cell-pair">
-                                <button
-                                    class="row-btn row-ok"
-                                    title="Add column"
-                                    on:click={saveNewCol}
-                                    disabled={structBusy}>✓</button
-                                >
-                                <button
-                                    class="row-btn row-x"
-                                    title="Cancel"
-                                    on:click={() => {
-                                        addingCol = false;
-                                    }}>✕</button
-                                >
-                            </td>
                         </tr>
                     {/if}
                 </tbody>

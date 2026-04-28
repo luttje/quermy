@@ -89,6 +89,9 @@ interface DriverInterface
      */
     public function modifyColumn(string $database, string $table, string $columnName, array $definition): void;
 
+    /** Drop a column from a table. */
+    public function dropColumn(string $database, string $table, string $columnName): void;
+
     /** Identifier used when persisting connections. */
     public static function engineId(): string;
 }

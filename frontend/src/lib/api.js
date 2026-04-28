@@ -57,4 +57,6 @@ export const api = {
         request('POST', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns`, definition),
     modifyColumn: (db, t, colName, definition) =>
         request('PUT', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`, definition),
+    deleteColumn: (db, t, colName) =>
+        request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`),
 };

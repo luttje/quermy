@@ -227,6 +227,14 @@ try {
             } finally { $driver->disconnect(); }
             break;
 
+        case $method === 'DELETE' && preg_match('#^/api/databases/([^/]+)/tables/([^/]+)/columns/([^/]+)$#', $path, $m):
+            $driver = $session->open();
+            try {
+                $driver->dropColumn(rawurldecode($m[1]), rawurldecode($m[2]), rawurldecode($m[3]));
+                Json::send(['ok' => true]);
+            } finally { $driver->disconnect(); }
+            break;
+
         default:
             Json::error('Not found: ' . $method . ' ' . $path, 404);
     }

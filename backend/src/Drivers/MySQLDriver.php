@@ -270,6 +270,15 @@ class MySQLDriver implements DriverInterface
         $this->pdo->exec("ALTER TABLE $qDb.$qTbl CHANGE COLUMN $qOld $qNew $type$null$def");
     }
 
+    public function dropColumn(string $database, string $table, string $columnName): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        $qCol = $this->quoteIdent($columnName);
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl DROP COLUMN $qCol");
+    }
+
     /*
      * Private helpers
      */
