@@ -5,6 +5,7 @@
 
     export let databases = [];
     export let busy = false;
+    export let activeContext = null; // { db, table, mode } — set when restoring from URL
 
     const dispatch = createEventDispatcher();
 
@@ -95,6 +96,46 @@
     function collapseAll() {
         expandedDbs = new Set();
         expandedTables = new Set();
+    }
+
+    // Sync tree expansion/active state when activeContext is set externally (URL restore / popstate)
+    let _lastSyncedContext = null;
+    $: if (activeContext && activeContext !== _lastSyncedContext) {
+        _lastSyncedContext = activeContext;
+        syncFromContext(activeContext);
+    }
+
+    async function syncFromContext(ctx) {
+        const { db, table, mode } = ctx;
+
+        if (!expandedDbs.has(db)) {
+            expandedDbs.add(db);
+            expandedDbs = new Set(expandedDbs);
+        }
+
+        if (!tableMap[db]) {
+            loadingDbs.add(db);
+            loadingDbs = new Set(loadingDbs);
+            try {
+                const r = await api.listTables(db);
+                tableMap[db] = r.tables || [];
+                tableMap = { ...tableMap };
+            } catch (e) {
+                toast(e.message, "error");
+                return;
+            } finally {
+                loadingDbs.delete(db);
+                loadingDbs = new Set(loadingDbs);
+            }
+        }
+
+        const tk = tableKey(db, table);
+        if (!expandedTables.has(tk)) {
+            expandedTables.add(tk);
+            expandedTables = new Set(expandedTables);
+        }
+
+        activeNode = leafKey(db, table, mode);
     }
 </script>
 

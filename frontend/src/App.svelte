@@ -1,5 +1,5 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import { api } from "./lib/api.js";
     import { session, toast } from "./lib/store.js";
 
@@ -13,7 +13,41 @@
 
     let bootstrapping = true;
 
-    // DB picker + SQL editor state
+    // --- URL hash helpers ---
+    function buildHash(ctx) {
+        if (!ctx) return "";
+        const p = new URLSearchParams({
+            db: ctx.db,
+            table: ctx.table,
+            mode: ctx.mode,
+        });
+        return "#" + p.toString();
+    }
+
+    function parseHash() {
+        const raw = location.hash.slice(1);
+        if (!raw) return null;
+        try {
+            const p = new URLSearchParams(raw);
+            const db = p.get("db");
+            const table = p.get("table");
+            const mode = p.get("mode") || "data";
+            if (db && table) return { db, table, mode };
+        } catch (_) {}
+        return null;
+    }
+
+    function handlePopState() {
+        const ctx = parseHash();
+        if (ctx && $session) {
+            loadTableFromUrl(ctx);
+        } else {
+            tableContext = null;
+            result = null;
+        }
+    }
+
+    // --- DB picker + SQL editor state
     let sql = `SELECT NOW() AS now, VERSION() AS version;`;
     let queryDb = "";
     let databases = [];
@@ -28,14 +62,24 @@
     let rightWidth = 260;
 
     onMount(async () => {
+        window.addEventListener("popstate", handlePopState);
         try {
             const r = await api.getSession();
-            if (r.active) session.set(r.active);
+            if (r.active) {
+                session.set(r.active);
+                // Restore state from URL after session is confirmed
+                const ctx = parseHash();
+                if (ctx) loadTableFromUrl(ctx);
+            }
         } catch (_) {
             /* no session — show connect view */
         } finally {
             bootstrapping = false;
         }
+    });
+
+    onDestroy(() => {
+        window.removeEventListener("popstate", handlePopState);
     });
 
     // Reload databases whenever session becomes active
@@ -55,6 +99,8 @@
             databases = [];
             result = null;
             errors = [];
+            tableContext = null;
+            history.replaceState(null, "", location.pathname);
             toast("Disconnected");
         } catch (e) {
             toast(e.message, "error");
@@ -97,6 +143,13 @@
 
     async function handleOpenTable(e) {
         const { db: tDb, table: tTbl, mode: tMode } = e.detail;
+        const newCtx = { db: tDb, table: tTbl, mode: tMode };
+        history.pushState(newCtx, "", buildHash(newCtx));
+        await loadTableFromUrl(newCtx);
+    }
+
+    async function loadTableFromUrl(ctx) {
+        const { db: tDb, table: tTbl, mode: tMode } = ctx;
         queryDb = tDb;
 
         // Also populate the SQL editor for reference / manual tweaking
@@ -216,6 +269,7 @@
                 <TreeView
                     {databases}
                     {busy}
+                    activeContext={tableContext}
                     on:runSql={handleRunSql}
                     on:openTable={handleOpenTable}
                 />
