@@ -19,7 +19,7 @@
     let databases = [];
     let busy = false;
     let result = null; // { columns, rows, total, durationMs, isSelect, affected }
-    let errorMsg = null;
+    let errors = []; // [{ message, time }] — persistent SQL error log, newest first
     let tableContext = null; // { db, table, mode } — set when browsing via tree
 
     // Resizable panes
@@ -54,7 +54,7 @@
             session.set(null);
             databases = [];
             result = null;
-            errorMsg = null;
+            errors = [];
             toast("Disconnected");
         } catch (e) {
             toast(e.message, "error");
@@ -65,7 +65,6 @@
         if (!sql.trim() || busy) return;
         busy = true;
         tableContext = null; // manual SQL run clears table context
-        errorMsg = null;
         try {
             const r = await api.runQuery(queryDb, sql);
             result = r;
@@ -76,8 +75,7 @@
                 );
             }
         } catch (e) {
-            errorMsg = e.message;
-            result = null;
+            errors = [{ message: e.message, time: new Date() }, ...errors];
         } finally {
             busy = false;
         }
@@ -110,7 +108,6 @@
                 : `SHOW COLUMNS FROM ${qDb}.${qTbl};`;
 
         busy = true;
-        errorMsg = null;
         tableContext = null;
         result = null;
 
@@ -127,7 +124,7 @@
             };
             tableContext = { db: tDb, table: tTbl, mode: tMode };
         } catch (e) {
-            errorMsg = e.message;
+            errors = [{ message: e.message, time: new Date() }, ...errors];
         } finally {
             busy = false;
         }
@@ -261,12 +258,7 @@
 
                 <!-- Result pane -->
                 <div class="result-pane">
-                    {#if errorMsg}
-                        <div class="error-box">
-                            <div class="err-tag mono">ERROR</div>
-                            <pre class="mono">{errorMsg}</pre>
-                        </div>
-                    {:else if result}
+                    {#if result}
                         {#if result.isSelect}
                             <DataTable
                                 columns={result.columns}
@@ -298,6 +290,39 @@
                             Press <span class="kbd">⌘ Enter</span> or click
                             <strong>Run</strong> to execute, or pick a table from
                             the explorer.
+                        </div>
+                    {/if}
+
+                    {#if errors.length > 0}
+                        <div class="error-log">
+                            <div class="error-log-header">
+                                <span class="error-log-title mono"
+                                    >SQL ERRORS</span
+                                >
+                                <span class="error-log-count mono"
+                                    >{errors.length}</span
+                                >
+                                <button
+                                    class="btn btn-ghost error-log-clear"
+                                    on:click={() => (errors = [])}>Clear</button
+                                >
+                            </div>
+                            {#each errors as err}
+                                <div class="error-entry">
+                                    <div class="error-entry-meta">
+                                        <span class="err-tag mono">ERROR</span>
+                                        <span class="error-ts mono"
+                                            >{err.time.toLocaleTimeString([], {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                second: "2-digit",
+                                            })}</span
+                                        >
+                                    </div>
+                                    <pre
+                                        class="error-entry-msg mono">{err.message}</pre>
+                                </div>
+                            {/each}
                         </div>
                     {/if}
                 </div>
@@ -546,10 +571,11 @@
     .result-pane {
         flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
         padding: 10px;
+        gap: 10px;
     }
 
     .result-hint {
@@ -560,34 +586,6 @@
         border: 1px dashed var(--line-strong);
         border-radius: var(--radius-lg);
         font-size: 13px;
-    }
-
-    .error-box {
-        background: var(--bg-1);
-        border: 1px solid rgba(255, 115, 103, 0.3);
-        border-radius: var(--radius-lg);
-        padding: 14px 16px;
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        overflow: auto;
-    }
-    .err-tag {
-        font-size: 9.5px;
-        background: rgba(255, 115, 103, 0.1);
-        color: var(--danger);
-        padding: 3px 7px;
-        border-radius: 3px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        white-space: nowrap;
-        margin-top: 1px;
-    }
-    .error-box pre {
-        margin: 0;
-        white-space: pre-wrap;
-        color: var(--ink-0);
-        font-size: 12.5px;
     }
 
     .ok-result {
@@ -609,5 +607,76 @@
         border-radius: 3px;
         font-weight: 700;
         letter-spacing: 0.06em;
+    }
+
+    /* ---- Error log ---- */
+    .error-log {
+        flex-shrink: 0;
+        background: var(--bg-1);
+        border: 1px solid rgba(255, 115, 103, 0.25);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        height: 250px;
+        overflow-y: auto;
+    }
+
+    .error-log-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-bottom: 1px solid rgba(255, 115, 103, 0.15);
+        background: rgba(255, 115, 103, 0.05);
+    }
+
+    .error-log-title {
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--danger);
+    }
+
+    .error-log-count {
+        font-size: 9.5px;
+        background: rgba(255, 115, 103, 0.15);
+        color: var(--danger);
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-weight: 600;
+    }
+
+    .error-log-clear {
+        margin-left: auto;
+        font-size: 11px;
+        padding: 2px 8px;
+        color: var(--ink-3);
+    }
+
+    .error-entry {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+    }
+    .error-entry:last-child {
+        border-bottom: none;
+    }
+
+    .error-entry-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .error-ts {
+        font-size: 10.5px;
+        color: var(--ink-3);
+    }
+
+    .error-entry-msg {
+        margin: 0;
+        white-space: pre-wrap;
+        color: var(--ink-0);
+        font-size: 12px;
+        line-height: 1.5;
     }
 </style>
