@@ -246,13 +246,17 @@ class MySQLDriver implements DriverInterface
         $qCol = $this->quoteIdent($definition['name'] ?? '');
         $type = $this->sanitizeColumnType($definition['type'] ?? '');
         $null = ($definition['nullable'] ?? true) ? '' : ' NOT NULL';
-        $def  = isset($definition['default']) && $definition['default'] !== null
-                    ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
-                    : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : '');
+        $ai   = !empty($definition['autoIncrement']) ? ' AUTO_INCREMENT' : '';
+        // AUTO_INCREMENT columns must not have a DEFAULT clause
+        $def  = empty($definition['autoIncrement'])
+                    ? (isset($definition['default']) && $definition['default'] !== null
+                        ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
+                        : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : ''))
+                    : '';
         $after = !empty($definition['after'])
                     ? ' AFTER ' . $this->quoteIdent($definition['after'])
                     : '';
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl ADD COLUMN $qCol $type$null$def$after");
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl ADD COLUMN $qCol $type$null$def$ai$after");
     }
 
     public function modifyColumn(string $database, string $table, string $columnName, array $definition): void
@@ -264,10 +268,14 @@ class MySQLDriver implements DriverInterface
         $qNew = $this->quoteIdent($definition['name'] ?? $columnName);
         $type = $this->sanitizeColumnType($definition['type'] ?? '');
         $null = ($definition['nullable'] ?? true) ? '' : ' NOT NULL';
-        $def  = isset($definition['default']) && $definition['default'] !== null
-                    ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
-                    : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : '');
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl CHANGE COLUMN $qOld $qNew $type$null$def");
+        // AUTO_INCREMENT columns must not have a DEFAULT clause
+        $ai  = !empty($definition['autoIncrement']) ? ' AUTO_INCREMENT' : '';
+        $def  = empty($definition['autoIncrement'])
+                    ? (isset($definition['default']) && $definition['default'] !== null
+                        ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
+                        : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : ''))
+                    : '';
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl CHANGE COLUMN $qOld $qNew $type$null$def$ai");
     }
 
     public function dropColumn(string $database, string $table, string $columnName): void

@@ -196,14 +196,62 @@
 
     // Structure-mode edit state
     let editingColIdx = null;
-    let editColForm = { name: "", type: "", nullable: true, default: "" };
+    let editColForm = {
+        name: "",
+        type: "",
+        nullable: true,
+        default: "",
+        autoIncrement: false,
+    };
     let addingCol = false;
     let newColForm = {
         name: "",
         type: "VARCHAR(255)",
         nullable: true,
         default: "",
+        autoIncrement: false,
     };
+
+    const MYSQL_TYPES = [
+        // Numeric
+        "INT",
+        "TINYINT",
+        "SMALLINT",
+        "MEDIUMINT",
+        "BIGINT",
+        "INT UNSIGNED",
+        "TINYINT UNSIGNED",
+        "SMALLINT UNSIGNED",
+        "MEDIUMINT UNSIGNED",
+        "BIGINT UNSIGNED",
+        "DECIMAL(10,2)",
+        "FLOAT",
+        "DOUBLE",
+        "BIT(1)",
+        // String
+        "CHAR(1)",
+        "VARCHAR(255)",
+        "TINYTEXT",
+        "TEXT",
+        "MEDIUMTEXT",
+        "LONGTEXT",
+        "BINARY(1)",
+        "VARBINARY(255)",
+        "TINYBLOB",
+        "BLOB",
+        "MEDIUMBLOB",
+        "LONGBLOB",
+        "ENUM('a','b')",
+        "SET('a','b')",
+        // Date/Time
+        "DATE",
+        "TIME",
+        "DATETIME",
+        "TIMESTAMP",
+        "YEAR",
+        // Other
+        "JSON",
+    ];
     let structBusy = false;
     let selectedCol = null; // index of selected column row
 
@@ -222,6 +270,7 @@
             name: col.name,
             type: col.type,
             nullable: col.nullable !== false,
+            autoIncrement: isAutoIncrement(col),
             default:
                 col.default !== null && col.default !== undefined
                     ? String(col.default)
@@ -263,6 +312,7 @@
                 name: editColForm.name.trim(),
                 type: editColForm.type.trim(),
                 nullable: editColForm.nullable,
+                autoIncrement: editColForm.autoIncrement,
                 default:
                     editColForm.default !== "" ? editColForm.default : null,
             });
@@ -285,6 +335,7 @@
                 name: newColForm.name.trim(),
                 type: newColForm.type.trim(),
                 nullable: newColForm.nullable,
+                autoIncrement: newColForm.autoIncrement,
                 default: newColForm.default !== "" ? newColForm.default : null,
             });
             toast(`Column "${newColForm.name}" added`, "success");
@@ -294,6 +345,7 @@
                 type: "VARCHAR(255)",
                 nullable: true,
                 default: "",
+                autoIncrement: false,
             };
             dispatch("refresh");
         } catch (e) {
@@ -608,6 +660,7 @@
                                     type: "VARCHAR(255)",
                                     nullable: true,
                                     default: "",
+                                    autoIncrement: false,
                                 };
                             }}
                             disabled={structBusy}>+ Add Column</button
@@ -626,6 +679,7 @@
                         <th>Type</th>
                         <th>Nullable</th>
                         <th>Key</th>
+                        <th>AI</th>
                         <th>Default</th>
                     </tr>
                 </thead>
@@ -650,6 +704,7 @@
                                 <td class="edit-cell">
                                     <input
                                         class="cell-input mono"
+                                        list="mysql-types"
                                         bind:value={editColForm.type}
                                         placeholder="VARCHAR(255)"
                                     />
@@ -668,6 +723,21 @@
                                     </label>
                                 </td>
                                 <td class="mono col-key">{col.key || "—"}</td>
+                                <td class="edit-cell edit-cell-check">
+                                    <label class="check-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editColForm.autoIncrement
+                                            }
+                                        />
+                                        <span class="mono"
+                                            >{editColForm.autoIncrement
+                                                ? "YES"
+                                                : "NO"}</span
+                                        >
+                                    </label>
+                                </td>
                                 <td class="edit-cell">
                                     <input
                                         class="cell-input mono"
@@ -682,6 +752,9 @@
                                     >{col.nullable !== false ? "YES" : "NO"}</td
                                 >
                                 <td class="mono col-key">{col.key || "—"}</td>
+                                <td class="mono ai-cell"
+                                    >{isAutoIncrement(col) ? "✓" : "—"}</td
+                                >
                                 <td class="mono">
                                     {#if col.default !== null && col.default !== undefined}
                                         {col.default}
@@ -706,6 +779,7 @@
                             <td class="edit-cell"
                                 ><input
                                     class="cell-input mono"
+                                    list="mysql-types"
                                     bind:value={newColForm.type}
                                     placeholder="VARCHAR(255)"
                                 /></td
@@ -724,6 +798,19 @@
                                 </label>
                             </td>
                             <td class="mono">—</td>
+                            <td class="edit-cell edit-cell-check">
+                                <label class="check-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={newColForm.autoIncrement}
+                                    />
+                                    <span class="mono"
+                                        >{newColForm.autoIncrement
+                                            ? "YES"
+                                            : "NO"}</span
+                                    >
+                                </label>
+                            </td>
                             <td class="edit-cell"
                                 ><input
                                     class="cell-input mono"
@@ -744,6 +831,12 @@
         </div>
     </div>
 {/if}
+
+<datalist id="mysql-types">
+    {#each MYSQL_TYPES as t}
+        <option value={t}></option>
+    {/each}
+</datalist>
 
 <style>
     .datatable-wrap {
