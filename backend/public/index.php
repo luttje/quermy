@@ -52,7 +52,7 @@ if (($_SERVER['HTTP_ORIGIN'] ?? '') !== '') {
     header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Headers: Content-Type');
-    header('Access-Control-Allow-Methods: GET,POST,DELETE,OPTIONS');
+    header('Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS');
 }
 if ($method === 'OPTIONS') { http_response_code(204); exit; }
 
@@ -169,6 +169,61 @@ try {
             $driver = $session->open();
             try {
                 Json::send($driver->runQuery($db, $sql));
+            } finally { $driver->disconnect(); }
+            break;
+
+        /*
+         * Row mutations (require active session + table context)
+         */
+        case $method === 'POST' && preg_match('#^/api/databases/([^/]+)/tables/([^/]+)/rows$#', $path, $m):
+            $body   = Json::readBody();
+            $values = $body['values'] ?? [];
+            if (empty($values)) Json::error('No values provided', 422);
+            $driver = $session->open();
+            try { Json::send($driver->insertRow(rawurldecode($m[1]), rawurldecode($m[2]), $values)); }
+            finally { $driver->disconnect(); }
+            break;
+
+        case $method === 'PUT' && preg_match('#^/api/databases/([^/]+)/tables/([^/]+)/rows$#', $path, $m):
+            $body   = Json::readBody();
+            $where  = $body['where']  ?? [];
+            $values = $body['values'] ?? [];
+            if (empty($where))  Json::error('No WHERE conditions provided', 422);
+            if (empty($values)) Json::error('No values to update', 422);
+            $driver = $session->open();
+            try { Json::send($driver->updateRow(rawurldecode($m[1]), rawurldecode($m[2]), $where, $values)); }
+            finally { $driver->disconnect(); }
+            break;
+
+        case $method === 'DELETE' && preg_match('#^/api/databases/([^/]+)/tables/([^/]+)/rows$#', $path, $m):
+            $body  = Json::readBody();
+            $where = $body['where'] ?? [];
+            if (empty($where)) Json::error('No WHERE conditions provided', 422);
+            $driver = $session->open();
+            try { Json::send($driver->deleteRow(rawurldecode($m[1]), rawurldecode($m[2]), $where)); }
+            finally { $driver->disconnect(); }
+            break;
+
+        /*
+         * Column mutations
+         */
+        case $method === 'POST' && preg_match('#^/api/databases/([^/]+)/tables/([^/]+)/columns$#', $path, $m):
+            $body = Json::readBody();
+            requireFields($body, ['name', 'type']);
+            $driver = $session->open();
+            try {
+                $driver->addColumn(rawurldecode($m[1]), rawurldecode($m[2]), $body);
+                Json::send(['ok' => true]);
+            } finally { $driver->disconnect(); }
+            break;
+
+        case $method === 'PUT' && preg_match('#^/api/databases/([^/]+)/tables/([^/]+)/columns/([^/]+)$#', $path, $m):
+            $body = Json::readBody();
+            requireFields($body, ['name', 'type']);
+            $driver = $session->open();
+            try {
+                $driver->modifyColumn(rawurldecode($m[1]), rawurldecode($m[2]), rawurldecode($m[3]), $body);
+                Json::send(['ok' => true]);
             } finally { $driver->disconnect(); }
             break;
 

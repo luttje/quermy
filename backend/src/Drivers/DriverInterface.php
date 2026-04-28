@@ -50,6 +50,45 @@ interface DriverInterface
      */
     public function runQuery(string $database, string $sql): array;
 
+    /**
+     * Insert a single row.
+     *
+     * @param array<string,mixed> $values  column → value
+     * @return array{affected:int,insertId:int}
+     */
+    public function insertRow(string $database, string $table, array $values): array;
+
+    /**
+     * Update rows matching $where.
+     *
+     * @param array<string,mixed> $where   column → value (AND-ed)
+     * @param array<string,mixed> $values  column → new value
+     * @return array{affected:int}
+     */
+    public function updateRow(string $database, string $table, array $where, array $values): array;
+
+    /**
+     * Delete rows matching $where.
+     *
+     * @param array<string,mixed> $where  column → value (AND-ed, must not be empty)
+     * @return array{affected:int}
+     */
+    public function deleteRow(string $database, string $table, array $where): array;
+
+    /**
+     * Add a column to a table.
+     *
+     * @param array{name:string,type:string,nullable:bool,default:mixed,after?:string} $definition
+     */
+    public function addColumn(string $database, string $table, array $definition): void;
+
+    /**
+     * Rename / retype an existing column.
+     *
+     * @param array{name:string,type:string,nullable:bool,default:mixed} $definition
+     */
+    public function modifyColumn(string $database, string $table, string $columnName, array $definition): void;
+
     /** Identifier used when persisting connections. */
     public static function engineId(): string;
 }

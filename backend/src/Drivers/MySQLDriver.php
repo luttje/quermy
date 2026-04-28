@@ -93,7 +93,7 @@ class MySQLDriver implements DriverInterface
 
         // Column metadata
         $cstmt = $this->pdo->prepare(
-            "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT
+            "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT, EXTRA
              FROM information_schema.COLUMNS
              WHERE TABLE_SCHEMA = :db AND TABLE_NAME = :tbl
              ORDER BY ORDINAL_POSITION"
@@ -107,6 +107,7 @@ class MySQLDriver implements DriverInterface
                 'nullable' => $c['IS_NULLABLE'] === 'YES',
                 'key'      => $c['COLUMN_KEY'],
                 'default'  => $c['COLUMN_DEFAULT'],
+                'extra'    => $c['EXTRA'],
             ];
         }
 
@@ -163,11 +164,128 @@ class MySQLDriver implements DriverInterface
         ];
     }
 
+    public function insertRow(string $database, string $table, array $values): array
+    {
+        $this->ensureConnected();
+        if (empty($values)) {
+            throw new RuntimeException('No values provided for insert');
+        }
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        $cols  = implode(', ', array_map([$this, 'quoteIdent'], array_keys($values)));
+        $phs   = implode(', ', array_fill(0, count($values), '?'));
+        $stmt  = $this->pdo->prepare("INSERT INTO $qDb.$qTbl ($cols) VALUES ($phs)");
+        $stmt->execute(array_values($values));
+        return ['affected' => $stmt->rowCount(), 'insertId' => (int)$this->pdo->lastInsertId()];
+    }
+
+    public function updateRow(string $database, string $table, array $where, array $values): array
+    {
+        $this->ensureConnected();
+        if (empty($where))  throw new RuntimeException('No WHERE conditions provided');
+        if (empty($values)) throw new RuntimeException('No values to update');
+
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+
+        $setClauses   = [];
+        $whereClauses = [];
+        $params       = [];
+
+        foreach ($values as $col => $val) {
+            $setClauses[] = $this->quoteIdent($col) . ' = ?';
+            $params[]     = $val;
+        }
+        foreach ($where as $col => $val) {
+            if ($val === null) {
+                $whereClauses[] = $this->quoteIdent($col) . ' IS NULL';
+            } else {
+                $whereClauses[] = $this->quoteIdent($col) . ' = ?';
+                $params[]       = $val;
+            }
+        }
+
+        $sql  = "UPDATE $qDb.$qTbl SET "    . implode(', ',    $setClauses)
+              . " WHERE "                   . implode(' AND ', $whereClauses);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return ['affected' => $stmt->rowCount()];
+    }
+
+    public function deleteRow(string $database, string $table, array $where): array
+    {
+        $this->ensureConnected();
+        if (empty($where)) throw new RuntimeException('No WHERE conditions provided');
+
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+
+        $whereClauses = [];
+        $params       = [];
+
+        foreach ($where as $col => $val) {
+            if ($val === null) {
+                $whereClauses[] = $this->quoteIdent($col) . ' IS NULL';
+            } else {
+                $whereClauses[] = $this->quoteIdent($col) . ' = ?';
+                $params[]       = $val;
+            }
+        }
+
+        $sql  = "DELETE FROM $qDb.$qTbl WHERE " . implode(' AND ', $whereClauses);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return ['affected' => $stmt->rowCount()];
+    }
+
+    public function addColumn(string $database, string $table, array $definition): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        $qCol = $this->quoteIdent($definition['name'] ?? '');
+        $type = $this->sanitizeColumnType($definition['type'] ?? '');
+        $null = ($definition['nullable'] ?? true) ? '' : ' NOT NULL';
+        $def  = isset($definition['default']) && $definition['default'] !== null
+                    ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
+                    : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : '');
+        $after = !empty($definition['after'])
+                    ? ' AFTER ' . $this->quoteIdent($definition['after'])
+                    : '';
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl ADD COLUMN $qCol $type$null$def$after");
+    }
+
+    public function modifyColumn(string $database, string $table, string $columnName, array $definition): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        $qOld = $this->quoteIdent($columnName);
+        $qNew = $this->quoteIdent($definition['name'] ?? $columnName);
+        $type = $this->sanitizeColumnType($definition['type'] ?? '');
+        $null = ($definition['nullable'] ?? true) ? '' : ' NOT NULL';
+        $def  = isset($definition['default']) && $definition['default'] !== null
+                    ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
+                    : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : '');
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl CHANGE COLUMN $qOld $qNew $type$null$def");
+    }
+
+    /*
+     * Private helpers
+     */
+
     private function ensureConnected(): void
     {
         if ($this->pdo === null) {
             throw new RuntimeException('Not connected.');
         }
+    }
+
+    /** Wrap an identifier in backticks, escaping embedded backticks. */
+    private function quoteIdent(string $name): string
+    {
+        if ($name === '') throw new RuntimeException('Empty identifier');
+        return '`' . str_replace('`', '``', $name) . '`';
     }
 
     /** Allow only [A-Za-z0-9_$] — what MySQL accepts for unquoted idents. */
@@ -177,5 +295,17 @@ class MySQLDriver implements DriverInterface
             throw new RuntimeException("Invalid identifier: $name");
         }
         return $name;
+    }
+
+    /** Validate a MySQL column type string (e.g. "VARCHAR(255)", "INT UNSIGNED"). */
+    private function sanitizeColumnType(string $type): string
+    {
+        $type = trim($type);
+        if ($type === '') throw new RuntimeException('Column type cannot be empty');
+        if (!preg_match('/^[A-Za-z0-9_()\s,]+$/', $type)) {
+            throw new RuntimeException('Invalid column type');
+        }
+        if (strlen($type) > 100) throw new RuntimeException('Column type too long');
+        return strtoupper($type);
     }
 }

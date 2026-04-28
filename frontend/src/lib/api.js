@@ -43,4 +43,18 @@ export const api = {
     browseTable: (db, t, limit = 100, offset = 0) =>
         request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}?limit=${limit}&offset=${offset}`),
     runQuery: (db, sql) => request('POST', '/query', { database: db, sql }),
+
+    // row mutations
+    insertRow: (db, t, values) =>
+        request('POST', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/rows`, { values }),
+    updateRow: (db, t, where, values) =>
+        request('PUT', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/rows`, { where, values }),
+    deleteRow: (db, t, where) =>
+        request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/rows`, { where }),
+
+    // column mutations
+    addColumn: (db, t, definition) =>
+        request('POST', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns`, definition),
+    modifyColumn: (db, t, colName, definition) =>
+        request('PUT', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`, definition),
 };

@@ -62,15 +62,7 @@
 
     function selectLeaf(db, table, mode) {
         activeNode = leafKey(db, table, mode);
-        const qDb = "`" + db.replace(/`/g, "``") + "`";
-        const qTbl = "`" + table.replace(/`/g, "``") + "`";
-        let sql;
-        if (mode === "data") {
-            sql = `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`;
-        } else {
-            sql = `SHOW COLUMNS FROM ${qDb}.${qTbl};`;
-        }
-        dispatch("runSql", { db, sql });
+        dispatch("openTable", { db, table, mode });
     }
 
     let searchQuery = "";

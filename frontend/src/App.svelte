@@ -20,6 +20,7 @@
     let busy = false;
     let result = null; // { columns, rows, total, durationMs, isSelect, affected }
     let errorMsg = null;
+    let tableContext = null; // { db, table, mode } — set when browsing via tree
 
     // Resizable panes
     let sqlPaneHeight = 220;
@@ -63,6 +64,7 @@
     async function run() {
         if (!sql.trim() || busy) return;
         busy = true;
+        tableContext = null; // manual SQL run clears table context
         errorMsg = null;
         try {
             const r = await api.runQuery(queryDb, sql);
@@ -93,6 +95,66 @@
         sql = newSql;
         if (db) queryDb = db;
         run();
+    }
+
+    async function handleOpenTable(e) {
+        const { db: tDb, table: tTbl, mode: tMode } = e.detail;
+        queryDb = tDb;
+
+        // Also populate the SQL editor for reference / manual tweaking
+        const qDb = "`" + tDb.replace(/`/g, "``") + "`";
+        const qTbl = "`" + tTbl.replace(/`/g, "``") + "`";
+        sql =
+            tMode === "data"
+                ? `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`
+                : `SHOW COLUMNS FROM ${qDb}.${qTbl};`;
+
+        busy = true;
+        errorMsg = null;
+        tableContext = null;
+        result = null;
+
+        try {
+            const t0 = performance.now();
+            const r = await api.browseTable(tDb, tTbl);
+            const dt = performance.now() - t0;
+            result = {
+                columns: r.columns,
+                rows: r.rows,
+                affected: r.total,
+                isSelect: true,
+                durationMs: Math.round(dt * 100) / 100,
+            };
+            tableContext = { db: tDb, table: tTbl, mode: tMode };
+        } catch (e) {
+            errorMsg = e.message;
+        } finally {
+            busy = false;
+        }
+    }
+
+    async function handleRefresh() {
+        if (!tableContext) return;
+        busy = true;
+        try {
+            const t0 = performance.now();
+            const r = await api.browseTable(
+                tableContext.db,
+                tableContext.table,
+            );
+            const dt = performance.now() - t0;
+            result = {
+                columns: r.columns,
+                rows: r.rows,
+                affected: r.total,
+                isSelect: true,
+                durationMs: Math.round(dt * 100) / 100,
+            };
+        } catch (e) {
+            toast(e.message, "error");
+        } finally {
+            busy = false;
+        }
     }
 
     function handleSqlResize({ detail }) {
@@ -154,7 +216,12 @@
         <div class="workspace">
             <!-- Left: Explorer tree -->
             <aside class="sidebar-left" style="width: {leftWidth}px">
-                <TreeView {databases} {busy} on:runSql={handleRunSql} />
+                <TreeView
+                    {databases}
+                    {busy}
+                    on:runSql={handleRunSql}
+                    on:openTable={handleOpenTable}
+                />
             </aside>
             <ResizeHandle orientation="vertical" on:resize={handleLeftResize} />
 
@@ -206,6 +273,10 @@
                                 rows={result.rows}
                                 total={result.affected}
                                 durationMs={result.durationMs}
+                                db={tableContext?.db ?? null}
+                                table={tableContext?.table ?? null}
+                                mode={tableContext?.mode ?? "data"}
+                                on:refresh={handleRefresh}
                             />
                         {:else}
                             <div class="ok-result">
