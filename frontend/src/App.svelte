@@ -8,6 +8,7 @@
     import AIChatPanel from "./components/AIChatPanel.svelte";
     import DataTable from "./components/DataTable.svelte";
     import Toaster from "./components/Toaster.svelte";
+    import ResizeHandle from "./components/ResizeHandle.svelte";
 
     let bootstrapping = true;
 
@@ -20,11 +21,10 @@
     let errorMsg = null;
     let textarea;
 
-    // Draggable split between SQL pane and result pane
+    // Resizable panes
     let sqlPaneHeight = 220;
-    let dragging = false;
-    let dragStartY = 0;
-    let dragStartH = 0;
+    let leftWidth = 220;
+    let rightWidth = 260;
 
     onMount(async () => {
         try {
@@ -107,28 +107,19 @@
         run();
     }
 
-    // Resize divider
-    function onResizeStart(e) {
-        dragging = true;
-        dragStartY = e.clientY;
-        dragStartH = sqlPaneHeight;
-        window.addEventListener("mousemove", onResizeMove);
-        window.addEventListener("mouseup", onResizeEnd);
-        e.preventDefault();
-    }
-
-    function onResizeMove(e) {
-        if (!dragging) return;
+    function handleSqlResize({ detail }) {
         sqlPaneHeight = Math.max(
             100,
-            Math.min(600, dragStartH + (e.clientY - dragStartY)),
+            Math.min(600, sqlPaneHeight + detail.delta),
         );
     }
 
-    function onResizeEnd() {
-        dragging = false;
-        window.removeEventListener("mousemove", onResizeMove);
-        window.removeEventListener("mouseup", onResizeEnd);
+    function handleLeftResize({ detail }) {
+        leftWidth = Math.max(150, Math.min(500, leftWidth + detail.delta));
+    }
+
+    function handleRightResize({ detail }) {
+        rightWidth = Math.max(150, Math.min(500, rightWidth - detail.delta));
     }
 </script>
 
@@ -174,9 +165,10 @@
         <!-- 3-panel workspace -->
         <div class="workspace">
             <!-- Left: Explorer tree -->
-            <aside class="sidebar-left">
+            <aside class="sidebar-left" style="width: {leftWidth}px">
                 <TreeView {databases} on:runSql={handleRunSql} />
             </aside>
+            <ResizeHandle orientation="vertical" on:resize={handleLeftResize} />
 
             <!-- Middle: SQL editor + results -->
             <div class="workspace-middle">
@@ -217,13 +209,7 @@
                 </div>
 
                 <!-- Resize handle -->
-                <div
-                    class="resize-handle"
-                    class:dragging
-                    on:mousedown={onResizeStart}
-                    role="separator"
-                    aria-orientation="horizontal"
-                ></div>
+                <ResizeHandle on:resize={handleSqlResize} />
 
                 <!-- Result pane -->
                 <div class="result-pane">
@@ -266,7 +252,11 @@
             </div>
 
             <!-- Right: AI chat -->
-            <aside class="sidebar-right">
+            <ResizeHandle
+                orientation="vertical"
+                on:resize={handleRightResize}
+            />
+            <aside class="sidebar-right" style="width: {rightWidth}px">
                 <AIChatPanel />
             </aside>
         </div>
@@ -399,9 +389,7 @@
     }
 
     .sidebar-left {
-        width: 220px;
         flex-shrink: 0;
-        border-right: 1px solid var(--line);
         background: var(--bg-1);
         overflow: hidden;
         display: flex;
@@ -409,9 +397,7 @@
     }
 
     .sidebar-right {
-        width: 260px;
         flex-shrink: 0;
-        border-left: 1px solid var(--line);
         background: var(--bg-1);
         overflow: hidden;
     }
@@ -508,26 +494,6 @@
     .sql-editor:focus {
         outline: none;
         box-shadow: none;
-    }
-
-    /* ---- Resize divider ---- */
-    .resize-handle {
-        height: 4px;
-        flex-shrink: 0;
-        background: var(--line);
-        cursor: row-resize;
-        transition: background 80ms;
-        position: relative;
-        user-select: none;
-    }
-    .resize-handle::after {
-        content: "";
-        position: absolute;
-        inset: -4px 0;
-    }
-    .resize-handle:hover,
-    .resize-handle.dragging {
-        background: var(--acc);
     }
 
     /* ---- Result pane ---- */
