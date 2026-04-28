@@ -9,6 +9,7 @@
     import DataTable from "./components/DataTable.svelte";
     import Toaster from "./components/Toaster.svelte";
     import ResizeHandle from "./components/ResizeHandle.svelte";
+    import SqlEditor from "./components/SqlEditor.svelte";
 
     let bootstrapping = true;
 
@@ -19,7 +20,6 @@
     let busy = false;
     let result = null; // { columns, rows, total, durationMs, isSelect, affected }
     let errorMsg = null;
-    let textarea;
 
     // Resizable panes
     let sqlPaneHeight = 220;
@@ -85,18 +85,6 @@
         if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();
             run();
-        }
-    }
-
-    function onTab(e) {
-        if (e.key === "Tab") {
-            e.preventDefault();
-            const s = e.target.selectionStart;
-            const en = e.target.selectionEnd;
-            sql = sql.slice(0, s) + "  " + sql.slice(en);
-            requestAnimationFrame(() => {
-                textarea.selectionStart = textarea.selectionEnd = s + 2;
-            });
         }
     }
 
@@ -198,14 +186,7 @@
                             </button>
                         </div>
                     </div>
-                    <textarea
-                        bind:this={textarea}
-                        class="sql-editor"
-                        bind:value={sql}
-                        on:keydown={onTab}
-                        placeholder="SELECT * FROM ..."
-                        spellcheck="false"
-                    ></textarea>
+                    <SqlEditor bind:value={sql} />
                 </div>
 
                 <!-- Resize handle -->
@@ -477,23 +458,17 @@
         margin-left: 1px;
     }
 
-    .sql-editor {
+    /* Make CodeMirror fill the sql-pane */
+    .sql-pane :global(.cm-editor) {
         flex: 1;
         min-height: 0;
+        height: 100%;
         background: var(--bg-0);
-        border: 0;
-        border-radius: 0;
-        padding: 12px 16px;
-        font-family: var(--font-mono);
-        font-size: 13px;
-        line-height: 1.65;
-        color: var(--ink-0);
-        resize: none;
-        width: 100%;
     }
-    .sql-editor:focus {
-        outline: none;
-        box-shadow: none;
+    .sql-pane :global(.cm-scroller) {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
     }
 
     /* ---- Result pane ---- */
