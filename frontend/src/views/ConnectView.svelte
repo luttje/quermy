@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-    import { api } from "../lib/api.js";
+    import { api, BASE } from "../lib/api.js";
     import { view, session, toast } from "../lib/store.js";
     import Btn from "../components/ui/Btn.svelte";
     import Input from "../components/ui/Input.svelte";
@@ -32,7 +32,7 @@
             ]);
             connections = connsRes.connections || [];
             try {
-                const e = await fetch("/api/engines", {
+                const e = await fetch(`${BASE}/engines`, {
                     credentials: "include",
                 }).then((r) => r.json());
                 if (e.engines) engines = e.engines;

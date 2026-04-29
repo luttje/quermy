@@ -1,3 +1,9 @@
+# Backend
+backend/vendor/
+
+# Release output
+/dist/
+
 # Frontend
 frontend/node_modules/
 frontend/.vite/

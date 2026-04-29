@@ -1,0 +1,18 @@
+{
+    "name": "quermy/quermy",
+    "description": "Drop-in phpMyAdmin replacement built on a modern stack",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quermy\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

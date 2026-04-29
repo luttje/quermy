@@ -16,12 +16,5 @@
     RewriteRule ^ index.html [L]
 </IfModule>
 
-# Lock down the storage directory just in case it ends up under the docroot
-<IfModule mod_authz_core.c>
-    <DirectoryMatch ".*/storage(/|$)">
-        Require all denied
-    </DirectoryMatch>
-</IfModule>
-
 # Sensible defaults
 Options -Indexes

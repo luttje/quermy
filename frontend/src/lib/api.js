@@ -1,7 +1,10 @@
 // API client for the Quermy backend.
 // All requests are same-origin; we send cookies so the PHP session sticks.
 
-const BASE = '/api';
+// Strip trailing slash from the Vite base so we can append /api cleanly.
+// Generic build: BASE_URL = '/'        → BASE = '/api'
+// Laragon build: BASE_URL = '/quermy/' → BASE = '/quermy/api'
+export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '') + '/api';
 
 async function request(method, path, body) {
     const opts = {
