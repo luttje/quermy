@@ -1,4 +1,4 @@
-# <img src="./logo.png" alt="Quermy logo" width="50" align="center"> Quermy
+# Quermy
 
 A drop-in MySQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdmin with a modern Svelte UI and a small, dependency-free PHP backend.
 
