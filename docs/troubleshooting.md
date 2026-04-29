@@ -21,7 +21,7 @@ If all requests to `/api/` endpoints are returning 404 Not Found, it's likely th
     LoadModule rewrite_module modules/mod_rewrite.so
     ```
 
-- The `.htaccess` file is present in the `backend/public/` directory and has the correct rewrite rules (as shown in the [backend/public/.htaccess](./backend/public/.htaccess) file).
+- The `.htaccess` file is present in the `backend/public/` directory and has the correct rewrite rules (as shown in the [`/backend/public/.htaccess`](../backend/public/.htaccess) file).
 
 - The Alias or VirtualHost configuration for the backend:
 

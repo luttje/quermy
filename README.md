@@ -41,12 +41,12 @@ The above steps place Quermy into `<LaragonDirectory>/etc/apps/quermy`, along wi
 
 ## 🌐 Hosting publicly
 
-Quermy can be hosted on a public server. Each visitor brings their own database credentials and API keys. [View hosting instructions →](docs/hosting-publicly.md)
+Quermy can be hosted on a public server. Each visitor brings their own database credentials and API keys. [View the hosting instructions](docs/hosting-publicly.md) for instructions.
 
-# 🤯 Troubleshooting
+## 🤯 Troubleshooting
 
 Have questions or run into issues? Check out the [troubleshooting guide](docs/troubleshooting.md) for common problems and solutions.
 
 ## 💖 Contributing
 
-**Want to build the project yourself, or contribute to the codebase?** Great! Contributions are very welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
+**Want to build the project yourself, or contribute to the codebase?** Great! Contributions are very welcome. Please see [the contributing guide](CONTRIBUTING.md) for setup instructions and guidelines.
