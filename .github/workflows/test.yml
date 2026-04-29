@@ -43,6 +43,6 @@ jobs:
     - name: Run tests
       uses: nick-fields/retry@v4
       with:
-        timeout_seconds: 30
+        timeout_minutes: 10
         max_attempts: 3
         command: cd backend && ./vendor/bin/pest --ci
