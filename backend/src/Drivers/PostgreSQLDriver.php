@@ -226,7 +226,12 @@ class PostgreSQLDriver implements DriverInterface
         $stmt  = $this->pdo->prepare("INSERT INTO public.$qTbl ($cols) VALUES ($phs) RETURNING *");
         $stmt->execute(array_values($values));
         $row = $stmt->fetch();
-        return ['affected' => $stmt->rowCount(), 'insertId' => 0];
+        try {
+            $insertId = (int)$this->pdo->query('SELECT lastval()')->fetchColumn();
+        } catch (\Exception $e) {
+            $insertId = 0;
+        }
+        return ['affected' => $stmt->rowCount(), 'insertId' => $insertId];
     }
 
     public function updateRow(string $database, string $table, array $where, array $values): array

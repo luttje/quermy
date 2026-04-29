@@ -7,7 +7,7 @@ A drop-in MySQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdm
 
 <div align="center">
 
-<img src="./screenshot.png" alt="Screenshot of Quermy UI" width="600">
+<img src="./docs/screenshot.png" alt="Screenshot of Quermy UI" width="600">
 
 </div>
 
@@ -39,39 +39,6 @@ The above steps place Quermy into `<LaragonDirectory>/etc/apps/quermy`, along wi
 2. Unzip the file
 3. Point your web server at the `public` directory.
 
-## 🚀 Build it yourself
+## 💖 Contributing
 
-### 1. Build the frontend
-
-```sh
-cd frontend
-npm install
-npm run build   # outputs into ../backend/public
-```
-
-### 2. Serve the backend
-
-For local development:
-
-```sh
-cd backend
-php -S localhost:8000 -t public public/router.php
-```
-
-The `router.php` script makes the built-in PHP server replicate what `.htaccess` does under Apache (serve static assets, route `/api/*` to `index.php`, fall back to the SPA otherwise).
-
-Open `http://localhost:8000` and you're in.
-
-### Frontend dev mode
-
-If you want hot-reload while iterating on the UI:
-
-```sh
-# terminal 1
-cd backend && php -S localhost:8000 -t public
-
-# terminal 2
-cd frontend && npm run dev
-```
-
-Vite proxies `/api` → `localhost:8000` so cookies behave correctly.
+**Want to build the project yourself, or contribute to the codebase?** Great! Contributions are very welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
