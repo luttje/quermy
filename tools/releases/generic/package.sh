@@ -11,7 +11,7 @@
 # Zip name: quermy-<release>.zip
 # Structure inside the zip:
 #   quermy/
-#     public/  src/  vendor/  storage/
+#     public/  src/  vendor/
 
 GENERIC_ROOT="${STAGE_DIR}/generic"
 rm -rf "${GENERIC_ROOT}"

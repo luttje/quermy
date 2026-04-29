@@ -11,7 +11,7 @@
 # Zip name: quermy-laragon-<release>.zip
 # Structure inside the zip:
 #   laragon/
-#     etc/apps/quermy/        <- drop-in app (public/ src/ vendor/ storage/)
+#     etc/apps/quermy/        <- drop-in app (public/ src/ vendor/)
 #     etc/apache2/alias/quermy.conf
 
 LARAGON_ROOT="${STAGE_DIR}/laragon"

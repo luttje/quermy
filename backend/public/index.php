@@ -90,14 +90,29 @@ if ($base !== '' && str_starts_with($path, $base)) {
 $path = '/' . ltrim($path, '/');
 
 /*
- * CORS (local dev only — same-origin in production)
+ * CORS — development only.
+ *
+ * In production the compiled frontend is served from the same origin as the
+ * PHP backend, so the browser never sends an Origin header and these headers
+ * are never emitted.
+ *
+ * During local development the Vite dev server runs on a different port, so
+ * we allow it — but only for localhost/127.0.0.1 origins to prevent a
+ * production mis-deployment from accidentally opening the API to all origins.
  */
-if (($_SERVER['HTTP_ORIGIN'] ?? '') !== '') {
-    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$isLocalOrigin = (bool) preg_match(
+    '#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#',
+    $origin,
+);
+
+if ($isLocalOrigin) {
+    header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Headers: Content-Type');
     header('Access-Control-Allow-Methods: GET,POST,PUT,PATCH,DELETE,OPTIONS');
 }
+
 if ($method === 'OPTIONS') {
     http_response_code(204);
     exit;

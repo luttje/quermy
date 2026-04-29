@@ -39,6 +39,10 @@ The above steps place Quermy into `<LaragonDirectory>/etc/apps/quermy`, along wi
 2. Unzip the file
 3. Point your web server at the `public` directory.
 
+## 🌐 Hosting publicly
+
+Quermy can be hosted on a public server. Each visitor brings their own database credentials and API keys. [View hosting instructions →](docs/hosting-publicly.md)
+
 ## 💖 Contributing
 
 **Want to build the project yourself, or contribute to the codebase?** Great! Contributions are very welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.

@@ -1,2 +1,0 @@
-# Encrypted credential vault and master key live here at runtime.
-# Both are gitignored. The PHP backend creates them on first run with mode 0600.
