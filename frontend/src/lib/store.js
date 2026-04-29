@@ -8,11 +8,11 @@ export const toasts = writable([]);
 
 let nextId = 1;
 export function toast(message, type = 'info') {
-  const id = nextId++;
-  toasts.update((list) => [...list, { id, message, type }]);
-  setTimeout(() => {
-    toasts.update((list) => list.filter((t) => t.id !== id));
-  }, 4500);
+    const id = nextId++;
+    toasts.update((list) => [...list, { id, message, type }]);
+    setTimeout(() => {
+        toasts.update((list) => list.filter((t) => t.id !== id));
+    }, 4500);
 }
 
 // AI key manager state — populated on mount by AIChatPanel.

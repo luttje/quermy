@@ -5,8 +5,6 @@ require __DIR__ . '/../vendor/autoload.php';
 use Quermy\Http\Json;
 use Quermy\Http\Router;
 use Quermy\Http\ConnectionSession;
-use Quermy\Storage\CredentialVault;
-use Quermy\Storage\UserSettings;
 use Quermy\Controllers\BaseController;
 
 // Session cookies are HTTPOnly to prevent JavaScript access, mitigating XSS risks.
@@ -25,13 +23,7 @@ session_start();
 /*
  * Dependencies
  */
-$storageDir = realpath(__DIR__ . '/../storage') ?: __DIR__ . '/../storage';
-$vault    = new CredentialVault(
-    vaultPath: $storageDir . '/vault.json',
-    keyPath:   $storageDir . '/quermy.key',
-);
-$settings = new UserSettings($storageDir . '/settings.json');
-$session  = new ConnectionSession($vault);
+$session = new ConnectionSession();
 
 /*
  * Controller resolver
@@ -41,7 +33,7 @@ $session  = new ConnectionSession($vault);
  * type. Anything else throws — better to fail loudly than silently inject
  * nulls.
  */
-$resolve = function (string $class) use ($vault, $settings, $session): object {
+$resolve = function (string $class) use ($session): object {
     $rc = new ReflectionClass($class);
     $ctor = $rc->getConstructor();
     if ($ctor === null) {
@@ -53,8 +45,6 @@ $resolve = function (string $class) use ($vault, $settings, $session): object {
         $type = $p->getType();
         $name = $type instanceof ReflectionNamedType ? $type->getName() : null;
         $args[] = match ($name) {
-            CredentialVault::class   => $vault,
-            UserSettings::class      => $settings,
             ConnectionSession::class => $session,
             default => throw new RuntimeException(
                 "Cannot resolve parameter \${$p->getName()} of type "

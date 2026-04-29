@@ -4,6 +4,7 @@
     import { session, capabilities, toast } from "./lib/store.js";
 
     import ConnectView from "./views/ConnectView.svelte";
+    import VaultGate from "./components/VaultGate.svelte";
     import TreeView from "./components/TreeView.svelte";
     import AIChatPanel from "./components/AIChatPanel.svelte";
     import DataTable from "./components/DataTable.svelte";
@@ -275,7 +276,9 @@
     </div>
 {:else if !$session}
     <div class="flex-1 overflow-y-auto">
-        <ConnectView />
+        <VaultGate>
+            <ConnectView />
+        </VaultGate>
     </div>
 {:else}
     <div class="h-full flex flex-col overflow-hidden">

@@ -1,13 +1,17 @@
 <script>
     import { onMount } from "svelte";
     import { api } from "../lib/api.js";
+    import * as vault from "../lib/vault.js";
+    import { getSettings, updateSettings } from "../lib/settings.js";
     import { aiKeys, activeAiKey } from "../lib/store.js";
     import { parse } from "../lib/marked.js";
     import AIKeyManager from "./AIKeyManager.svelte";
+    import VaultGate from "./VaultGate.svelte";
     import { quermySystemPrompt } from "../lib/prompts";
     import "highlight.js/styles/atom-one-dark.css";
 
-    // Chat state
+    // Provider metadata — fetched once for model-list lookups.
+    let providers = [];
     let messages = [
         {
             role: "system",
@@ -36,12 +40,12 @@
 
     onMount(async () => {
         try {
-            const [keysRes, settingsRes] = await Promise.all([
-                api.listAiKeys(),
-                api.getSettings(),
+            const [keys, provRes] = await Promise.all([
+                vault.listAiKeys(),
+                api.getAiProviders(),
             ]);
 
-            const keys = keysRes.keys ?? [];
+            providers = provRes.providers ?? [];
             aiKeys.set(keys);
 
             // Auto-select first key if nothing is active yet
@@ -50,7 +54,7 @@
             }
 
             // Apply persisted system prompt if present
-            const saved = settingsRes.settings?.systemPrompt;
+            const saved = getSettings()?.systemPrompt;
             if (saved && typeof saved === "string" && saved.trim()) {
                 messages[0] = { role: "system", content: saved };
                 messages = messages; // trigger reactivity
@@ -74,7 +78,7 @@
         promptError = "";
         promptSaving = true;
         try {
-            await api.updateSettings({ systemPrompt: promptDraft });
+            updateSettings({ systemPrompt: promptDraft });
             messages[0] = { role: "system", content: promptDraft };
             messages = messages;
             showPromptEditor = false;
@@ -91,7 +95,7 @@
         promptError = "";
         promptSaving = true;
         try {
-            await api.updateSettings({ systemPrompt: null });
+            updateSettings({ systemPrompt: null });
             messages[0] = { role: "system", content: quermySystemPrompt };
             messages = messages;
             promptDraft = quermySystemPrompt;
@@ -126,14 +130,17 @@
         );
     }
 
-    // Models available for the active key's provider — fetched lazily when the key changes
+    // Models available for the active key's provider
     let availableModels = [];
-    $: if ($activeAiKey?.keyId) {
-        api.getKeyModels($activeAiKey.keyId)
-            .then((r) => {
-                availableModels = r.models ?? [];
-            })
-            .catch(() => {});
+    $: {
+        if ($activeAiKey?.keyId && $aiKeys.length && providers.length) {
+            const key = $aiKeys.find((k) => k.id === $activeAiKey.keyId);
+            availableModels = key
+                ? (providers.find((p) => p.id === key.provider)?.models ?? [])
+                : [];
+        } else {
+            availableModels = [];
+        }
     }
 
     function scrollToBottom() {
@@ -243,8 +250,13 @@
             : sendable;
 
         try {
+            // Decrypt the active key before streaming — never stored in component state.
+            const decrypted = await vault.getDecryptedAiKey($activeAiKey.keyId);
+            if (!decrypted) throw new Error("AI key not found in vault.");
+
             for await (const event of api.aiChatStream(
-                $activeAiKey.keyId,
+                decrypted.provider,
+                decrypted.apiKey,
                 $activeAiKey.model,
                 withContext,
             )) {
@@ -458,14 +470,16 @@
 
     {#if showKeyManager}
         <div class="flex-1 overflow-hidden">
-            <AIKeyManager onClose={() => (showKeyManager = false)} />
+            <VaultGate>
+                <AIKeyManager onClose={() => (showKeyManager = false)} />
+            </VaultGate>
         </div>
     {:else if showPromptEditor}
         <div class="flex-1 flex flex-col overflow-hidden p-3 gap-2">
             <p class="text-[11px] text-(--ink-3) leading-snug">
                 Customise the system prompt sent to the AI at the start of every
-                conversation. Changes are saved to the server and persist across
-                sessions.
+                conversation. Changes are saved in your browser and persist
+                across sessions.
             </p>
             <textarea
                 class="flex-1 resize-none bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-2 text-[11.5px] font-mono text-(--ink-0) leading-relaxed focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_2px_var(--acc-glow)]"

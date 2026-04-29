@@ -1,6 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { api } from "../lib/api.js";
+    import * as vault from "../lib/vault.js";
     import { session, toast } from "../lib/store.js";
     import Btn from "../components/ui/Btn.svelte";
     import Input from "../components/ui/Input.svelte";
@@ -40,11 +41,11 @@
 
     onMount(async () => {
         try {
-            const [connsRes, engRes] = await Promise.all([
-                api.listConnections(),
+            const [conns, engRes] = await Promise.all([
+                vault.listConnections(),
                 api.getEngines(),
             ]);
-            connections = connsRes.connections || [];
+            connections = conns;
             engines = engRes.engines || [];
             if (engines.length > 0) {
                 form.engine = engines[0].id;
@@ -65,7 +66,12 @@
                     ? payload.database || "file-db"
                     : `${payload.host}:${payload.port}`;
             }
+            // Always connect as adhoc; saving is handled client-side.
             await api.connect(payload);
+            if (form.save) {
+                await vault.saveConnection(payload);
+                connections = await vault.listConnections();
+            }
             const s = await api.getSession();
             session.set(s.active);
             toast("Connected", "success");
@@ -79,7 +85,11 @@
     async function connectSaved(c) {
         busy = true;
         try {
-            await api.connectSaved(c.id);
+            // Load full credentials from the local vault, then connect adhoc.
+            const creds = await vault.loadConnection(c.id);
+            if (!creds)
+                throw new Error("Saved connection not found in local vault.");
+            await api.connect(creds);
             const s = await api.getSession();
             session.set(s.active);
             toast(`Connected to ${c.name}`, "success");
@@ -94,7 +104,7 @@
         ev.stopPropagation();
         if (!confirm(`Delete saved connection "${c.name}"?`)) return;
         try {
-            await api.deleteConnection(c.id);
+            await vault.deleteConnection(c.id);
             connections = connections.filter((x) => x.id !== c.id);
             toast("Connection removed");
         } catch (e) {

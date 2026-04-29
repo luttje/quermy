@@ -1,6 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { api } from "../lib/api.js";
+    import * as vault from "../lib/vault.js";
     import { aiKeys, activeAiKey } from "../lib/store.js";
 
     export let onClose = () => {};
@@ -62,8 +63,8 @@
 
     async function refreshKeys() {
         try {
-            const res = await api.listAiKeys();
-            aiKeys.set(res.keys ?? []);
+            const keys = await vault.listAiKeys();
+            aiKeys.set(keys);
         } catch {
             // leave unchanged
         }
@@ -85,22 +86,16 @@
         }
         saving = true;
         try {
-            await api.addAiKey(
+            const entry = await vault.addAiKey(
                 draftLabel.trim(),
                 draftProvider,
                 draftKey.trim(),
                 draftModel,
             );
-            await refreshKeys();
+            aiKeys.update((keys) => [...keys, entry]);
             // Auto-select newly added key if none active
             if (!$activeAiKey) {
-                const keys = $aiKeys;
-                if (keys.length) {
-                    activeAiKey.set({
-                        keyId: keys[keys.length - 1].id,
-                        model: keys[keys.length - 1].model,
-                    });
-                }
+                activeAiKey.set({ keyId: entry.id, model: entry.model });
             }
             resetAddForm();
         } catch (err) {
@@ -137,14 +132,15 @@
         try {
             const changes = { label: editLabel.trim(), model: editModel };
             if (editKey.trim()) changes.apiKey = editKey.trim();
-            const res = await api.updateAiKey(editingId, changes);
+            const updated = await vault.updateAiKey(editingId, changes);
+            if (!updated) throw new Error("Key not found.");
             aiKeys.update((keys) =>
-                keys.map((k) => (k.id === editingId ? res.key : k)),
+                keys.map((k) => (k.id === editingId ? updated : k)),
             );
             // Keep activeAiKey model in sync if this was the active key
             activeAiKey.update((a) => {
                 if (a?.keyId === editingId)
-                    return { ...a, model: res.key.model };
+                    return { ...a, model: updated.model };
                 return a;
             });
             editingId = null;
@@ -158,7 +154,7 @@
     async function deleteKey(id) {
         if (!confirm("Delete this API key? This cannot be undone.")) return;
         try {
-            await api.deleteAiKey(id);
+            await vault.deleteAiKey(id);
             aiKeys.update((keys) => keys.filter((k) => k.id !== id));
             // Clear active if deleted
             activeAiKey.update((a) => (a?.keyId === id ? null : a));

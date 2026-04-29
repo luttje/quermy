@@ -15,12 +15,10 @@ use Quermy\Ai\Tools\SuggestQuery;
 use Quermy\Http\ConnectionSession;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
-use Quermy\Storage\CredentialVault;
 
 final class AiChatController extends BaseController
 {
     public function __construct(
-        private CredentialVault $vault,
         private ConnectionSession $session,
     ) {}
 
@@ -28,19 +26,16 @@ final class AiChatController extends BaseController
     public function stream(): void
     {
         $body     = Json::readBody();
-        $keyId    = trim((string)($body['keyId'] ?? ''));
-        $model    = trim((string)($body['model'] ?? ''));
+        $provider = trim((string)($body['provider'] ?? ''));
+        $apiKey   = trim((string)($body['apiKey']   ?? ''));
+        $model    = trim((string)($body['model']    ?? ''));
         $messages = $body['messages'] ?? [];
 
-        if ($keyId === '') Json::error('keyId is required', 422);
-        if ($model === '') Json::error('model is required', 422);
+        if ($provider === '') Json::error('provider is required', 422);
+        if ($apiKey   === '') Json::error('apiKey is required',   422);
+        if ($model    === '') Json::error('model is required',    422);
         if (!is_array($messages) || $messages === []) {
             Json::error('messages must be a non-empty array', 422);
-        }
-
-        $creds = $this->vault->aiKeyGetDecrypted($keyId);
-        if ($creds === null) {
-            Json::error('API key not found. Add one via the key manager.', 422);
         }
 
         // Tool order isn't significant — the agent picks based on the
@@ -72,7 +67,7 @@ final class AiChatController extends BaseController
 
         try {
             $chat = new ChatService($tools);
-            foreach ($chat->stream($creds['provider'], $creds['apiKey'], $messages, $model) as $event) {
+            foreach ($chat->stream($provider, $apiKey, $messages, $model) as $event) {
                 echo 'data: ' . json_encode($event) . "\n\n";
                 flush();
             }
