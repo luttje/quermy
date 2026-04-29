@@ -32,6 +32,7 @@ export const api = {
     disconnect: () => request('POST', '/session/disconnect'),
     getEngines: () => request('GET', '/engines'),
     getCapabilities: () => request('GET', '/capabilities'),
+    getServerConfig: () => request('GET', '/server-config'),
 
     // saved connections
     // listConnections, saveConnection, deleteConnection, connectSaved — removed.

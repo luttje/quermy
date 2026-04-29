@@ -6,6 +6,7 @@ use Quermy\Drivers\DriverFactory;
 use Quermy\Http\ConnectionSession;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
+use Quermy\Http\ServerConfig;
 
 final class MetaController extends BaseController
 {
@@ -17,6 +18,16 @@ final class MetaController extends BaseController
     public function engines(): void
     {
         Json::send(['engines' => DriverFactory::supportedEnginesMeta()]);
+    }
+
+    /**
+     * Exposes the non-sensitive parts of the server-managed connection config.
+     * Returns { serverConnection: null } when Quermy is running in local/dev mode.
+     */
+    #[Route('GET', '/api/server-config')]
+    public function serverConfig(): void
+    {
+        Json::send(['serverConnection' => ServerConfig::serverConnection()]);
     }
 
     #[Route('GET', '/api/capabilities')]

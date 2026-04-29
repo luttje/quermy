@@ -9,7 +9,7 @@ use RuntimeException;
 class MySQLDriver implements DriverInterface
 {
     private ?PDO $pdo = null;
-    private ?string $currentDb = null;
+    private ?string $pinnedDatabaseName = null;
 
     public static function engineId(): string
     {
@@ -74,7 +74,7 @@ class MySQLDriver implements DriverInterface
         $dsnParts = ["host=$host", "port=$port", "charset=utf8mb4"];
         if ($db) {
             $dsnParts[] = "dbname=$db";
-            $this->currentDb = $db;
+            $this->pinnedDatabaseName = $db;
         }
         $dsn = 'mysql:' . implode(';', $dsnParts);
 
@@ -94,12 +94,19 @@ class MySQLDriver implements DriverInterface
     public function disconnect(): void
     {
         $this->pdo = null;
-        $this->currentDb = null;
+        $this->pinnedDatabaseName = null;
     }
 
     public function listDatabases(): array
     {
+        if ($this->pinnedDatabaseName !== null) {
+            // If we're already connected to a specific database, just return it.
+            // This can happen when the admin pins a database in server config.
+            return [$this->pinnedDatabaseName];
+        }
+
         $this->ensureConnected();
+
         $stmt = $this->pdo->query(
             "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA
              WHERE SCHEMA_NAME NOT IN ('mysql','information_schema','performance_schema','sys')
@@ -110,7 +117,12 @@ class MySQLDriver implements DriverInterface
 
     public function listTables(string $database): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot list tables for $database");
+        }
+
         $this->ensureConnected();
+
         $stmt = $this->pdo->prepare(
             "SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH + INDEX_LENGTH AS SIZE
              FROM information_schema.TABLES
@@ -131,7 +143,12 @@ class MySQLDriver implements DriverInterface
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot browse table in $database");
+        }
+
         $this->ensureConnected();
+
         // Identifiers can't be parameter-bound. Sanitize hard: only allow
         // valid MySQL identifier chars to defeat injection through the path.
         $database = $this->validateIdent($database);
@@ -178,6 +195,10 @@ class MySQLDriver implements DriverInterface
 
     public function runQuery(string $database, string $sql): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot run query in $database");
+        }
+
         $this->ensureConnected();
         if ($database !== '') {
             $database = $this->validateIdent($database);
@@ -214,6 +235,10 @@ class MySQLDriver implements DriverInterface
 
     public function insertRow(string $database, string $table, array $values): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot insert row in $database");
+        }
+
         $this->ensureConnected();
         if (empty($values)) {
             throw new RuntimeException('No values provided for insert');
@@ -229,6 +254,10 @@ class MySQLDriver implements DriverInterface
 
     public function updateRow(string $database, string $table, array $where, array $values): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot update row in $database");
+        }
+
         $this->ensureConnected();
         if (empty($where))  throw new RuntimeException('No WHERE conditions provided');
         if (empty($values)) throw new RuntimeException('No values to update');
@@ -262,6 +291,10 @@ class MySQLDriver implements DriverInterface
 
     public function deleteRow(string $database, string $table, array $where): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot delete row in $database");
+        }
+
         $this->ensureConnected();
         if (empty($where)) throw new RuntimeException('No WHERE conditions provided');
 
@@ -288,6 +321,10 @@ class MySQLDriver implements DriverInterface
 
     public function addColumn(string $database, string $table, array $definition): void
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot add column in $database");
+        }
+
         $this->ensureConnected();
         $qDb  = $this->quoteIdent($database);
         $qTbl = $this->quoteIdent($table);
@@ -309,6 +346,10 @@ class MySQLDriver implements DriverInterface
 
     public function modifyColumn(string $database, string $table, string $columnName, array $definition): void
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot modify column in $database");
+        }
+
         $this->ensureConnected();
         $qDb  = $this->quoteIdent($database);
         $qTbl = $this->quoteIdent($table);
@@ -328,6 +369,10 @@ class MySQLDriver implements DriverInterface
 
     public function dropColumn(string $database, string $table, string $columnName): void
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop column in $database");
+        }
+
         $this->ensureConnected();
         $qDb  = $this->quoteIdent($database);
         $qTbl = $this->quoteIdent($table);
@@ -337,6 +382,10 @@ class MySQLDriver implements DriverInterface
 
     public function describeTable(string $database, string $table): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot describe table in $database");
+        }
+
         $this->ensureConnected();
 
         // Columns (using parameter binding — no need to validateIdent here
@@ -405,6 +454,10 @@ class MySQLDriver implements DriverInterface
 
     public function getForeignKeys(string $database, string $table): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot get foreign keys for $database");
+        }
+
         $this->ensureConnected();
 
         // Outgoing: this table → others.
@@ -473,6 +526,10 @@ class MySQLDriver implements DriverInterface
 
     public function sampleTable(string $database, string $table, int $limit): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot sample table in $database");
+        }
+
         $this->ensureConnected();
         // Identifier interpolation requires hard validation.
         $database = $this->validateIdent($database);
@@ -503,6 +560,10 @@ class MySQLDriver implements DriverInterface
 
     public function searchSchema(string $database, string $term, string $scope): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot search schema in $database");
+        }
+
         $this->ensureConnected();
 
         $like   = '%' . $this->escapeLike($term) . '%';
@@ -555,6 +616,10 @@ class MySQLDriver implements DriverInterface
 
     public function getCreateTable(string $database, string $table): string
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot get create table for $database");
+        }
+
         $this->ensureConnected();
         $database = $this->validateIdent($database);
         $table    = $this->validateIdent($table);
@@ -577,6 +642,10 @@ class MySQLDriver implements DriverInterface
 
     public function explainQuery(string $database, string $sql): array
     {
+        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
+            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot explain query for $database");
+        }
+
         $this->ensureConnected();
 
         // Defense in depth — the tool already checks this, but the driver

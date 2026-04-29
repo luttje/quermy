@@ -62,3 +62,28 @@ location ~ ^/quermy/index\.php$ {
 - **HTTPS is strongly recommended.** Without it, the session cookie `Secure` flag is not set and database passwords are transmitted in plaintext over the active session.
 - Set `display_errors = Off` and `log_errors = On` in `php.ini` (or in a `.user.ini` inside `public/`) to prevent PHP error details from reaching visitors.
 - No additional authentication layer is needed — every visitor must connect to their own database and optionally protect their saved credentials with a master password.
+
+## Hosted mode (phpMyAdmin-style)
+
+By default every visitor supplies their own engine, host, and port. If you want to lock the instance to a specific database server — so visitors only enter a username and password — create `backend/config.php` from the provided example:
+
+```bash
+cp backend/config.example.php backend/config.php
+```
+
+Then edit `backend/config.php`:
+
+```php
+return [
+    'server_connection' => [
+        'engine'   => 'mysql',      // mysql | mariadb | postgresql | sqlserver
+        'host'     => '127.0.0.1',
+        'port'     => 3306,
+        'database' => null,         // null = visitor picks a database; or set a fixed name
+    ],
+];
+```
+
+When `config.php` is present the login screen changes to a simple username / password form. The engine, host, and port fields are hidden from visitors and **cannot be overridden** — the backend ignores any values the client sends for those fields and always uses the values from `config.php`.
+
+To return to the default behaviour, delete or rename `config.php`.

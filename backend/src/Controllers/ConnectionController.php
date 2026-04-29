@@ -5,6 +5,7 @@ namespace Quermy\Controllers;
 use Quermy\Http\Route;
 use Quermy\Http\Json;
 use Quermy\Http\ConnectionSession;
+use Quermy\Http\ServerConfig;
 use Quermy\Drivers\DriverFactory;
 
 final class ConnectionController extends BaseController
@@ -17,6 +18,21 @@ final class ConnectionController extends BaseController
     public function connect(): void
     {
         $body = Json::readBody();
+
+        // In hosted mode the administrator has fixed the engine, host, and port.
+        // Override any user-supplied values with the server config so that
+        // visitors can only reach the configured server, never an arbitrary one.
+        $serverConn = ServerConfig::serverConnection();
+        if ($serverConn !== null) {
+            $body['engine'] = $serverConn['engine'];
+            if ($serverConn['host'] !== null) $body['host'] = $serverConn['host'];
+            if ($serverConn['port'] !== null) $body['port'] = $serverConn['port'];
+            // Only override database when the admin has pinned one.
+            if ($serverConn['database'] !== null && $serverConn['database'] !== '') {
+                $body['database'] = $serverConn['database'];
+            }
+        }
+
         $this->requireFields($body, ['engine']);
         $meta = DriverFactory::engineMetaFor($body['engine']);
 

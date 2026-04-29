@@ -1,0 +1,9 @@
+# Composer dependencies
+vendor/
+
+# Front-end build output (lives in public after build)
+public/assets/
+public/index.html
+
+# Config
+config.php
