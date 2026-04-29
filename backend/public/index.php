@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use Quermy\Ai\ChatService;
 use Quermy\Http\Json;
 use Quermy\Http\ConnectionSession;
 use Quermy\Drivers\DriverFactory;
@@ -234,6 +235,96 @@ try {
                 Json::send(['ok' => true]);
             } finally { $driver->disconnect(); }
             break;
+
+        /*
+         * AI configuration (stored encrypted in vault)
+         */
+        case $method === 'GET' && $path === '/api/ai/config':
+            $cfg = $vault->getAiConfig('openai');
+            Json::send($cfg ?? ['configured' => false, 'model' => 'gpt-4o-mini']);
+            break;
+
+        case $method === 'POST' && $path === '/api/ai/config':
+            $body   = Json::readBody();
+            $apiKey = trim((string)($body['apiKey'] ?? ''));
+            $model  = trim((string)($body['model'] ?? 'gpt-4o-mini'));
+            if ($apiKey === '') { Json::error('apiKey is required', 422); break; }
+            $vault->saveAiConfig('openai', $apiKey, $model);
+            Json::send(['configured' => true, 'model' => $model]);
+            break;
+
+        case $method === 'DELETE' && $path === '/api/ai/config':
+            $vault->deleteAiConfig('openai');
+            Json::send(['ok' => true]);
+            break;
+
+        /*
+         * AI chat (key read from vault, never sent by the client)
+         */
+        case $method === 'POST' && $path === '/api/ai/chat':
+            $body     = Json::readBody();
+            $messages = $body['messages'] ?? [];
+            if (!is_array($messages) || $messages === []) {
+                Json::error('messages must be a non-empty array', 422);
+                break;
+            }
+
+            $apiKey = $vault->getAiKey('openai');
+            if ($apiKey === null) {
+                Json::error('No API key configured. Add one via the AI settings.', 422);
+                break;
+            }
+
+            $cfg   = $vault->getAiConfig('openai');
+            $model = $cfg['model'] ?? 'gpt-4o-mini';
+
+            $chat  = new ChatService();
+            $reply = $chat->chat($apiKey, $messages, $model);
+            Json::send(['reply' => $reply]);
+            break;
+
+        /*
+         * AI chat — streaming (Server-Sent Events)
+         * Returns: text/event-stream with data: {"chunk":"..."} lines, ending with data: [DONE]
+         */
+        case $method === 'POST' && $path === '/api/ai/chat/stream':
+            $body     = Json::readBody();
+            $messages = $body['messages'] ?? [];
+            if (!is_array($messages) || $messages === []) {
+                Json::error('messages must be a non-empty array', 422);
+                break;
+            }
+
+            $apiKey = $vault->getAiKey('openai');
+            if ($apiKey === null) {
+                Json::error('No API key configured. Add one via the AI settings.', 422);
+                break;
+            }
+
+            $cfg   = $vault->getAiConfig('openai');
+            $model = $cfg['model'] ?? 'gpt-4o-mini';
+
+            // Flush any existing output buffer so SSE frames are not held back.
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            header('Content-Type: text/event-stream');
+            header('Cache-Control: no-cache');
+            header('X-Accel-Buffering: no'); // disable nginx proxy buffering
+
+            try {
+                $chat = new ChatService();
+                foreach ($chat->stream($apiKey, $messages, $model) as $delta) {
+                    echo 'data: ' . json_encode(['chunk' => (string) $delta]) . "\n\n";
+                    flush();
+                }
+                echo "data: [DONE]\n\n";
+                flush();
+            } catch (\Throwable $e) {
+                echo 'data: ' . json_encode(['error' => $e->getMessage()]) . "\n\n";
+                flush();
+            }
+            exit;
 
         default:
             Json::error('Not found: ' . $method . ' ' . $path, 404);

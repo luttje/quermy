@@ -101,6 +101,51 @@ class CredentialVault
     }
 
     /*
+     * AI provider configuration (encrypted at rest, same master key).
+     */
+
+    /**
+     * Persist the API key and preferred model for an AI provider.
+     * Only 'openai' is used today; the provider name is kept for extensibility.
+     */
+    public function saveAiConfig(string $provider, string $apiKey, string $model): void
+    {
+        $vault = $this->readVault();
+        $vault['aiConfig'][$provider] = [
+            'model'   => $model,
+            'key_enc' => $this->encrypt($apiKey),
+        ];
+        $this->writeVault($vault);
+    }
+
+    /**
+     * Returns public-safe config (model + configured flag) — never the key.
+     *
+     * @return array{configured: true, model: string}|null
+     */
+    public function getAiConfig(string $provider): ?array
+    {
+        $cfg = $this->readVault()['aiConfig'][$provider] ?? null;
+        if ($cfg === null) return null;
+        return ['configured' => true, 'model' => $cfg['model']];
+    }
+
+    /** Returns the decrypted API key for internal (server-side) use only. */
+    public function getAiKey(string $provider): ?string
+    {
+        $cfg = $this->readVault()['aiConfig'][$provider] ?? null;
+        if ($cfg === null || empty($cfg['key_enc'])) return null;
+        return $this->decrypt($cfg['key_enc']);
+    }
+
+    public function deleteAiConfig(string $provider): void
+    {
+        $vault = $this->readVault();
+        unset($vault['aiConfig'][$provider]);
+        $this->writeVault($vault);
+    }
+
+    /*
      * Internals
      */
 
@@ -118,22 +163,49 @@ class CredentialVault
         ];
     }
 
-    private function readAll(): array
+    /**
+     * Read the entire vault object.
+     */
+    private function readVault(): array
     {
-        if (!is_file($this->vaultPath)) return [];
+        if (!is_file($this->vaultPath))
+            return ['connections' => [], 'aiConfig' => []];
+
         $raw = file_get_contents($this->vaultPath);
-        if ($raw === false || $raw === '') return [];
+
+        if ($raw === false || $raw === '')
+            return ['connections' => [], 'aiConfig' => []];
+
         $data = json_decode($raw, true);
-        return is_array($data) ? $data : [];
+
+        if (!is_array($data))
+            return ['connections' => [], 'aiConfig' => []];
+
+        return [
+            'connections' => $data['connections'] ?? [],
+            'aiConfig'    => $data['aiConfig']    ?? [],
+        ];
     }
 
-    private function writeAll(array $all): void
+    private function readAll(): array
+    {
+        return $this->readVault()['connections'];
+    }
+
+    private function writeAll(array $connections): void
+    {
+        $vault = $this->readVault();
+        $vault['connections'] = $connections;
+        $this->writeVault($vault);
+    }
+
+    private function writeVault(array $vault): void
     {
         $dir = dirname($this->vaultPath);
         if (!is_dir($dir)) mkdir($dir, 0700, true);
 
         $tmp = $this->vaultPath . '.tmp';
-        file_put_contents($tmp, json_encode($all, JSON_PRETTY_PRINT));
+        file_put_contents($tmp, json_encode($vault, JSON_PRETTY_PRINT));
         @chmod($tmp, 0600);
         rename($tmp, $this->vaultPath);
     }

@@ -22,3 +22,9 @@ export function toast(message, type = 'info') {
         toasts.update((list) => list.filter((t) => t.id !== id));
     }, 4500);
 }
+
+// AI configuration — source of truth is the server (CredentialVault, encrypted at rest).
+// Shape: { configured: boolean, model: string }
+// Populated on mount by AIChatPanel via api.getAiConfig().
+export const aiConfig = writable({ configured: false, model: 'gpt-4o-mini' });
+

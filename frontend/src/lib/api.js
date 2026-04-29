@@ -62,4 +62,59 @@ export const api = {
         request('PUT', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`, definition),
     deleteColumn: (db, t, colName) =>
         request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`),
+
+    // AI config & chat
+    getAiConfig: () => request('GET', '/ai/config'),
+    saveAiConfig: (apiKey, model) => request('POST', '/ai/config', { apiKey, model }),
+    deleteAiConfig: () => request('DELETE', '/ai/config'),
+    aiChat: (messages) => request('POST', '/ai/chat', { messages }),
+
+    /**
+     * Stream an AI chat response as an async generator of string chunks.
+     * Yields each text fragment as it arrives via Server-Sent Events.
+     *
+     * @param {Array<{role:string,content:string}>} messages
+     * @returns {AsyncGenerator<string>}
+     */
+    async *aiChatStream(messages) {
+        const res = await fetch(`${BASE}/ai/chat/stream`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages }),
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            let data = {};
+            try { data = JSON.parse(text); } catch { data = { error: text }; }
+            const err = new Error(data.error || `HTTP ${res.status}`);
+            err.status = res.status;
+            throw err;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() ?? '';
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const raw = line.slice(6);
+                    if (raw === '[DONE]') return;
+                    const parsed = JSON.parse(raw);
+                    if (parsed.error) throw new Error(parsed.error);
+                    if (parsed.chunk !== undefined) yield parsed.chunk;
+                }
+            }
+        } finally {
+            reader.cancel();
+        }
+    },
 };
