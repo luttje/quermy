@@ -1,8 +1,9 @@
 <script>
     import { onMount } from "svelte";
     import { api } from "../lib/api.js";
-    import { aiConfig } from "../lib/store.js";
+    import { aiKeys, activeAiKey } from "../lib/store.js";
     import { parse } from "../lib/marked.js";
+    import AIKeyManager from "./AIKeyManager.svelte";
     import "highlight.js/styles/atom-one-dark.css";
 
     // Chat state
@@ -18,72 +19,63 @@
     let streamingReply = "";
     let messagesEl;
 
-    // Config form state
-    let showConfig = false;
-    let draftKey = "";
-    let draftModel = "gpt-4o-mini";
-    let savingConfig = false;
-
-    const MODELS = [
-        "gpt-4o-mini",
-        "gpt-4o",
-        "gpt-4-turbo",
-        "gpt-4",
-        "gpt-3.5-turbo",
-    ];
+    // Key manager panel toggle
+    let showKeyManager = false;
 
     onMount(async () => {
         try {
-            const cfg = await api.getAiConfig();
-            aiConfig.set(cfg);
-            draftModel = cfg.model;
+            const res = await api.listAiKeys();
+            const keys = res.keys ?? [];
+            aiKeys.set(keys);
+            // Auto-select first key if nothing is active yet
+            if (keys.length && !$activeAiKey) {
+                activeAiKey.set({ keyId: keys[0].id, model: keys[0].model });
+            }
         } catch {
             // Backend unreachable — leave defaults.
         }
     });
 
-    function openConfig() {
-        // Never pre-fill the key — it's server-side only.
-        draftKey = "";
-        draftModel = $aiConfig.model;
-        showConfig = true;
+    // Active key object (from the list) — for display only
+    $: activeKeyObj = $aiKeys.find((k) => k.id === $activeAiKey?.keyId) ?? null;
+
+    function selectKey(id) {
+        const key = $aiKeys.find((k) => k.id === id);
+        if (key) activeAiKey.set({ keyId: key.id, model: key.model });
     }
 
-    async function saveConfig() {
-        const key = draftKey.trim();
-        if (!key || savingConfig) return;
-        savingConfig = true;
-        try {
-            const cfg = await api.saveAiConfig(key, draftModel);
-            aiConfig.set(cfg);
-            showConfig = false;
-        } catch (err) {
-            alert(`Failed to save: ${err.message}`);
-        } finally {
-            savingConfig = false;
-        }
+    function onModelChange(e) {
+        activeAiKey.update((a) => (a ? { ...a, model: e.target.value } : a));
     }
 
-    async function clearConfig() {
-        try {
-            await api.deleteAiConfig();
-            aiConfig.set({ configured: false, model: "gpt-4o-mini" });
-            showConfig = false;
-        } catch (err) {
-            alert(`Failed to clear: ${err.message}`);
-        }
+    const PROVIDER_COLORS = {
+        openai: "text-emerald-400 bg-emerald-950/40 border-emerald-800/50",
+        anthropic: "text-orange-400 bg-orange-950/40 border-orange-800/50",
+    };
+    function providerColor(id) {
+        return (
+            PROVIDER_COLORS[id] ?? "text-(--ink-3) bg-(--bg-3) border-(--line)"
+        );
+    }
+
+    // Models available for the active key's provider — fetched lazily when the key changes
+    let availableModels = [];
+    $: if ($activeAiKey?.keyId) {
+        api.getKeyModels($activeAiKey.keyId)
+            .then((r) => {
+                availableModels = r.models ?? [];
+            })
+            .catch(() => {});
     }
 
     // Messaging
     function scrollToBottom() {
-        if (messagesEl) {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }
+        if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
     async function send() {
         const text = input.trim();
-        if (!text || busy) return;
+        if (!text || busy || !$activeAiKey) return;
 
         messages = [...messages, { role: "user", content: text }];
         input = "";
@@ -93,6 +85,8 @@
 
         try {
             for await (const chunk of api.aiChatStream(
+                $activeAiKey.keyId,
+                $activeAiKey.model,
                 // Strip the initial greeting so we don't send an unlabelled
                 // "assistant" opener that confuses the model.
                 messages.slice(1),
@@ -154,109 +148,93 @@
 <div class="h-full flex flex-col overflow-hidden">
     <!-- header -->
     <div
-        class="px-3.5 py-2.25 border-b border-(--line) flex items-center justify-between shrink-0 bg-(--bg-2)"
+        class="px-3.5 py-2.25 border-b border-(--line) flex items-center justify-between gap-2 shrink-0 bg-(--bg-2)"
     >
         <div
-            class="flex items-center gap-1.75 text-[12.5px] font-medium text-(--ink-1)"
+            class="flex items-center gap-1.75 text-[12.5px] font-medium text-(--ink-1) shrink-0"
         >
             <span class="text-(--acc) text-[13px]">✦</span>
-            <span>AI Assistant</span>
+            <span>AI</span>
         </div>
+
+        <!-- Key + model selector (shown when keys exist and not in key manager) -->
+        {#if !showKeyManager && $aiKeys.length > 0}
+            <div class="flex items-center gap-1 min-w-0 flex-1">
+                <!-- Key picker -->
+                <select
+                    class="min-w-0 flex-1 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
+                    value={$activeAiKey?.keyId ?? ""}
+                    on:change={(e) => selectKey(e.target.value)}
+                    title="Active API key"
+                >
+                    {#each $aiKeys as k}
+                        <option value={k.id}>{k.label}</option>
+                    {/each}
+                </select>
+                <!-- Model picker -->
+                {#if availableModels.length > 0}
+                    <select
+                        class="min-w-0 flex-1 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
+                        value={$activeAiKey?.model ?? ""}
+                        on:change={onModelChange}
+                        title="Model"
+                    >
+                        {#each availableModels as m}
+                            <option value={m}>{m}</option>
+                        {/each}
+                    </select>
+                {:else if activeKeyObj}
+                    <span
+                        class="text-[10.5px] text-(--ink-3) mono truncate shrink-0"
+                        >{activeKeyObj.model}</span
+                    >
+                {/if}
+                <!-- Provider badge -->
+                {#if activeKeyObj}
+                    <span
+                        class="inline-flex shrink-0 items-center px-1.5 py-0.25 rounded text-[9px] font-medium border {providerColor(
+                            activeKeyObj.provider,
+                        )}"
+                    >
+                        {activeKeyObj.provider}
+                    </span>
+                {/if}
+            </div>
+        {/if}
+
+        <!-- Manage keys button -->
         <button
-            class="mono text-[9px] px-1.5 py-0.5 bg-(--bg-3) border rounded-[3px] tracking-[0.08em] uppercase transition-colors duration-80
-                   {$aiConfig.configured
-                ? 'border-(--line-strong) text-(--ink-3) hover:border-(--acc) hover:text-(--acc)'
-                : 'border-orange-600/50 text-orange-400 hover:border-orange-400'}"
-            on:click={openConfig}
-            title="Configure API key"
+            on:click={() => (showKeyManager = !showKeyManager)}
+            class="shrink-0 mono text-[9px] px-1.5 py-0.5 bg-(--bg-3) border rounded-[3px] tracking-[0.08em] uppercase transition-colors duration-80
+                   {$aiKeys.length === 0
+                ? 'border-orange-600/50 text-orange-400 hover:border-orange-400'
+                : showKeyManager
+                  ? 'border-(--acc) text-(--acc)'
+                  : 'border-(--line-strong) text-(--ink-3) hover:border-(--acc) hover:text-(--acc)'}"
+            title="Manage API keys"
         >
-            {$aiConfig.configured ? $aiConfig.model : "no key"}
+            {showKeyManager ? "← Chat" : "⚿ Keys"}
         </button>
     </div>
 
-    {#if showConfig}
-        <div
-            class="flex-1 flex flex-col gap-3 p-3.5 overflow-y-auto bg-(--bg-1)"
-        >
-            <p class="text-[11.5px] muted leading-relaxed">
-                Enter your <strong class="text-(--ink-1)">OpenAI API key</strong
-                >. It is encrypted and stored on the server (AES-256-GCM) — it
-                never leaves your backend and is never returned to the browser.
-            </p>
-
-            <label class="flex flex-col gap-1">
-                <span
-                    class="text-[11px] text-(--ink-3) uppercase tracking-wider"
-                    >API Key</span
-                >
-                <input
-                    type="password"
-                    autocomplete="off"
-                    placeholder="sk-…"
-                    bind:value={draftKey}
-                    class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-1.75 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_2px_var(--acc-glow)] placeholder:text-(--ink-3)"
-                />
-            </label>
-
-            <label class="flex flex-col gap-1">
-                <span
-                    class="text-[11px] text-(--ink-3) uppercase tracking-wider"
-                    >Model</span
-                >
-                <select
-                    bind:value={draftModel}
-                    class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-1.75 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc)"
-                >
-                    {#each MODELS as m}
-                        <option value={m}>{m}</option>
-                    {/each}
-                </select>
-            </label>
-
-            <div class="flex gap-2 mt-1">
-                <button
-                    disabled={!draftKey.trim() || savingConfig}
-                    on:click={saveConfig}
-                    class="flex-1 py-1.75 rounded-(--radius) text-[12px] font-medium bg-(--acc) text-[#0a0c0a] border-0 disabled:opacity-40 enabled:hover:bg-(--acc-d) transition-colors duration-80 flex items-center justify-center gap-1.5"
-                >
-                    {#if savingConfig}
-                        <span
-                            class="w-3 h-3 rounded-full border-2 border-[#0a0c0a]/30 border-t-[#0a0c0a] animate-spin"
-                        ></span>
-                        Saving…
-                    {:else}
-                        Save
-                    {/if}
-                </button>
-                <button
-                    on:click={() => (showConfig = false)}
-                    class="px-3 py-1.75 rounded-(--radius) text-[12px] bg-(--bg-3) border border-(--line) muted hover:border-(--line-strong) transition-colors duration-80"
-                >
-                    Cancel
-                </button>
-                {#if $aiConfig.configured}
-                    <button
-                        on:click={clearConfig}
-                        class="px-3 py-1.75 rounded-(--radius) text-[12px] bg-(--bg-3) border border-red-900/50 text-red-400 hover:border-red-500/70 transition-colors duration-80"
-                    >
-                        Clear
-                    </button>
-                {/if}
-            </div>
+    {#if showKeyManager}
+        <!-- Key manager panel fills the rest of the panel -->
+        <div class="flex-1 overflow-hidden">
+            <AIKeyManager onClose={() => (showKeyManager = false)} />
         </div>
-    {:else if !$aiConfig.configured}
+    {:else if $aiKeys.length === 0}
         <div
             class="flex-1 flex flex-col items-center justify-center gap-3 p-4 text-center"
         >
-            <span class="text-[28px] opacity-30">✦</span>
-            <p class="text-[12px] text-(--ink-3) leading-relaxed max-w-45">
-                Add your OpenAI API key to start chatting.
+            <span class="text-[28px] opacity-30">⚿</span>
+            <p class="text-[12px] text-(--ink-3) leading-relaxed max-w-48">
+                Add an API key to start chatting with an AI provider.
             </p>
             <button
-                on:click={openConfig}
+                on:click={() => (showKeyManager = true)}
                 class="px-3 py-1.5 rounded-(--radius) text-[11.5px] bg-(--bg-3) border border-(--line-strong) muted hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
             >
-                Configure key
+                Add API key
             </button>
         </div>
     {:else}
@@ -345,7 +323,7 @@
             <button
                 class="w-7.5 h-7.5 bg-(--acc) text-[#0a0c0a] border-0 rounded-(--radius) text-[15px] font-bold flex items-center justify-center shrink-0 transition-[background] duration-80 disabled:bg-(--bg-3) disabled:text-(--ink-3) enabled:hover:bg-(--acc-d)"
                 on:click={send}
-                disabled={!input.trim() || busy}
+                disabled={!input.trim() || busy || !$activeAiKey}
                 title="Send (Enter)">↑</button
             >
         </div>

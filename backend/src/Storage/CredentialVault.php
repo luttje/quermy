@@ -13,7 +13,7 @@ use RuntimeException;
  *     on first run. Operators can replace it with a key from a secret manager.
  *   - Each saved connection's password is encrypted individually with
  *     AES-256-GCM (authenticated encryption — tamper-evident).
- *   - The vault file (connections.json) holds host/port/username/dbname in
+ *   - The vault file (vault.json) holds host/port/username/dbname in
  *     the clear (so the UI can list them) but only ciphertext for passwords.
  *   - Plaintext passwords are NEVER serialized to API responses. The client
  *     references a saved connection by its `id` and the backend looks the
@@ -101,53 +101,107 @@ class CredentialVault
     }
 
     /*
-     * AI provider configuration (encrypted at rest, same master key).
+     * AI provider keys — multi-key, multi-provider (encrypted at rest, same master key).
      */
 
     /**
-     * Persist the API key and preferred model for an AI provider.
-     * Only 'openai' is used today; the provider name is kept for extensibility.
-     */
-    public function saveAiConfig(string $provider, string $apiKey, string $model): void
-    {
-        $vault = $this->readVault();
-        $vault['aiConfig'][$provider] = [
-            'model'   => $model,
-            'key_enc' => $this->encrypt($apiKey),
-        ];
-        $this->writeVault($vault);
-    }
-
-    /**
-     * Returns public-safe config (model + configured flag) — never the key.
+     * Add a new AI provider key. Returns the public view (no decrypted key).
      *
-     * @return array{configured: true, model: string}|null
+     * @return array{id:string,label:string,provider:string,model:string,createdAt:string}
      */
-    public function getAiConfig(string $provider): ?array
-    {
-        $cfg = $this->readVault()['aiConfig'][$provider] ?? null;
-        if ($cfg === null) return null;
-        return ['configured' => true, 'model' => $cfg['model']];
-    }
-
-    /** Returns the decrypted API key for internal (server-side) use only. */
-    public function getAiKey(string $provider): ?string
-    {
-        $cfg = $this->readVault()['aiConfig'][$provider] ?? null;
-        if ($cfg === null || empty($cfg['key_enc'])) return null;
-        return $this->decrypt($cfg['key_enc']);
-    }
-
-    public function deleteAiConfig(string $provider): void
+    public function aiKeyAdd(string $label, string $provider, #[\SensitiveParameter] string $apiKey, string $model): array
     {
         $vault = $this->readVault();
-        unset($vault['aiConfig'][$provider]);
+        $entry = [
+            'id'        => $this->randomId(),
+            'label'     => $label,
+            'provider'  => $provider,
+            'model'     => $model,
+            'key_enc'   => $this->encrypt($apiKey),
+            'createdAt' => date('c'),
+        ];
+        $vault['aiKeys'][] = $entry;
         $this->writeVault($vault);
+        return $this->aiKeyPublicView($entry);
+    }
+
+    /**
+     * Update label and/or model for an existing AI key. Optionally rotate the API key.
+     * Returns the updated public view, or null if not found.
+     *
+     * @return array{id:string,label:string,provider:string,model:string,createdAt:string}|null
+     */
+    public function aiKeyUpdate(string $id, ?string $label, ?string $model, #[\SensitiveParameter] ?string $apiKey): ?array
+    {
+        $vault = $this->readVault();
+        foreach ($vault['aiKeys'] as &$entry) {
+            if ($entry['id'] !== $id) continue;
+            if ($label !== null) $entry['label'] = $label;
+            if ($model !== null) $entry['model'] = $model;
+            if ($apiKey !== null) $entry['key_enc'] = $this->encrypt($apiKey);
+            $this->writeVault($vault);
+            return $this->aiKeyPublicView($entry);
+        }
+        return null;
+    }
+
+    /** @return list<array{id:string,label:string,provider:string,model:string,createdAt:string}> */
+    public function aiKeyList(): array
+    {
+        return array_values(array_map(
+            [$this, 'aiKeyPublicView'],
+            $this->readVault()['aiKeys'] ?? [],
+        ));
+    }
+
+    public function aiKeyDelete(string $id): bool
+    {
+        $vault = $this->readVault();
+        $before = count($vault['aiKeys'] ?? []);
+        $vault['aiKeys'] = array_values(array_filter(
+            $vault['aiKeys'] ?? [],
+            fn($e) => $e['id'] !== $id,
+        ));
+        if (count($vault['aiKeys']) === $before) return false;
+        $this->writeVault($vault);
+        return true;
+    }
+
+    /**
+     * Returns provider + decrypted API key + model for a stored key.
+     * For server-side use only — never serialise this.
+     *
+     * @return array{id:string,provider:string,apiKey:string,model:string}|null
+     */
+    public function aiKeyGetDecrypted(string $id): ?array
+    {
+        foreach ($this->readVault()['aiKeys'] ?? [] as $entry) {
+            if ($entry['id'] !== $id) continue;
+            return [
+                'id'       => $entry['id'],
+                'provider' => $entry['provider'],
+                'apiKey'   => $this->decrypt($entry['key_enc']),
+                'model'    => $entry['model'],
+            ];
+        }
+        return null;
     }
 
     /*
      * Internals
      */
+
+    /** @return array{id:string,label:string,provider:string,model:string,createdAt:string} */
+    private function aiKeyPublicView(array $e): array
+    {
+        return [
+            'id'        => $e['id'],
+            'label'     => $e['label'],
+            'provider'  => $e['provider'],
+            'model'     => $e['model'],
+            'createdAt' => $e['createdAt'],
+        ];
+    }
 
     private function publicView(array $c): array
     {
@@ -169,21 +223,21 @@ class CredentialVault
     private function readVault(): array
     {
         if (!is_file($this->vaultPath))
-            return ['connections' => [], 'aiConfig' => []];
+            return ['connections' => [], 'aiKeys' => []];
 
         $raw = file_get_contents($this->vaultPath);
 
         if ($raw === false || $raw === '')
-            return ['connections' => [], 'aiConfig' => []];
+            return ['connections' => [], 'aiKeys' => []];
 
         $data = json_decode($raw, true);
 
         if (!is_array($data))
-            return ['connections' => [], 'aiConfig' => []];
+            return ['connections' => [], 'aiKeys' => []];
 
         return [
             'connections' => $data['connections'] ?? [],
-            'aiConfig'    => $data['aiConfig']    ?? [],
+            'aiKeys'      => $data['aiKeys']      ?? [],
         ];
     }
 

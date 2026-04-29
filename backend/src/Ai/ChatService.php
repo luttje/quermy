@@ -3,39 +3,24 @@ declare(strict_types=1);
 
 namespace Quermy\Ai;
 
-use Symfony\AI\Platform\Bridge\OpenAi\Factory;
 use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Result\Stream\Delta\TextDelta;
 
 /**
  * Thin wrapper around the Symfony AI Platform for chat completion.
- *
- * The API key is provided per-request by the user (bring-your-own-key).
  */
 class ChatService
 {
-    /**
-     * @param array<int,array{role:string,content:string}> $messages
-     */
-    public function chat(string $apiKey, array $messages, string $model = 'gpt-4o-mini'): string
-    {
-        $platform = Factory::createPlatform($apiKey);
-
-        $bag = $this->buildBag($messages);
-
-        return $platform->invoke($model, $bag)->asText();
-    }
-
     /**
      * Stream the reply as a Generator of TextDelta chunks.
      *
      * @param array<int,array{role:string,content:string}> $messages
      * @return \Generator<TextDelta>
      */
-    public function stream(string $apiKey, array $messages, string $model = 'gpt-4o-mini'): \Generator
+    public function stream(string $provider, #[\SensitiveParameter] string $apiKey, array $messages, string $model): \Generator
     {
-        $platform = Factory::createPlatform($apiKey);
+        $platform = ProviderRegistry::createPlatform($provider, $apiKey);
 
         yield from $platform->invoke($model, $this->buildBag($messages), ['stream' => true])->asTextStream();
     }

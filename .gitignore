@@ -14,7 +14,7 @@ backend/public/index.html
 
 # Storage — never commit secrets!
 backend/storage/quermy.key
-backend/storage/connections.json
+backend/storage/vault.json
 
 # IDE / OS
 .DS_Store

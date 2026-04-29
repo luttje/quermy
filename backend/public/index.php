@@ -11,6 +11,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Quermy\Ai\ChatService;
+use Quermy\Ai\ProviderRegistry;
 use Quermy\Http\Json;
 use Quermy\Http\ConnectionSession;
 use Quermy\Drivers\DriverFactory;
@@ -32,7 +33,7 @@ session_start();
 // Dependencies
 $storageDir = realpath(__DIR__ . '/../storage') ?: __DIR__ . '/../storage';
 $vault   = new CredentialVault(
-    vaultPath: $storageDir . '/connections.json',
+    vaultPath: $storageDir . '/vault.json',
     keyPath:   $storageDir . '/quermy.key',
 );
 $session = new ConnectionSession($vault);
@@ -237,72 +238,102 @@ try {
             break;
 
         /*
-         * AI configuration (stored encrypted in vault)
+         * AI provider keys (encrypted at rest — key IDs only exposed to client)
          */
-        case $method === 'GET' && $path === '/api/ai/config':
-            $cfg = $vault->getAiConfig('openai');
-            Json::send($cfg ?? ['configured' => false, 'model' => 'gpt-4o-mini']);
+        case $method === 'GET' && $path === '/api/ai/keys':
+            Json::send(['keys' => $vault->aiKeyList()]);
             break;
 
-        case $method === 'POST' && $path === '/api/ai/config':
-            $body   = Json::readBody();
-            $apiKey = trim((string)($body['apiKey'] ?? ''));
-            $model  = trim((string)($body['model'] ?? 'gpt-4o-mini'));
-            if ($apiKey === '') { Json::error('apiKey is required', 422); break; }
-            $vault->saveAiConfig('openai', $apiKey, $model);
-            Json::send(['configured' => true, 'model' => $model]);
-            break;
-
-        case $method === 'DELETE' && $path === '/api/ai/config':
-            $vault->deleteAiConfig('openai');
-            Json::send(['ok' => true]);
-            break;
-
-        /*
-         * AI chat (key read from vault, never sent by the client)
-         */
-        case $method === 'POST' && $path === '/api/ai/chat':
+        case $method === 'POST' && $path === '/api/ai/keys':
             $body     = Json::readBody();
-            $messages = $body['messages'] ?? [];
-            if (!is_array($messages) || $messages === []) {
-                Json::error('messages must be a non-empty array', 422);
+            $label    = trim((string)($body['label']    ?? ''));
+            $provider = trim((string)($body['provider'] ?? ''));
+            $apiKey   = trim((string)($body['apiKey']   ?? ''));
+            $model    = trim((string)($body['model']    ?? ''));
+
+            if ($label === '')    { Json::error('label is required',    422); break; }
+            if ($apiKey === '')   { Json::error('apiKey is required',   422); break; }
+            if ($model === '')    { Json::error('model is required',    422); break; }
+
+            $providers = ProviderRegistry::providers();
+            if (!isset($providers[$provider])) {
+                Json::error('Unknown provider. Supported: ' . implode(', ', array_keys($providers)), 422);
                 break;
             }
 
-            $apiKey = $vault->getAiKey('openai');
-            if ($apiKey === null) {
-                Json::error('No API key configured. Add one via the AI settings.', 422);
-                break;
+            $entry = $vault->aiKeyAdd($label, $provider, $apiKey, $model);
+            Json::send(['key' => $entry], 201);
+            break;
+
+        case $method === 'PATCH' && preg_match('#^/api/ai/keys/([a-f0-9]+)$#', $path, $m):
+            $body   = Json::readBody();
+            $label  = isset($body['label'])  ? trim((string)$body['label'])  : null;
+            $model  = isset($body['model'])  ? trim((string)$body['model'])  : null;
+            $apiKey = isset($body['apiKey']) ? trim((string)$body['apiKey']) : null;
+            // Treat empty strings as "no change"
+            if ($label  === '') $label  = null;
+            if ($model  === '') $model  = null;
+            if ($apiKey === '') $apiKey = null;
+
+            $entry = $vault->aiKeyUpdate($m[1], $label, $model, $apiKey);
+            if ($entry === null) { Json::error('Key not found', 404); break; }
+            Json::send(['key' => $entry]);
+            break;
+
+        case $method === 'DELETE' && preg_match('#^/api/ai/keys/([a-f0-9]+)$#', $path, $m):
+            $ok = $vault->aiKeyDelete($m[1]);
+            Json::send(['ok' => $ok], $ok ? 200 : 404);
+            break;
+
+        /**
+         * Returns available text-chat models for the provider of a stored key.
+         * Uses the installed Symfony AI ModelCatalog — no external API call required.
+         */
+        case $method === 'GET' && preg_match('#^/api/ai/keys/([a-f0-9]+)/models$#', $path, $m):
+            $entry = $vault->aiKeyGetDecrypted($m[1]);
+            if ($entry === null) { Json::error('Key not found', 404); break; }
+            $models = ProviderRegistry::textModels($entry['provider']);
+            Json::send(['models' => $models]);
+            break;
+
+        /**
+         * Return supported providers and their models (no auth required; purely static info).
+         */
+        case $method === 'GET' && $path === '/api/ai/providers':
+            $result = [];
+            foreach (ProviderRegistry::providers() as $id => $label) {
+                $result[] = [
+                    'id'           => $id,
+                    'label'        => $label,
+                    'defaultModel' => ProviderRegistry::defaultModel($id),
+                    'models'       => ProviderRegistry::textModels($id),
+                ];
             }
-
-            $cfg   = $vault->getAiConfig('openai');
-            $model = $cfg['model'] ?? 'gpt-4o-mini';
-
-            $chat  = new ChatService();
-            $reply = $chat->chat($apiKey, $messages, $model);
-            Json::send(['reply' => $reply]);
+            Json::send(['providers' => $result]);
             break;
 
         /*
          * AI chat — streaming (Server-Sent Events)
-         * Returns: text/event-stream with data: {"chunk":"..."} lines, ending with data: [DONE]
+         * Body: { keyId: string, model: string, messages: [{role,content}] }
          */
         case $method === 'POST' && $path === '/api/ai/chat/stream':
             $body     = Json::readBody();
+            $keyId    = trim((string)($body['keyId'] ?? ''));
+            $model    = trim((string)($body['model'] ?? ''));
             $messages = $body['messages'] ?? [];
+
+            if ($keyId === '') { Json::error('keyId is required', 422); break; }
+            if ($model === '') { Json::error('model is required', 422); break; }
             if (!is_array($messages) || $messages === []) {
                 Json::error('messages must be a non-empty array', 422);
                 break;
             }
 
-            $apiKey = $vault->getAiKey('openai');
-            if ($apiKey === null) {
-                Json::error('No API key configured. Add one via the AI settings.', 422);
+            $creds = $vault->aiKeyGetDecrypted($keyId);
+            if ($creds === null) {
+                Json::error('API key not found. Add one via the key manager.', 422);
                 break;
             }
-
-            $cfg   = $vault->getAiConfig('openai');
-            $model = $cfg['model'] ?? 'gpt-4o-mini';
 
             // Flush any existing output buffer so SSE frames are not held back.
             while (ob_get_level() > 0) {
@@ -314,7 +345,7 @@ try {
 
             try {
                 $chat = new ChatService();
-                foreach ($chat->stream($apiKey, $messages, $model) as $delta) {
+                foreach ($chat->stream($creds['provider'], $creds['apiKey'], $messages, $model) as $delta) {
                     echo 'data: ' . json_encode(['chunk' => (string) $delta]) . "\n\n";
                     flush();
                 }

@@ -63,25 +63,31 @@ export const api = {
     deleteColumn: (db, t, colName) =>
         request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`),
 
-    // AI config & chat
-    getAiConfig: () => request('GET', '/ai/config'),
-    saveAiConfig: (apiKey, model) => request('POST', '/ai/config', { apiKey, model }),
-    deleteAiConfig: () => request('DELETE', '/ai/config'),
-    aiChat: (messages) => request('POST', '/ai/chat', { messages }),
+    // AI providers (static, no auth)
+    getAiProviders: () => request('GET', '/ai/providers'),
+
+    // AI key management
+    listAiKeys: () => request('GET', '/ai/keys'),
+    addAiKey: (label, provider, apiKey, model) =>
+        request('POST', '/ai/keys', { label, provider, apiKey, model }),
+    updateAiKey: (id, changes) => request('PATCH', `/ai/keys/${id}`, changes),
+    deleteAiKey: (id) => request('DELETE', `/ai/keys/${id}`),
+    getKeyModels: (id) => request('GET', `/ai/keys/${id}/models`),
 
     /**
      * Stream an AI chat response as an async generator of string chunks.
-     * Yields each text fragment as it arrives via Server-Sent Events.
      *
+     * @param {string} keyId   — ID of the stored API key
+     * @param {string} model   — model name
      * @param {Array<{role:string,content:string}>} messages
      * @returns {AsyncGenerator<string>}
      */
-    async *aiChatStream(messages) {
+    async *aiChatStream(keyId, model, messages) {
         const res = await fetch(`${BASE}/ai/chat/stream`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages }),
+            body: JSON.stringify({ keyId, model, messages }),
         });
 
         if (!res.ok) {
