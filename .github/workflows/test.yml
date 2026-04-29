@@ -41,9 +41,8 @@ jobs:
 
     # Our testingcontainers setup can be a bit flaky sometimes, so we retry the tests
     - name: Run tests
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@v4
       with:
         timeout_seconds: 30
         max_attempts: 3
-        working_directory: backend
-        command: ./vendor/bin/pest --ci
+        command: cd backend && ./vendor/bin/pest --ci
