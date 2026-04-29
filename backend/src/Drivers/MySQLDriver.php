@@ -16,6 +16,53 @@ class MySQLDriver implements DriverInterface
         return 'mysql';
     }
 
+    public static function engineMeta(): array
+    {
+        return [
+            'id'              => 'mysql',
+            'label'           => 'MySQL',
+            'defaultPort'     => 3306,
+            'defaultUsername' => 'root',
+            'connectionType'  => 'tcp',
+            'identifierOpen'  => '`',
+            'identifierClose' => '`',
+        ];
+    }
+
+    public function getCapabilities(): array
+    {
+        return [
+            'columnTypes' => [
+                // Numeric
+                'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
+                'INT UNSIGNED', 'TINYINT UNSIGNED', 'SMALLINT UNSIGNED',
+                'MEDIUMINT UNSIGNED', 'BIGINT UNSIGNED',
+                'DECIMAL(10,2)', 'FLOAT', 'DOUBLE', 'BIT(1)',
+                // String
+                'CHAR(1)', 'VARCHAR(255)', 'TINYTEXT', 'TEXT',
+                'MEDIUMTEXT', 'LONGTEXT',
+                'BINARY(1)', 'VARBINARY(255)',
+                'TINYBLOB', 'BLOB', 'MEDIUMBLOB', 'LONGBLOB',
+                "ENUM('a','b')", "SET('a','b')",
+                // Date/Time
+                'DATE', 'TIME', 'DATETIME', 'TIMESTAMP', 'YEAR',
+                // Other
+                'JSON',
+            ],
+            'supportsAutoIncrement'   => true,
+            'supportsColumnAfter'     => true,
+            'supportsModifyColumn'    => true,
+            'supportsDropColumn'      => true,
+            'supportsGetCreateTable'  => true,
+            'supportsExplain'         => true,
+            'supportsForeignKeys'     => true,
+            'welcomeQuery'            => 'SELECT NOW() AS now, VERSION() AS version;',
+            'structureQueryTemplate'  => 'SHOW COLUMNS FROM `{db}`.`{table}`;',
+            'identifierOpen'          => '`',
+            'identifierClose'         => '`',
+        ];
+    }
+
     public function connect(array $config): void
     {
         $host = $config['host'] ?? '127.0.0.1';
@@ -100,13 +147,15 @@ class MySQLDriver implements DriverInterface
         $cstmt->execute([':db' => $database, ':tbl' => $table]);
         $columns = [];
         foreach ($cstmt->fetchAll() as $c) {
+            $extra = $c['EXTRA'] ?? '';
             $columns[] = [
-                'name'     => $c['COLUMN_NAME'],
-                'type'     => $c['COLUMN_TYPE'],
-                'nullable' => $c['IS_NULLABLE'] === 'YES',
-                'key'      => $c['COLUMN_KEY'],
-                'default'  => $c['COLUMN_DEFAULT'],
-                'extra'    => $c['EXTRA'],
+                'name'          => $c['COLUMN_NAME'],
+                'type'          => $c['COLUMN_TYPE'],
+                'nullable'      => $c['IS_NULLABLE'] === 'YES',
+                'key'           => self::normalizeKeyType($c['COLUMN_KEY'] ?? ''),
+                'default'       => $c['COLUMN_DEFAULT'],
+                'extra'         => $extra,
+                'autoIncrement' => str_contains(strtolower($extra), 'auto_increment'),
             ];
         }
 
@@ -302,14 +351,16 @@ class MySQLDriver implements DriverInterface
         $cstmt->execute([':db' => $database, ':tbl' => $table]);
         $columns = [];
         foreach ($cstmt->fetchAll() as $c) {
+            $extra = $c['EXTRA'] ?? '';
             $columns[] = [
-                'name'     => $c['COLUMN_NAME'],
-                'type'     => $c['COLUMN_TYPE'],
-                'nullable' => $c['IS_NULLABLE'] === 'YES',
-                'key'      => $c['COLUMN_KEY'] ?? '',
-                'default'  => $c['COLUMN_DEFAULT'],
-                'extra'    => $c['EXTRA'] ?? '',
-                'comment'  => $c['COLUMN_COMMENT'] ?? '',
+                'name'          => $c['COLUMN_NAME'],
+                'type'          => $c['COLUMN_TYPE'],
+                'nullable'      => $c['IS_NULLABLE'] === 'YES',
+                'key'           => self::normalizeKeyType($c['COLUMN_KEY'] ?? ''),
+                'default'       => $c['COLUMN_DEFAULT'],
+                'extra'         => $extra,
+                'comment'       => $c['COLUMN_COMMENT'] ?? '',
+                'autoIncrement' => str_contains(strtolower($extra), 'auto_increment'),
             ];
         }
 
@@ -588,6 +639,20 @@ class MySQLDriver implements DriverInterface
         }
         if (strlen($type) > 100) throw new RuntimeException('Column type too long');
         return strtoupper($type);
+    }
+
+    /**
+     * Normalise a MySQL COLUMN_KEY value to the engine-neutral form used
+     * throughout the API.
+     */
+    private static function normalizeKeyType(string $key): ?string
+    {
+        return match ($key) {
+            'PRI'   => 'primary',
+            'UNI'   => 'unique',
+            'MUL'   => 'index',
+            default => null,
+        };
     }
 
     /**

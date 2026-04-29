@@ -30,6 +30,8 @@ export const api = {
   // session
   getSession: () => request('GET', '/session'),
   disconnect: () => request('POST', '/session/disconnect'),
+  getEngines: () => request('GET', '/engines'),
+  getCapabilities: () => request('GET', '/capabilities'),
 
   // saved connections
   listConnections: () => request('GET', '/connections'),

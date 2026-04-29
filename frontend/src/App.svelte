@@ -1,7 +1,7 @@
 <script>
     import { onMount, onDestroy } from "svelte";
     import { api } from "./lib/api.js";
-    import { session, toast } from "./lib/store.js";
+    import { session, capabilities, toast } from "./lib/store.js";
 
     import ConnectView from "./views/ConnectView.svelte";
     import TreeView from "./components/TreeView.svelte";
@@ -14,6 +14,9 @@
     import Kbd from "./components/ui/Kbd.svelte";
 
     let bootstrapping = true;
+
+    // Engines list (populated once on mount for defaultPort lookups etc.)
+    let engines = [];
 
     // --- URL hash helpers ---
     function buildHash(ctx) {
@@ -50,7 +53,7 @@
     }
 
     // --- DB picker + SQL editor state
-    let sql = `SELECT NOW() AS now, VERSION() AS version;`;
+    let sql = ``;
     let queryDb = "";
     let databases = [];
     let busy = false;
@@ -66,6 +69,12 @@
 
     onMount(async () => {
         window.addEventListener("popstate", handlePopState);
+        try {
+            const engRes = await api.getEngines();
+            engines = engRes.engines || [];
+        } catch (_) {
+            /* non-fatal */
+        }
         try {
             const r = await api.getSession();
             if (r.active) {
@@ -86,7 +95,10 @@
     });
 
     // Reload databases whenever session becomes active
-    $: if ($session) loadDatabases();
+    $: if ($session) {
+        loadDatabases();
+        loadCapabilities();
+    }
 
     async function loadDatabases() {
         try {
@@ -95,14 +107,27 @@
         } catch (_) {}
     }
 
+    async function loadCapabilities() {
+        try {
+            const data = await api.getCapabilities();
+            capabilities.set(data);
+            // Set the welcome query for the SQL editor if it hasn't been manually changed
+            if (!sql.trim()) {
+                sql = data.welcomeQuery ?? "";
+            }
+        } catch (_) {}
+    }
+
     async function disconnect() {
         try {
             await api.disconnect();
             session.set(null);
+            capabilities.set(null);
             databases = [];
             result = null;
             errors = [];
             tableContext = null;
+            sql = "";
             history.replaceState(null, "", location.pathname);
             toast("Disconnected");
         } catch (e) {
@@ -156,12 +181,23 @@
         queryDb = tDb;
 
         // Also populate the SQL editor for reference / manual tweaking
-        const qDb = "`" + tDb.replace(/`/g, "``") + "`";
-        const qTbl = "`" + tTbl.replace(/`/g, "``") + "`";
-        sql =
-            tMode === "data"
-                ? `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`
-                : `SHOW COLUMNS FROM ${qDb}.${qTbl};`;
+        const ioOpen = $capabilities?.identifierOpen ?? "`";
+        const ioClose = $capabilities?.identifierClose ?? "`";
+        function quoteIdent(name) {
+            if (ioOpen === '"') return '"' + name.replace(/"/g, '""') + '"';
+            if (ioOpen === "[") return "[" + name.replace(/]/g, "]]") + "]";
+            return "`" + name.replace(/`/g, "``") + "`";
+        }
+        const qDb = quoteIdent(tDb);
+        const qTbl = quoteIdent(tTbl);
+        if (tMode === "data") {
+            sql = `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`;
+        } else {
+            const tmpl = $capabilities?.structureQueryTemplate;
+            sql = tmpl
+                ? tmpl.replace("{db}", tDb).replace("{table}", tTbl)
+                : `SELECT * FROM ${qDb}.${qTbl};`;
+        }
 
         // Push the new value into CodeMirror's internal state
         sqlEditor?.setValue(sql);
@@ -279,7 +315,9 @@
                     class="w-1.5 h-1.5 rounded-full bg-(--ok) shadow-[0_0_6px_rgba(127,217,127,0.5)] animate-pulse"
                 ></span>
                 <span class="mono text-(--ink-1)"
-                    >{$session.username}@{$session.host}{$session.port !== 3306
+                    >{$session.username}@{$session.host}{$session.port !==
+                    (engines.find((e) => e.id === $session.engine)
+                        ?.defaultPort ?? $session.port)
                         ? ":" + $session.port
                         : ""}</span
                 >
@@ -380,6 +418,7 @@
                                 db={tableContext?.db ?? null}
                                 table={tableContext?.table ?? null}
                                 mode={tableContext?.mode ?? "data"}
+                                capabilities={$capabilities}
                                 on:refresh={handleRefresh}
                             />
                         {:else}

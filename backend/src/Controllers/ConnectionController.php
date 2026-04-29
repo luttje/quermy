@@ -25,7 +25,13 @@ final class ConnectionController extends BaseController
     public function create(): void
     {
         $body = Json::readBody();
-        $this->requireFields($body, ['engine','host','port','username']);
+        $this->requireFields($body, ['engine']);
+        $meta = DriverFactory::engineMetaFor($body['engine']);
+        if ($meta['connectionType'] === 'file') {
+            $this->requireFields($body, ['database']);
+        } else {
+            $this->requireFields($body, ['host', 'port', 'username']);
+        }
         Json::send(['connection' => $this->vault->save($body)], 201);
     }
 
@@ -40,16 +46,25 @@ final class ConnectionController extends BaseController
     public function connect(): void
     {
         $body = Json::readBody();
-        $this->requireFields($body, ['engine','host','port','username']);
+        $this->requireFields($body, ['engine']);
+        $meta = DriverFactory::engineMetaFor($body['engine']);
+
+        if ($meta['connectionType'] === 'file') {
+            $this->requireFields($body, ['database']);
+            $config = ['database' => $body['database']];
+        } else {
+            $this->requireFields($body, ['host', 'port', 'username']);
+            $config = [
+                'host'     => $body['host'],
+                'port'     => (int)$body['port'],
+                'username' => $body['username'],
+                'password' => (string)($body['password'] ?? ''),
+                'database' => $body['database'] ?? null,
+            ];
+        }
 
         $driver = DriverFactory::make($body['engine']);
-        $driver->connect([
-            'host'     => $body['host'],
-            'port'     => (int)$body['port'],
-            'username' => $body['username'],
-            'password' => (string)($body['password'] ?? ''),
-            'database' => $body['database'] ?? null,
-        ]);
+        $driver->connect($config);
         $driver->disconnect();
 
         $savedRecord = null;

@@ -16,7 +16,18 @@ final class MetaController extends BaseController
     #[Route('GET', '/api/engines')]
     public function engines(): void
     {
-        Json::send(['engines' => DriverFactory::supportedEngines()]);
+        Json::send(['engines' => DriverFactory::supportedEnginesMeta()]);
+    }
+
+    #[Route('GET', '/api/capabilities')]
+    public function capabilities(): void
+    {
+        $driver = $this->session->open();
+        try {
+            Json::send($driver->getCapabilities());
+        } finally {
+            $driver->disconnect();
+        }
     }
 
     #[Route('GET', '/api/session')]

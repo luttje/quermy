@@ -29,7 +29,7 @@ interface DriverInterface
 
     /**
      * @return array{
-     *   columns: array<int,array{name:string,type:string,nullable:bool,key:string,default:mixed}>,
+     *   columns: array<int,array{name:string,type:string,nullable:bool,key:'primary'|'unique'|'index'|null,default:mixed,extra:string,autoIncrement:bool}>,
      *   rows: array<int,array<string,mixed>>,
      *   total: int
      * }
@@ -91,8 +91,57 @@ interface DriverInterface
     /** Drop a column from a table. */
     public function dropColumn(string $database, string $table, string $columnName): void;
 
-    /** Identifier used when persisting connections. */
+    /** Identifier used when persisting connections (e.g. "mysql", "postgresql"). */
     public static function engineId(): string;
+
+    /**
+     * Static metadata about this engine, available before any connection is
+     * established. Used by the frontend to set sensible form defaults.
+     *
+     * @return array{
+     *   id: string,
+     *   label: string,
+     *   defaultPort: int,
+     *   defaultUsername: string,
+     *   connectionType: 'tcp'|'file',
+     *   identifierOpen: string,
+     *   identifierClose: string,
+     * }
+     */
+    public static function engineMeta(): array;
+
+    /**
+     * Runtime capabilities for the active connection. Used by the frontend to
+     * adapt its UI (type suggestions, column-editing controls, etc.).
+     *
+     * - columnTypes:              suggested type strings for the column-type datalist
+     * - supportsAutoIncrement:    engine has a native auto-increment / identity concept
+     * - supportsColumnAfter:      ADD COLUMN … AFTER … is valid
+     * - supportsModifyColumn:     column renames/retypes are supported
+     * - supportsDropColumn:       DROP COLUMN is supported
+     * - supportsGetCreateTable:   getCreateTable() returns meaningful DDL
+     * - supportsExplain:          explainQuery() is supported
+     * - supportsForeignKeys:      getForeignKeys() returns data
+     * - welcomeQuery:             default SQL shown when the user opens a new connection
+     * - structureQueryTemplate:   default SQL for the "structure" view; use {db}/{table} tokens
+     * - identifierOpen/Close:     quoting characters for identifiers (e.g. ` or ")
+     *
+     * @return array{
+     *   columnTypes: list<string>,
+     *   supportsAutoIncrement: bool,
+     *   supportsColumnAfter: bool,
+     *   supportsModifyColumn: bool,
+     *   supportsDropColumn: bool,
+     *   supportsGetCreateTable: bool,
+     *   supportsExplain: bool,
+     *   supportsForeignKeys: bool,
+     *   welcomeQuery: string,
+     *   structureQueryTemplate: string,
+     *   identifierOpen: string,
+     *   identifierClose: string,
+     * }
+     */
+    public function getCapabilities(): array;
 
     /*
      * Schema-introspection methods used by the AI agent's tools.
@@ -106,7 +155,7 @@ interface DriverInterface
      * Full structure of a single table.
      *
      * @return array{
-     *   columns: list<array{name:string,type:string,nullable:bool,key:string,default:mixed,extra:string,comment:string}>,
+     *   columns: list<array{name:string,type:string,nullable:bool,key:'primary'|'unique'|'index'|null,default:mixed,extra:string,comment:string,autoIncrement:bool}>,
      *   primaryKey: list<string>,
      *   indexes: list<array{name:string,columns:list<string>,unique:bool}>
      * }

@@ -22,6 +22,7 @@
     export let db = null; // set to enable editing
     export let table = null; // set to enable editing
     export let mode = "data"; // "data" | "structure"
+    export let capabilities = null; // driver capabilities from /api/capabilities
 
     const dispatch = createEventDispatcher();
 
@@ -29,7 +30,7 @@
     $: isEditable = !!(db && table);
     $: pkCols =
         mode === "data"
-            ? columns.filter((c) => c.key === "PRI").map((c) => c.name)
+            ? columns.filter((c) => c.key === "primary").map((c) => c.name)
             : [];
     $: canEditRows = isEditable && mode === "data" && pkCols.length > 0;
 
@@ -212,46 +213,6 @@
         autoIncrement: false,
     };
 
-    const MYSQL_TYPES = [
-        // Numeric
-        "INT",
-        "TINYINT",
-        "SMALLINT",
-        "MEDIUMINT",
-        "BIGINT",
-        "INT UNSIGNED",
-        "TINYINT UNSIGNED",
-        "SMALLINT UNSIGNED",
-        "MEDIUMINT UNSIGNED",
-        "BIGINT UNSIGNED",
-        "DECIMAL(10,2)",
-        "FLOAT",
-        "DOUBLE",
-        "BIT(1)",
-        // String
-        "CHAR(1)",
-        "VARCHAR(255)",
-        "TINYTEXT",
-        "TEXT",
-        "MEDIUMTEXT",
-        "LONGTEXT",
-        "BINARY(1)",
-        "VARBINARY(255)",
-        "TINYBLOB",
-        "BLOB",
-        "MEDIUMBLOB",
-        "LONGBLOB",
-        "ENUM('a','b')",
-        "SET('a','b')",
-        // Date/Time
-        "DATE",
-        "TIME",
-        "DATETIME",
-        "TIMESTAMP",
-        "YEAR",
-        // Other
-        "JSON",
-    ];
     let structBusy = false;
     let selectedCol = null; // index of selected column row
 
@@ -366,11 +327,11 @@
     }
 
     function isAutoIncrement(c) {
-        return !!(c?.extra && c.extra.toLowerCase().includes("auto_increment"));
+        return c?.autoIncrement === true;
     }
 
     function isPrimary(c) {
-        return c && c.key === "PRI";
+        return c && c.key === "primary";
     }
 </script>
 
@@ -697,12 +658,16 @@
                             <button
                                 class="tb-btn tb-edit"
                                 on:click={() => startEditCol(selectedCol)}
-                                disabled={structBusy}>Edit</button
+                                disabled={structBusy ||
+                                    !capabilities?.supportsModifyColumn}
+                                >Edit</button
                             >
                             <button
                                 class="tb-btn tb-delete"
                                 on:click={deleteSelectedCol}
-                                disabled={structBusy}>Delete</button
+                                disabled={structBusy ||
+                                    !capabilities?.supportsDropColumn}
+                                >Delete</button
                             >
                         {/if}
                         <button
@@ -749,10 +714,12 @@
                             class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Key</th
                         >
-                        <th
-                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
-                            >AI</th
-                        >
+                        {#if capabilities?.supportsAutoIncrement}
+                            <th
+                                class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
+                                >AI</th
+                            >
+                        {/if}
                         <th
                             class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Default</th
@@ -795,7 +762,7 @@
                                 >
                                     <input
                                         class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
-                                        list="mysql-types"
+                                        list="col-types"
                                         bind:value={editColForm.type}
                                         placeholder="VARCHAR(255)"
                                     />
@@ -868,10 +835,12 @@
                                     class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--acc) text-[11px] font-semibold tracking-[0.04em]"
                                     >{col.key || "—"}</td
                                 >
-                                <td
-                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ok)"
-                                    >{isAutoIncrement(col) ? "✓" : "—"}</td
-                                >
+                                {#if capabilities?.supportsAutoIncrement}
+                                    <td
+                                        class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ok)"
+                                        >{isAutoIncrement(col) ? "✓" : "—"}</td
+                                    >
+                                {/if}
                                 <td
                                     class="mono py-1.75 px-3.5 border-b border-b-(--line) text-(--ink-1)"
                                 >
@@ -906,7 +875,7 @@
                                 class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 ><input
                                     class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
-                                    list="mysql-types"
+                                    list="col-types"
                                     bind:value={newColForm.type}
                                     placeholder="VARCHAR(255)"
                                 /></td
@@ -933,24 +902,28 @@
                                 class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ink-1)"
                                 >—</td
                             >
-                            <td
-                                class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
-                            >
-                                <label
-                                    class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
+                            {#if capabilities?.supportsAutoIncrement}
+                                <td
+                                    class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 >
-                                    <input
-                                        type="checkbox"
-                                        class="accent-(--acc)"
-                                        bind:checked={newColForm.autoIncrement}
-                                    />
-                                    <span class="mono"
-                                        >{newColForm.autoIncrement
-                                            ? "YES"
-                                            : "NO"}</span
+                                    <label
+                                        class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                     >
-                                </label>
-                            </td>
+                                        <input
+                                            type="checkbox"
+                                            class="accent-(--acc)"
+                                            bind:checked={
+                                                newColForm.autoIncrement
+                                            }
+                                        />
+                                        <span class="mono"
+                                            >{newColForm.autoIncrement
+                                                ? "YES"
+                                                : "NO"}</span
+                                        >
+                                    </label>
+                                </td>
+                            {/if}
                             <td
                                 class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line)"
                                 ><input
@@ -973,8 +946,8 @@
     </div>
 {/if}
 
-<datalist id="mysql-types">
-    {#each MYSQL_TYPES as t}
+<datalist id="col-types">
+    {#each capabilities?.columnTypes ?? [] as t}
         <option value={t}></option>
     {/each}
 </datalist>

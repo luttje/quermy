@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-    import { api, BASE } from "../lib/api.js";
+    import { api } from "../lib/api.js";
     import { session, toast } from "../lib/store.js";
     import Btn from "../components/ui/Btn.svelte";
     import Input from "../components/ui/Input.svelte";
@@ -8,12 +8,12 @@
     import FormField from "../components/ui/FormField.svelte";
 
     let connections = [];
-    let engines = ["mysql"];
+    let engines = [];
     let loading = true;
 
     // form state
     let form = {
-        engine: "mysql",
+        engine: "",
         name: "",
         host: "127.0.0.1",
         port: 3306,
@@ -24,19 +24,31 @@
     };
     let busy = false;
 
+    // Derived from selected engine meta
+    $: selectedEngine = engines.find((e) => e.id === form.engine) ?? null;
+    $: isFileConnection = selectedEngine?.connectionType === "file";
+
+    // Auto-fill port and username when the engine selection changes
+    let _prevEngineId = "";
+    $: if (form.engine !== _prevEngineId && engines.length > 0) {
+        _prevEngineId = form.engine;
+        if (selectedEngine) {
+            form.port = selectedEngine.defaultPort;
+            form.username = selectedEngine.defaultUsername;
+        }
+    }
+
     onMount(async () => {
         try {
-            const [connsRes, enginesRes] = await Promise.all([
+            const [connsRes, engRes] = await Promise.all([
                 api.listConnections(),
-                api.getSession().catch(() => ({ engines: ["mysql"] })),
+                api.getEngines(),
             ]);
             connections = connsRes.connections || [];
-            try {
-                const e = await fetch(`${BASE}/engines`, {
-                    credentials: "include",
-                }).then((r) => r.json());
-                if (e.engines) engines = e.engines;
-            } catch (_) {}
+            engines = engRes.engines || [];
+            if (engines.length > 0) {
+                form.engine = engines[0].id;
+            }
         } catch (e) {
             toast(e.message, "error");
         } finally {
@@ -48,7 +60,11 @@
         busy = true;
         try {
             const payload = { ...form };
-            if (!payload.name) payload.name = `${payload.host}:${payload.port}`;
+            if (!payload.name) {
+                payload.name = isFileConnection
+                    ? payload.database || "file-db"
+                    : `${payload.host}:${payload.port}`;
+            }
             await api.connect(payload);
             const s = await api.getSession();
             session.set(s.active);
@@ -212,7 +228,8 @@
             >
                 <FormField label="Engine">
                     <Select bind:value={form.engine}>
-                        {#each engines as e}<option value={e}>{e}</option
+                        {#each engines as e}<option value={e.id}
+                                >{e.label}</option
                             >{/each}
                     </Select>
                 </FormField>
@@ -225,39 +242,60 @@
                     />
                 </FormField>
 
-                <div class="grid grid-cols-[3fr_1fr] gap-3">
-                    <FormField label="Host">
-                        <Input type="text" bind:value={form.host} required />
-                    </FormField>
-                    <FormField label="Port">
-                        <Input type="number" bind:value={form.port} required />
-                    </FormField>
-                </div>
+                {#if !isFileConnection}
+                    <div class="grid grid-cols-[3fr_1fr] gap-3">
+                        <FormField label="Host">
+                            <Input
+                                type="text"
+                                bind:value={form.host}
+                                required
+                            />
+                        </FormField>
+                        <FormField label="Port">
+                            <Input
+                                type="number"
+                                bind:value={form.port}
+                                required
+                            />
+                        </FormField>
+                    </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <FormField label="Username">
+                    <div class="grid grid-cols-2 gap-3">
+                        <FormField label="Username">
+                            <Input
+                                type="text"
+                                bind:value={form.username}
+                                required
+                            />
+                        </FormField>
+                        <FormField label="Password">
+                            <Input
+                                type="password"
+                                bind:value={form.password}
+                                placeholder="••••••"
+                            />
+                        </FormField>
+                    </div>
+                {/if}
+
+                {#if isFileConnection}
+                    <FormField label="File path">
                         <Input
                             type="text"
-                            bind:value={form.username}
+                            bind:value={form.database}
+                            placeholder="/path/to/database.sqlite"
                             required
                         />
                     </FormField>
-                    <FormField label="Password">
+                {:else}
+                    <FormField label="Default database" optional>
                         <Input
-                            type="password"
-                            bind:value={form.password}
-                            placeholder="••••••"
+                            type="text"
+                            bind:value={form.database}
+                            placeholder="leave empty to choose later"
                         />
                     </FormField>
-                </div>
-
-                <FormField label="Default database" optional>
-                    <Input
-                        type="text"
-                        bind:value={form.database}
-                        placeholder="leave empty to choose later"
-                    />
-                </FormField>
+                {/if}
 
                 <label
                     class="flex items-center gap-2.5 text-(--ink-1) text-[13px] cursor-pointer select-none py-1"

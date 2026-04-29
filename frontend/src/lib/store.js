@@ -8,11 +8,11 @@ export const toasts = writable([]);
 
 let nextId = 1;
 export function toast(message, type = 'info') {
-    const id = nextId++;
-    toasts.update((list) => [...list, { id, message, type }]);
-    setTimeout(() => {
-        toasts.update((list) => list.filter((t) => t.id !== id));
-    }, 4500);
+  const id = nextId++;
+  toasts.update((list) => [...list, { id, message, type }]);
+  setTimeout(() => {
+    toasts.update((list) => list.filter((t) => t.id !== id));
+  }, 4500);
 }
 
 // AI key manager state — populated on mount by AIChatPanel.
@@ -22,4 +22,22 @@ export const aiKeys = writable([]);
 // The active key + model chosen for the current chat session.
 // Shape: { keyId: string, model: string } | null
 export const activeAiKey = writable(null);
+
+// Capabilities of the currently connected database engine, or null when
+// disconnected. Shape mirrors the PHP DriverInterface::getCapabilities() return.
+// {
+//   columnTypes: string[],
+//   supportsAutoIncrement: boolean,
+//   supportsColumnAfter: boolean,
+//   supportsModifyColumn: boolean,
+//   supportsDropColumn: boolean,
+//   supportsGetCreateTable: boolean,
+//   supportsExplain: boolean,
+//   supportsForeignKeys: boolean,
+//   welcomeQuery: string,
+//   structureQueryTemplate: string,
+//   identifierOpen: string,
+//   identifierClose: string,
+// }
+export const capabilities = writable(null);
 

@@ -24,9 +24,9 @@ use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
     . 'database (string) — schema to run against; pass "" to use the current one. '
     . 'sql (string) — a single SELECT (or WITH ... SELECT) statement. Do NOT prefix with EXPLAIN; '
     . 'this tool adds it. '
-    . 'Returns: { plan: Array<Record<string,mixed>> } — one row per step in the plan, with the '
-    . 'usual EXPLAIN columns (id, select_type, table, type, possible_keys, key, key_len, ref, '
-    . 'rows, filtered, Extra). Field names match MySQL\'s native EXPLAIN output.'
+    . 'Returns: { plan: Array<Record<string,mixed>> } — one row per step in the query plan. '
+    . 'The structure varies by database engine (e.g. MySQL returns EXPLAIN tabular rows, '
+    . 'PostgreSQL returns JSON nodes, SQLite returns EXPLAIN QUERY PLAN rows).'
 )]
 final class ExplainQuery
 {
