@@ -16,7 +16,7 @@
         historyKeymap,
     } from "@codemirror/commands";
     import { sql } from "@codemirror/lang-sql";
-    import { oneDark } from "@codemirror/theme-one-dark";
+    import { gruvboxDark } from "@uiw/codemirror-theme-gruvbox-dark";
     import { bracketMatching, indentOnInput } from "@codemirror/language";
     import {
         closeBrackets,
@@ -109,7 +109,7 @@
                 bracketMatching(),
                 closeBrackets(),
                 sql(),
-                oneDark,
+                gruvboxDark,
                 appTheme,
                 keymap.of([
                     ...closeBracketsKeymap,
