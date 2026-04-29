@@ -81,6 +81,7 @@
                 form.port = serverConnection.port ?? form.port;
                 form.database = serverConnection.database ?? "";
                 form.username = "";
+                form.save = false;
             } else if (engines.length > 0) {
                 form.engine = engines[0].id;
             }
