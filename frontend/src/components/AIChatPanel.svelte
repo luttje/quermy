@@ -9,6 +9,12 @@
     // Chat state
     let messages = [
         {
+            role: "system",
+            content: `You are a helpful assistant for the Quermy SQL client. Your user will ask you questions about their databases, and you will respond with answers, explanations, or SQL queries to run.
+            You also have access to tools that can provide information about the databases, such as their structure or query results. Use these tools when needed to answer the user's questions accurately.
+            Always try to help the user achieve their goal in as few steps as possible.`,
+        },
+        {
             role: "assistant",
             content:
                 "Ask me anything about your data — I can help write queries, explain results, or analyse your schema.",
@@ -121,9 +127,12 @@
         }
     }
 
-    // Start a new conversation but keep the initial greeting message
+    // Start a new conversation but keep the system prompt and initial greeting message
     function clearChat() {
-        messages = [messages[0]];
+        messages = [
+            messages[0], // system prompt
+            messages[1], // initial greeting
+        ];
     }
 
     function handleMessagesClick(e) {
@@ -246,7 +255,7 @@
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div
             role="list"
-            class="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 flex flex-col gap-2.5"
+            class="ai-chat flex-1 min-h-0 overflow-y-auto px-2.5 py-3 flex flex-col gap-2.5"
             bind:this={messagesEl}
             on:click={handleMessagesClick}
             on:keydown={handleMessagesKeydown}
@@ -264,33 +273,35 @@
             </div>
 
             {#each messages as msg}
-                <div
-                    class="flex gap-1.75 items-start {msg.role === 'user'
-                        ? 'flex-row-reverse'
-                        : ''}"
-                >
-                    {#if msg.role === "assistant"}
-                        <div
-                            class="w-5.5 h-5.5 rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-(--acc) flex items-center justify-center text-[11px] shrink-0 mt-0.5"
-                        >
-                            ✦
-                        </div>
-                    {/if}
+                {#if msg.role !== "system"}
                     <div
-                        class="max-w-[88%] min-w-0 px-2.75 py-1.75 rounded-lg text-[12px] leading-normal wrap-break-word
-                               {msg.error
-                            ? 'bg-red-950/30 border border-red-800/50 text-red-300'
-                            : msg.role === 'user'
-                              ? 'bg-[rgba(200,255,90,0.07)] border border-[rgba(200,255,90,0.15)] text-(--ink-0)'
-                              : 'prose-md bg-(--bg-2) border border-(--line) text-(--ink-1)'}"
+                        class="flex gap-1.75 items-start {msg.role === 'user'
+                            ? 'flex-row-reverse'
+                            : ''}"
                     >
-                        {#if msg.role === "assistant" && !msg.error}
-                            {@html parse(msg.content)}
-                        {:else}
-                            {msg.content}
+                        {#if msg.role === "assistant"}
+                            <div
+                                class="w-5.5 h-5.5 rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-(--acc) flex items-center justify-center text-[11px] shrink-0 mt-0.5"
+                            >
+                                ✦
+                            </div>
                         {/if}
+                        <div
+                            class="overflow-auto max-w-[88%] min-w-0 px-2.75 py-1.75 rounded-lg text-[12px] leading-normal wrap-break-word
+                               {msg.error
+                                ? 'bg-red-950/30 border border-red-800/50 text-red-300'
+                                : msg.role === 'user'
+                                  ? 'bg-[rgba(200,255,90,0.07)] border border-[rgba(200,255,90,0.15)] text-(--ink-0)'
+                                  : 'prose-md bg-(--bg-2) border border-(--line) text-(--ink-1)'}"
+                        >
+                            {#if msg.role === "assistant" && !msg.error}
+                                {@html parse(msg.content)}
+                            {:else}
+                                {msg.content}
+                            {/if}
+                        </div>
                     </div>
-                </div>
+                {/if}
             {/each}
 
             {#if busy}
@@ -302,7 +313,7 @@
                     </div>
                     {#if streamingReply}
                         <div
-                            class="prose-md max-w-[88%] min-w-0 px-2.75 py-1.75 rounded-lg text-[12px] leading-normal wrap-break-word bg-(--bg-2) border border-(--line) text-(--ink-1)"
+                            class="prose-md overflow-auto max-w-[88%] min-w-0 px-2.75 py-1.75 rounded-lg text-[12px] leading-normal wrap-break-word bg-(--bg-2) border border-(--line) text-(--ink-1)"
                         >
                             {@html parse(streamingReply)}
                         </div>
@@ -335,7 +346,6 @@
                 bind:value={input}
                 on:keydown={onKeydown}
                 rows="3"
-                disabled={busy}
             ></textarea>
             <button
                 class="w-7.5 h-7.5 bg-(--acc) text-[#0a0c0a] border-0 rounded-(--radius) text-[15px] font-bold flex items-center justify-center shrink-0 transition-[background] duration-80 disabled:bg-(--bg-3) disabled:text-(--ink-3) enabled:hover:bg-(--acc-d)"

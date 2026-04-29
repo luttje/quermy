@@ -301,3 +301,39 @@ thead th.pk {
         font-size: 56px;
     }
 }
+
+/*
+ * Inside the AI chat panel, we we want some default styling for markdown content, since it won't get
+ * tailwind classes.
+ */
+.ai-chat ol {
+    list-style-position: inside;
+    list-style-type: decimal;
+    padding-left: 0;
+}
+
+.ai-chat ul {
+    list-style-position: inside;
+    list-style-type: disc;
+    padding-left: 0;
+}
+
+.ai-chat pre {
+    font-family: var(--font-mono);
+    background: var(--bg-2);
+    color: var(--ink-1);
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.95em;
+}
+
+.ai-chat table thead {
+    background: var(--bg-0);
+}
+
+.ai-chat table th,
+.ai-chat table td {
+    border: 1px solid var(--line);
+    padding: 0.5em 1em;
+}
