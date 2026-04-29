@@ -4,16 +4,14 @@
     import { aiKeys, activeAiKey } from "../lib/store.js";
     import { parse } from "../lib/marked.js";
     import AIKeyManager from "./AIKeyManager.svelte";
+    import { quermySystemPrompt } from "../lib/prompts";
     import "highlight.js/styles/atom-one-dark.css";
 
     // Chat state
     let messages = [
         {
             role: "system",
-            content: `You are a helpful assistant for the Quermy SQL client. Your user will ask you questions about their databases, and you will respond with answers, explanations, or SQL queries to run.
-            You also have access to tools that can provide information about the databases, such as their structure or query results. Use these tools when needed to answer the user's questions accurately.
-            When you suggest a query, ALWAYS use the suggest_query tool instead of writing the SQL directly in your response. This allows the user to review and run the query safely.
-            Always try to help the user achieve their goal in as few steps as possible.`,
+            content: quermySystemPrompt,
         },
         {
             role: "assistant",

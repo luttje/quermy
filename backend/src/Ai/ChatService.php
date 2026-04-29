@@ -87,6 +87,8 @@ class ChatService
 
         $agent = new Agent($platform, $model, [$processor], [$processor]);
 
+        set_time_limit(60 * 5); // 5 minutes should be enough for now.
+
         $result = $agent->call($this->buildBag($messages), ['stream' => true]);
 
         // The agent runs tools synchronously, then streams the final reply.

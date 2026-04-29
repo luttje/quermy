@@ -6,11 +6,22 @@ use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 
 #[AsTool(
     'suggest_query',
-    'Suggests a MySQL query for the user to review and run. '
-    . 'Use this whenever you want to retrieve data from the database, or when the user asks you to run a query '
-    . 'directly, you return it here so the user can confirm it first. The query will be shown to the user with a "Run" button. '
-    . 'After calling this, simply respond with a normal message along the lines of '
-    . '"I have suggested a query to run, please review it and click Run to see the results." (do NOT include the SQL in your response)'
+    'Suggests a SQL query for the user to review and execute via a "Run" button in the UI. This is the '
+    . 'ONLY way you should propose SQL — never paste executable SQL into your chat response, as it bypasses '
+    . 'the review step and confuses the user. Use this whenever the answer to a request requires running a '
+    . 'query: data retrieval, aggregations, exact counts, schema inspection beyond what list_tables provides, '
+    . 'or any DML/DDL the user has explicitly asked for. '
+    . 'After calling this tool, your chat response should be a brief sentence or two — for example, '
+    . '"I\'ve suggested a query that counts orders grouped by status. Review and click Run to execute." — '
+    . 'and must NOT contain the SQL itself. '
+    . 'Parameters: '
+    . 'database (string) — the schema to run against; pass an empty string to use the user\'s current database. '
+    . 'sql (string) — exactly ONE SQL statement; do not chain multiple statements with semicolons. Use '
+    . 'backticks around identifiers, explicit JOINs, and add ORDER BY whenever you use LIMIT. '
+    . 'rationale (string) — a one-to-three sentence explanation shown to the user above the Run button. '
+    . 'State what the query returns, any assumptions you made (e.g., "treats deleted_at IS NULL as active"), '
+    . 'and flag if the query modifies data. For destructive statements (UPDATE, DELETE, DROP, etc.), the '
+    . 'rationale MUST explicitly say so and describe the scope of the change.'
 )]
 final class SuggestQuery
 {
