@@ -75,12 +75,20 @@ export const api = {
     getKeyModels: (id) => request('GET', `/ai/keys/${id}/models`),
 
     /**
-     * Stream an AI chat response as an async generator of string chunks.
+     * Stream an AI chat response as an async generator of typed event objects.
      *
-     * @param {string} keyId   — ID of the stored API key
-     * @param {string} model   — model name
+     * Yields one of:
+     *   { type: 'text',        chunk: string }
+     *   { type: 'tool_call',   name: string, arguments: object }
+     *   { type: 'tool_result', name: string, ok: boolean, result?: object, error?: string }
+     *
+     * Previously this yielded raw strings. Callers that only care about text
+     * should filter for event.type === 'text' and read event.chunk.
+     *
+     * @param {string} keyId
+     * @param {string} model
      * @param {Array<{role:string,content:string}>} messages
-     * @returns {AsyncGenerator<string>}
+     * @returns {AsyncGenerator<object>}
      */
     async *aiChatStream(keyId, model, messages) {
         const res = await fetch(`${BASE}/ai/chat/stream`, {
@@ -103,6 +111,12 @@ export const api = {
         const decoder = new TextDecoder();
         let buffer = '';
 
+        // The PHP backend emits tool_call (with arguments) before tool_result
+        // (with only ok/error — no result payload). We bridge the gap by
+        // caching each tool's arguments here and attaching them as `result`
+        // when the matching tool_result arrives.
+        const pendingToolArgs = {};
+
         try {
             while (true) {
                 const { done, value } = await reader.read();
@@ -116,7 +130,28 @@ export const api = {
                     if (raw === '[DONE]') return;
                     const parsed = JSON.parse(raw);
                     if (parsed.error) throw new Error(parsed.error);
-                    if (parsed.chunk !== undefined) yield parsed.chunk;
+
+                    if (parsed.type === 'text') {
+                        yield { type: 'text', chunk: parsed.chunk };
+                    } else if (parsed.type === 'tool_call') {
+                        // Stash the arguments so we can attach them to the result below
+                        pendingToolArgs[parsed.name] = parsed.arguments ?? {};
+                        yield { type: 'tool_call', name: parsed.name, arguments: parsed.arguments };
+                    } else if (parsed.type === 'tool_result') {
+                        // Attach the previously-stashed arguments as `result` so callers
+                        // (e.g. the suggest_query handler in AIChatPanel) have the payload
+                        // they need without requiring PHP to re-emit it.
+                        const result = pendingToolArgs[parsed.name] ?? null;
+                        delete pendingToolArgs[parsed.name];
+                        yield {
+                            type: 'tool_result',
+                            name: parsed.name,
+                            ok: parsed.ok,
+                            result,
+                            error: parsed.error ?? null,
+                        };
+                    }
+                    // Unknown event types are silently ignored for forward-compatibility.
                 }
             }
         } finally {

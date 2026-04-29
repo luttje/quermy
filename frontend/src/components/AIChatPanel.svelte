@@ -12,6 +12,7 @@
             role: "system",
             content: `You are a helpful assistant for the Quermy SQL client. Your user will ask you questions about their databases, and you will respond with answers, explanations, or SQL queries to run.
             You also have access to tools that can provide information about the databases, such as their structure or query results. Use these tools when needed to answer the user's questions accurately.
+            When you suggest a query, ALWAYS use the suggest_query tool instead of writing the SQL directly in your response. This allows the user to review and run the query safely.
             Always try to help the user achieve their goal in as few steps as possible.`,
         },
         {
@@ -33,6 +34,7 @@
             const res = await api.listAiKeys();
             const keys = res.keys ?? [];
             aiKeys.set(keys);
+
             // Auto-select first key if nothing is active yet
             if (keys.length && !$activeAiKey) {
                 activeAiKey.set({ keyId: keys[0].id, model: keys[0].model });
@@ -74,10 +76,70 @@
             .catch(() => {});
     }
 
-    // Messaging
     function scrollToBottom() {
         if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
     }
+
+    /*
+     * Query suggestion run state
+     */
+
+    // Maps suggestionId → 'idle' | 'running' | 'done' | 'error'
+    let suggestionStates = {};
+
+    async function runSuggestion(suggestionId, database, sql) {
+        suggestionStates = { ...suggestionStates, [suggestionId]: "running" };
+        try {
+            const result = await api.runQuery(database, sql);
+            suggestionStates = { ...suggestionStates, [suggestionId]: "done" };
+
+            // Append a result bubble so the user (and the AI on the next turn) can see it
+            messages = [
+                ...messages,
+                {
+                    role: "assistant",
+                    content: formatQueryResult(result),
+                    isQueryResult: true,
+                },
+            ];
+            setTimeout(scrollToBottom, 0);
+        } catch (err) {
+            suggestionStates = { ...suggestionStates, [suggestionId]: "error" };
+            messages = [
+                ...messages,
+                {
+                    role: "assistant",
+                    content: `Query failed: ${err.message}`,
+                    error: true,
+                },
+            ];
+            setTimeout(scrollToBottom, 0);
+        }
+    }
+
+    /** Render query results as a markdown table (≤50 rows) or a row-count summary. */
+    function formatQueryResult(result) {
+        const { columns = [], rows = [], durationMs = 0 } = result;
+        if (!rows.length) return `_Query returned no rows (${durationMs}ms)_`;
+
+        if (columns.length && rows.length <= 50) {
+            const header = `| ${columns.map((c) => c.name).join(" | ")} |`;
+            const sep = `| ${columns.map(() => "---").join(" | ")} |`;
+            const body = rows
+                .map(
+                    (r) =>
+                        `| ${columns.map((c) => String(r[c.name] ?? "")).join(" | ")} |`,
+                )
+                .join("\n");
+            return `${header}\n${sep}\n${body}\n\n_${rows.length} row(s) · ${durationMs}ms_`;
+        }
+
+        return `_${rows.length} row(s) returned in ${durationMs}ms_`;
+    }
+
+    /*
+     * Messaging
+     */
 
     async function send() {
         const text = input.trim();
@@ -90,20 +152,54 @@
         setTimeout(scrollToBottom, 0);
 
         try {
-            for await (const chunk of api.aiChatStream(
+            for await (const event of api.aiChatStream(
                 $activeAiKey.keyId,
                 $activeAiKey.model,
-                // Strip the initial greeting so we don't send an unlabelled
-                // "assistant" opener that confuses the model.
-                messages.slice(1),
+                // Strip the initial assistant greeting and any internal result messages
+                messages
+                    .slice(1)
+                    .filter((m) => !m.isSuggestion && !m.isQueryResult),
             )) {
-                streamingReply += chunk;
-                setTimeout(scrollToBottom, 0);
+                if (event.type === "text") {
+                    streamingReply += event.chunk;
+                    setTimeout(scrollToBottom, 0);
+                } else if (
+                    event.type === "tool_result" &&
+                    event.name === "suggest_query" &&
+                    event.ok &&
+                    event.result?.sql
+                ) {
+                    // Flush any text that arrived before this suggestion
+                    if (streamingReply) {
+                        messages = [
+                            ...messages,
+                            { role: "assistant", content: streamingReply },
+                        ];
+                        streamingReply = "";
+                    }
+                    messages = [
+                        ...messages,
+                        {
+                            role: "assistant",
+                            isSuggestion: true,
+                            suggestionId: crypto.randomUUID(),
+                            database: event.result.database,
+                            sql: event.result.sql,
+                            rationale: event.result.rationale,
+                        },
+                    ];
+                    setTimeout(scrollToBottom, 0);
+                }
+                // tool_call events are currently not shown in the bubble list
             }
-            messages = [
-                ...messages,
-                { role: "assistant", content: streamingReply },
-            ];
+
+            // Flush any remaining streamed text
+            if (streamingReply) {
+                messages = [
+                    ...messages,
+                    { role: "assistant", content: streamingReply },
+                ];
+            }
         } catch (err) {
             messages = [
                 ...messages,
@@ -129,10 +225,8 @@
 
     // Start a new conversation but keep the system prompt and initial greeting message
     function clearChat() {
-        messages = [
-            messages[0], // system prompt
-            messages[1], // initial greeting
-        ];
+        messages = [messages[0], messages[1]];
+        suggestionStates = {};
     }
 
     function handleMessagesClick(e) {
@@ -171,7 +265,6 @@
             <span>AI</span>
         </div>
 
-        <!-- Key + model selector (shown when keys exist and not in key manager) -->
         {#if !showKeyManager && $aiKeys.length > 0}
             <div class="flex items-center gap-1 min-w-0 flex-1">
                 <!-- Key picker -->
@@ -232,7 +325,6 @@
     </div>
 
     {#if showKeyManager}
-        <!-- Key manager panel fills the rest of the panel -->
         <div class="flex-1 overflow-hidden">
             <AIKeyManager onClose={() => (showKeyManager = false)} />
         </div>
@@ -273,7 +365,93 @@
             </div>
 
             {#each messages as msg}
-                {#if msg.role !== "system"}
+                {#if msg.role === "assistant" && msg.isSuggestion}
+                    <!-- Query suggestion bubble -->
+                    {@const state =
+                        suggestionStates[msg.suggestionId] ?? "idle"}
+                    <div class="flex gap-1.75 items-start">
+                        <div
+                            class="w-5.5 h-5.5 rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-(--acc) flex items-center justify-center text-[11px] shrink-0 mt-0.5"
+                        >
+                            ✦
+                        </div>
+                        <div
+                            class="query-suggestion min-w-0 max-w-[88%] rounded-lg border border-(--line) bg-(--bg-2) overflow-hidden text-[12px]"
+                        >
+                            <!-- Rationale -->
+                            {#if msg.rationale}
+                                <p
+                                    class="px-2.75 pt-2 pb-1.5 text-(--ink-2) text-[11.5px] leading-snug"
+                                >
+                                    {msg.rationale}
+                                </p>
+                            {/if}
+                            <!-- SQL block -->
+                            <pre
+                                class="sql-preview m-0 px-2.75 py-2 bg-(--bg-1) border-y border-(--line) overflow-x-auto text-[11px] leading-relaxed font-mono text-(--ink-1) {msg.rationale
+                                    ? ''
+                                    : 'rounded-t-lg'}">{msg.sql}</pre>
+                            <!-- Action bar -->
+                            <div
+                                class="flex items-center justify-between gap-2 px-2.75 py-1.75"
+                            >
+                                {#if msg.database}
+                                    <span
+                                        class="text-[10px] text-(--ink-3) mono truncate"
+                                    >
+                                        db: {msg.database}
+                                    </span>
+                                {:else}
+                                    <span></span>
+                                {/if}
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    {#if state === "done"}
+                                        <span
+                                            class="text-[10.5px] text-emerald-400"
+                                            >✓ ran</span
+                                        >
+                                    {:else if state === "error"}
+                                        <span class="text-[10.5px] text-red-400"
+                                            >✗ failed</span
+                                        >
+                                    {/if}
+                                    <button
+                                        class="copy-sql-btn text-[10px] px-1.5 py-0.5 bg-(--bg-3) border border-(--line) rounded-[3px] text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
+                                        on:click={() => {
+                                            navigator.clipboard
+                                                .writeText(msg.sql)
+                                                .catch(() => {});
+                                        }}
+                                    >
+                                        Copy
+                                    </button>
+                                    <button
+                                        class="run-btn text-[10.5px] px-2 py-0.5 rounded-[3px] border font-medium transition-colors duration-80
+                                               {state === 'running'
+                                            ? 'bg-(--bg-3) border-(--line) text-(--ink-3) cursor-wait'
+                                            : state === 'done'
+                                              ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/40'
+                                              : 'bg-(--acc)/10 border-(--acc)/40 text-(--acc) hover:bg-(--acc)/20'}"
+                                        disabled={state === "running"}
+                                        on:click={() =>
+                                            runSuggestion(
+                                                msg.suggestionId,
+                                                msg.database,
+                                                msg.sql,
+                                            )}
+                                    >
+                                        {state === "running"
+                                            ? "Running…"
+                                            : state === "done"
+                                              ? "Run again"
+                                              : "▶ Run"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {:else if msg.role !== "system"}
+                    <!-- Normal message bubble -->
                     <div
                         class="flex gap-1.75 items-start {msg.role === 'user'
                             ? 'flex-row-reverse'
@@ -304,6 +482,7 @@
                 {/if}
             {/each}
 
+            <!-- Streaming / loading indicator -->
             {#if busy}
                 <div class="flex gap-1.75 items-start">
                     <div
@@ -399,6 +578,7 @@
         margin: 0.5em 0 0.2em;
         line-height: 1.3;
     }
+
     /* Inline code */
     :global(.prose-md code:not(.hljs)) {
         font-family: "JetBrains Mono", monospace;
@@ -463,5 +643,11 @@
         font-family: "JetBrains Mono", monospace;
         font-size: 11px;
         line-height: 1.5;
+    }
+
+    /* ── Query suggestion SQL preview ── */
+    .sql-preview {
+        white-space: pre;
+        tab-size: 2;
     }
 </style>

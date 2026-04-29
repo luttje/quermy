@@ -5,7 +5,7 @@ namespace Quermy\Controllers;
 use Quermy\Ai\ChatService;
 use Quermy\Ai\Tools\GetDatabases;
 use Quermy\Ai\Tools\ListTables;
-use Quermy\Ai\Tools\RunSelectQuery;
+use Quermy\Ai\Tools\SuggestQuery;
 use Quermy\Http\ConnectionSession;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
@@ -37,16 +37,12 @@ final class AiChatController extends BaseController
             Json::error('API key not found. Add one via the key manager.', 422);
         }
 
-        // Tools that need request-scoped state (the active connection) get
-        // it via constructor injection. If you move to a DI container later,
-        // these become regular tagged services and this list goes away.
         $tools = [
             new GetDatabases($this->session),
             new ListTables($this->session),
-            new RunSelectQuery($this->session),
+            new SuggestQuery(), // no DB access — just validates and echoes the SQL back
         ];
 
-        // Drop any output buffers so SSE frames flush immediately.
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
