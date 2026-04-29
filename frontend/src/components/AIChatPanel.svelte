@@ -24,23 +24,85 @@
     let streamingReply = "";
     let messagesEl;
 
-    // Key manager panel toggle
+    // Panel toggles (mutually exclusive)
     let showKeyManager = false;
+    let showPromptEditor = false;
+    let showOptions = false;
+
+    // Prompt editor state
+    let promptDraft = quermySystemPrompt;
+    let promptSaving = false;
+    let promptError = "";
 
     onMount(async () => {
         try {
-            const res = await api.listAiKeys();
-            const keys = res.keys ?? [];
+            const [keysRes, settingsRes] = await Promise.all([
+                api.listAiKeys(),
+                api.getSettings(),
+            ]);
+
+            const keys = keysRes.keys ?? [];
             aiKeys.set(keys);
 
             // Auto-select first key if nothing is active yet
             if (keys.length && !$activeAiKey) {
                 activeAiKey.set({ keyId: keys[0].id, model: keys[0].model });
             }
+
+            // Apply persisted system prompt if present
+            const saved = settingsRes.settings?.systemPrompt;
+            if (saved && typeof saved === "string" && saved.trim()) {
+                messages[0] = { role: "system", content: saved };
+                messages = messages; // trigger reactivity
+                promptDraft = saved;
+            }
         } catch {
             // Backend unreachable — leave defaults.
         }
     });
+
+    function openPromptEditor() {
+        promptDraft = messages[0].content;
+        promptError = "";
+        showKeyManager = false;
+        showOptions = false;
+        showPromptEditor = true;
+    }
+
+    async function savePrompt() {
+        if (promptSaving) return;
+        promptError = "";
+        promptSaving = true;
+        try {
+            await api.updateSettings({ systemPrompt: promptDraft });
+            messages[0] = { role: "system", content: promptDraft };
+            messages = messages;
+            showPromptEditor = false;
+            showOptions = false;
+        } catch (err) {
+            promptError = err.message;
+        } finally {
+            promptSaving = false;
+        }
+    }
+
+    async function resetPrompt() {
+        if (promptSaving) return;
+        promptError = "";
+        promptSaving = true;
+        try {
+            await api.updateSettings({ systemPrompt: null });
+            messages[0] = { role: "system", content: quermySystemPrompt };
+            messages = messages;
+            promptDraft = quermySystemPrompt;
+            showPromptEditor = false;
+            showOptions = false;
+        } catch (err) {
+            promptError = err.message;
+        } finally {
+            promptSaving = false;
+        }
+    }
 
     // Active key object (from the list) — for display only
     $: activeKeyObj = $aiKeys.find((k) => k.id === $activeAiKey?.keyId) ?? null;
@@ -221,7 +283,7 @@
         }
     }
 
-    // Start a new conversation but keep the system prompt and initial greeting message
+    // Start a new conversation but keep the current system prompt and initial greeting
     function clearChat() {
         messages = [messages[0], messages[1]];
         suggestionStates = {};
@@ -250,78 +312,157 @@
 
 <div class="h-full flex flex-col overflow-hidden">
     <!-- header -->
-    <div
-        class="px-3.5 py-2.25 border-b border-(--line) flex items-center justify-between gap-2 shrink-0 bg-(--bg-2)"
-    >
-        <div
-            class="flex items-center gap-1.75 text-[12.5px] font-medium text-(--ink-1) shrink-0"
-        >
-            <span class="text-(--acc) text-[13px]">✦</span>
-            <span>AI</span>
-        </div>
-
-        {#if !showKeyManager && $aiKeys.length > 0}
-            <div class="flex items-center gap-1 min-w-0 flex-1">
-                <!-- Key picker -->
-                <select
-                    class="min-w-0 flex-1 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
-                    value={$activeAiKey?.keyId ?? ""}
-                    on:change={(e) => selectKey(e.target.value)}
-                    title="Active API key"
-                >
-                    {#each $aiKeys as k}
-                        <option value={k.id}>{k.label}</option>
-                    {/each}
-                </select>
-                <!-- Model picker -->
-                {#if availableModels.length > 0}
-                    <select
-                        class="min-w-0 flex-1 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
-                        value={$activeAiKey?.model ?? ""}
-                        on:change={onModelChange}
-                        title="Model"
-                    >
-                        {#each availableModels as m}
-                            <option value={m}>{m}</option>
-                        {/each}
-                    </select>
-                {:else if activeKeyObj}
-                    <span
-                        class="text-[10.5px] text-(--ink-3) mono truncate shrink-0"
-                        >{activeKeyObj.model}</span
-                    >
-                {/if}
-                <!-- Provider badge -->
-                {#if activeKeyObj}
-                    <span
-                        class="inline-flex shrink-0 items-center px-1.5 py-0.25 rounded text-[9px] font-medium border {providerColor(
-                            activeKeyObj.provider,
-                        )}"
-                    >
-                        {activeKeyObj.provider}
+    <div class="border-b border-(--line) shrink-0 bg-(--bg-2)">
+        <!-- title row -->
+        <div class="px-3.5 py-2.25 flex items-center justify-between">
+            <div
+                class="flex items-center gap-1.75 text-[12.5px] font-medium text-(--ink-1)"
+            >
+                <span class="text-(--acc) text-[13px]">✦</span>
+                <span>AI</span>
+                {#if activeKeyObj && !showOptions && !showKeyManager && !showPromptEditor}
+                    <span class="text-[10px] text-(--ink-3) mono">
+                        {activeKeyObj.label} · {$activeAiKey?.model ??
+                            activeKeyObj.model}
                     </span>
                 {/if}
             </div>
-        {/if}
+            <button
+                on:click={() => {
+                    showOptions = !showOptions;
+                    showKeyManager = false;
+                    showPromptEditor = false;
+                }}
+                class="w-6 h-6 flex items-center justify-center rounded-(--radius) border transition-colors duration-80
+                       {showOptions
+                    ? 'border-(--acc) text-(--acc) bg-(--acc)/10'
+                    : 'border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc)'}"
+                title="AI options"
+            >
+                ⚙
+            </button>
+        </div>
 
-        <!-- Manage keys button -->
-        <button
-            on:click={() => (showKeyManager = !showKeyManager)}
-            class="shrink-0 mono text-[9px] px-1.5 py-0.5 bg-(--bg-3) border rounded-[3px] tracking-[0.08em] uppercase transition-colors duration-80
-                   {$aiKeys.length === 0
-                ? 'border-orange-600/50 text-orange-400 hover:border-orange-400'
-                : showKeyManager
-                  ? 'border-(--acc) text-(--acc)'
-                  : 'border-(--line-strong) text-(--ink-3) hover:border-(--acc) hover:text-(--acc)'}"
-            title="Manage API keys"
-        >
-            {showKeyManager ? "← Chat" : "⚿ Keys"}
-        </button>
+        <!-- collapsible options tray -->
+        {#if showOptions}
+            <div
+                class="px-3 pb-3 flex flex-col gap-2 border-t border-(--line) pt-2.5"
+            >
+                {#if $aiKeys.length > 0}
+                    <!-- Key + model row -->
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-(--ink-3) shrink-0 w-10"
+                            >Key</span
+                        >
+                        <select
+                            class="flex-1 min-w-0 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
+                            value={$activeAiKey?.keyId ?? ""}
+                            on:change={(e) => selectKey(e.target.value)}
+                        >
+                            {#each $aiKeys as k}
+                                <option value={k.id}>{k.label}</option>
+                            {/each}
+                        </select>
+                        {#if activeKeyObj}
+                            <span
+                                class="inline-flex shrink-0 items-center px-1.5 py-px rounded text-[9px] font-medium border {providerColor(
+                                    activeKeyObj.provider,
+                                )}"
+                            >
+                                {activeKeyObj.provider}
+                            </span>
+                        {/if}
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-(--ink-3) shrink-0 w-10"
+                            >Model</span
+                        >
+                        {#if availableModels.length > 0}
+                            <select
+                                class="flex-1 min-w-0 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
+                                value={$activeAiKey?.model ?? ""}
+                                on:change={onModelChange}
+                            >
+                                {#each availableModels as m}
+                                    <option value={m}>{m}</option>
+                                {/each}
+                            </select>
+                        {:else if activeKeyObj}
+                            <span class="text-[11px] text-(--ink-0) mono"
+                                >{activeKeyObj.model}</span
+                            >
+                        {/if}
+                    </div>
+                {/if}
+                <!-- Action buttons -->
+                <div class="flex gap-1.5 pt-0.5">
+                    <button
+                        on:click={() => {
+                            showOptions = false;
+                            showKeyManager = true;
+                        }}
+                        class="flex-1 text-[10.5px] py-1 rounded-(--radius) border transition-colors duration-80
+                               {$aiKeys.length === 0
+                            ? 'border-orange-600/50 text-orange-400 hover:border-orange-400'
+                            : 'border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc)'}"
+                    >
+                        ⚿ Manage keys
+                    </button>
+                    <button
+                        on:click={openPromptEditor}
+                        class="flex-1 text-[10.5px] py-1 rounded-(--radius) border border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
+                    >
+                        ✎ System prompt
+                    </button>
+                    <button
+                        on:click={() => {
+                            clearChat();
+                            showOptions = false;
+                        }}
+                        class="flex-1 text-[10.5px] py-1 rounded-(--radius) border border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
+                    >
+                        ↺ Clear chat
+                    </button>
+                </div>
+            </div>
+        {/if}
     </div>
 
     {#if showKeyManager}
         <div class="flex-1 overflow-hidden">
             <AIKeyManager onClose={() => (showKeyManager = false)} />
+        </div>
+    {:else if showPromptEditor}
+        <div class="flex-1 flex flex-col overflow-hidden p-3 gap-2">
+            <p class="text-[11px] text-(--ink-3) leading-snug">
+                Customise the system prompt sent to the AI at the start of every
+                conversation. Changes are saved to the server and persist across
+                sessions.
+            </p>
+            <textarea
+                class="flex-1 resize-none bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-2 text-[11.5px] font-mono text-(--ink-0) leading-relaxed focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_2px_var(--acc-glow)]"
+                bind:value={promptDraft}
+                spellcheck="false"
+            ></textarea>
+            {#if promptError}
+                <p class="text-[11px] text-red-400">{promptError}</p>
+            {/if}
+            <div class="flex gap-1.5 justify-end">
+                <button
+                    on:click={resetPrompt}
+                    disabled={promptSaving}
+                    class="px-2.5 py-1 text-[11px] rounded-(--radius) border border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80 disabled:opacity-40"
+                >
+                    Reset to default
+                </button>
+                <button
+                    on:click={savePrompt}
+                    disabled={promptSaving || !promptDraft.trim()}
+                    class="px-2.5 py-1 text-[11px] rounded-(--radius) bg-(--acc)/10 border border-(--acc)/40 text-(--acc) hover:bg-(--acc)/20 transition-colors duration-80 disabled:opacity-40"
+                >
+                    {promptSaving ? "Saving…" : "Save"}
+                </button>
+            </div>
         </div>
     {:else if $aiKeys.length === 0}
         <div
@@ -347,18 +488,6 @@
             on:click={handleMessagesClick}
             on:keydown={handleMessagesKeydown}
         >
-            <!-- Toolbar with clear button -->
-            <div
-                class="flex justify-end bg-(--bg-1) border-b border-(--line) pb-2.5 shrink-0"
-            >
-                <button
-                    on:click={clearChat}
-                    class="text-[10px] px-1.5 py-0.5 bg-(--bg-3) border border-(--line) rounded-[3px] text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
-                >
-                    Clear Chat
-                </button>
-            </div>
-
             {#each messages as msg}
                 {#if msg.role === "assistant" && msg.isSuggestion}
                     <!-- Query suggestion bubble -->
