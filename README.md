@@ -1,6 +1,6 @@
 # Quermy
 
-A drop-in MySQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdmin with a modern Svelte UI and a small, dependency-free PHP backend.
+A drop-in MySQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdmin with a modern Svelte UI and BYOK (Bring Your Own Key) AI assistance for query writing and schema exploration.
 
 > [!WARNING]
 > This is a prototype, not production-ready software. Use at your own risk.
@@ -10,10 +10,6 @@ A drop-in MySQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdm
 <img src="./screenshot.png" alt="Screenshot of Quermy UI" width="600">
 
 </div>
-
-## Why
-
-phpMyAdmin works, but it shows its age. Quermy is just as ergonomic to install, while it modernises the UI, and provides AI assistance for query writing and schema exploration (where you can bring your own API keys).
 
 ## 🧃 Use a pre-built release
 
