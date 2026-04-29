@@ -39,6 +39,11 @@ jobs:
       working-directory: backend
       run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
+    # Our testingcontainers setup can be a bit flaky sometimes, so we retry the tests
     - name: Run tests
-      working-directory: backend
-      run: ./vendor/bin/pest --ci
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 30
+        max_attempts: 3
+        working_directory: backend
+        command: ./vendor/bin/pest --ci
