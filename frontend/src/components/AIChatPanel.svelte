@@ -121,6 +121,11 @@
         }
     }
 
+    // Start a new conversation but keep the initial greeting message
+    function clearChat() {
+        messages = [messages[0]];
+    }
+
     function handleMessagesClick(e) {
         const btn = e.target.closest(".copy-code-btn");
         if (!btn) return;
@@ -246,6 +251,18 @@
             on:click={handleMessagesClick}
             on:keydown={handleMessagesKeydown}
         >
+            <!-- Toolbar with clear button -->
+            <div
+                class="flex justify-end bg-(--bg-1) border-b border-(--line) pb-2.5 shrink-0"
+            >
+                <button
+                    on:click={clearChat}
+                    class="text-[10px] px-1.5 py-0.5 bg-(--bg-3) border border-(--line) rounded-[3px] text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
+                >
+                    Clear Chat
+                </button>
+            </div>
+
             {#each messages as msg}
                 <div
                     class="flex gap-1.75 items-start {msg.role === 'user'
