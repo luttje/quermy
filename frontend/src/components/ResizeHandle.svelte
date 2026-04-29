@@ -13,6 +13,11 @@
     let dragging = false;
     let lastPos = 0;
 
+    $: orientationClasses =
+        orientation === "horizontal"
+            ? "h-1 w-full cursor-row-resize after:content-[''] after:absolute after:-inset-y-1 after:inset-x-0"
+            : "w-1 h-full cursor-col-resize after:content-[''] after:absolute after:inset-y-0 after:-inset-x-1";
+
     function onMouseDown(e) {
         dragging = true;
         lastPos = orientation === "horizontal" ? e.clientY : e.clientX;
@@ -38,38 +43,11 @@
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <div
-    class="shrink-0 bg-[var(--line)] relative select-none transition-[background] duration-[80ms] hover:bg-[var(--acc)]"
-    class:horizontal={orientation === "horizontal"}
-    class:vertical={orientation === "vertical"}
-    class:dragging
+    class="shrink-0 bg-(--line) relative select-none transition-[background] duration-80 hover:bg-(--acc) {orientationClasses} {dragging
+        ? 'bg-(--acc)'
+        : ''}"
     on:mousedown={onMouseDown}
     role="separator"
     aria-orientation={orientation}
     tabindex="0"
 ></div>
-
-<style>
-    .horizontal {
-        height: 4px;
-        width: 100%;
-        cursor: row-resize;
-    }
-    .horizontal::after {
-        content: "";
-        position: absolute;
-        inset: -4px 0;
-    }
-    .vertical {
-        width: 4px;
-        height: 100%;
-        cursor: col-resize;
-    }
-    .vertical::after {
-        content: "";
-        position: absolute;
-        inset: 0 -4px;
-    }
-    .dragging {
-        background: var(--acc);
-    }
-</style>

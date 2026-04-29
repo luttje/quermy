@@ -89,17 +89,15 @@
     }
 </script>
 
-<div class="animate-in max-w-[1080px] mx-auto px-8 py-16 w-full">
-    <header class="mb-14 max-w-[640px]">
-        <div class="flex items-baseline gap-[14px] flex-wrap">
+<div class="animate-in max-w-270 mx-auto px-8 py-16 w-full">
+    <header class="mb-14 max-w-160">
+        <div class="flex items-baseline gap-3.5 flex-wrap">
             <h1 class="wordmark">Quermy</h1>
-            <span class="mono text-[var(--acc)] text-[13px]"
+            <span class="mono text-(--acc) text-[13px]"
                 >// modern database administration</span
             >
         </div>
-        <p
-            class="text-[var(--ink-1)] text-[16px] leading-[1.55] mt-4 max-w-[520px]"
-        >
+        <p class="text-(--ink-1) text-[16px] leading-[1.55] mt-4 max-w-130">
             A keyboard-first relational client that lives in your stack. Connect
             once, and your databases are a few keystrokes away — for as long as
             you keep the project around.
@@ -109,74 +107,89 @@
     <div class="grid grid-cols-2 gap-7 max-[880px]:grid-cols-1">
         <!-- saved connections -->
         <section
-            class="bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden flex flex-col"
+            class="bg-(--bg-1) border border-(--line) rounded-lg overflow-hidden flex flex-col"
         >
             <div
-                class="px-5 py-4 border-b border-[var(--line)] flex justify-between items-baseline"
+                class="px-5 py-4 border-b border-(--line) flex justify-between items-baseline"
             >
                 <h2
-                    class="font-[var(--font-display)] font-medium text-[22px] tracking-[-0.02em] m-0"
+                    class="font-(--font-display) text-[22px] tracking-[-0.02em] m-0"
                 >
                     Saved connections
                 </h2>
-                <span class="mono text-[var(--ink-3)] text-[12px]"
+                <span class="mono text-(--ink-3) text-[12px]"
                     >{connections.length}</span
                 >
             </div>
 
             {#if loading}
-                <div class="py-14 px-6 text-center text-[var(--ink-2)] mono">
-                    loading…
-                </div>
+                <div class="py-14 px-6 text-center muted mono">loading…</div>
             {:else if connections.length === 0}
-                <div class="py-14 px-6 text-center text-[var(--ink-2)]">
-                    <div class="text-[32px] text-[var(--ink-3)] mb-3">⌁</div>
+                <div class="py-14 px-6 text-center muted">
+                    <div class="text-[32px] text-(--ink-3) mb-3">⌁</div>
                     <div>No saved connections yet.</div>
-                    <div class="text-[var(--ink-2)] text-[12px] mt-1">
+                    <div class="muted text-[12px] mt-1">
                         Save your first one on the right.
                     </div>
                 </div>
             {:else}
-                <ul class="list-none m-0 p-[6px] flex flex-col gap-[2px]">
+                <ul class="list-none m-0 p-1.5 flex flex-col gap-0.5">
                     {#each connections as c (c.id)}
                         <li>
-                            <a
-                                class="group w-full flex gap-[14px] items-center bg-transparent border border-transparent rounded-[var(--radius)] px-[14px] py-3 text-left cursor-pointer transition-[background,border-color] duration-[80ms] hover:bg-[var(--bg-2)] hover:border-[var(--line)]"
-                                on:click={() => connectSaved(c)}
-                                disabled={busy}
-                            >
-                                <div
-                                    class="mono text-[10px] uppercase tracking-[0.08em] text-[var(--acc)] bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-2 py-1 rounded-[4px] font-semibold shrink-0"
+                            <div class="relative group">
+                                <button
+                                    type="button"
+                                    class="w-full flex gap-3.5 items-center bg-transparent border border-transparent rounded-(--radius) px-3.5 py-3 text-left cursor-pointer transition-[background,border-color] duration-80 hover:bg-(--bg-2) hover:border-(--line)"
+                                    on:click={() => connectSaved(c)}
+                                    disabled={busy}
                                 >
-                                    {c.engine}
-                                </div>
-                                <div class="flex-1 min-w-0">
                                     <div
-                                        class="font-medium text-[var(--ink-0)] text-[14px] mb-[2px] whitespace-nowrap overflow-hidden text-ellipsis"
+                                        class="mono text-[10px] uppercase tracking-[0.08em] text-(--acc) bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-2 py-1 rounded-sm font-semibold shrink-0"
                                     >
-                                        {c.name}
+                                        {c.engine}
                                     </div>
-                                    <div
-                                        class="mono text-[var(--ink-2)] text-[11.5px] whitespace-nowrap overflow-hidden text-ellipsis"
-                                    >
-                                        {c.username}@{c.host}:{c.port}{c.database
-                                            ? ` · ${c.database}`
-                                            : ""}
+                                    <div class="flex-1 min-w-0">
+                                        <div
+                                            class="font-medium text-(--ink-0) text-[14px] mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis"
+                                        >
+                                            {c.name}
+                                        </div>
+                                        <div
+                                            class="mono muted text-[11.5px] whitespace-nowrap overflow-hidden text-ellipsis"
+                                        >
+                                            {c.username}@{c.host}:{c.port}{c.database
+                                                ? ` · ${c.database}`
+                                                : ""}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
                                     <span
-                                        class="text-[var(--ink-3)] text-[16px] transition-[color,transform] duration-[100ms] group-hover:text-[var(--acc)] group-hover:translate-x-[2px]"
+                                        class="mr-8 text-(--ink-3) text-[16px] transition-[color,transform] duration-100 group-hover:text-(--acc) group-hover:translate-x-0.5"
                                         >↩</span
                                     >
-                                    <button
-                                        class="bg-transparent border border-transparent text-[var(--ink-3)] w-6 h-6 rounded-[4px] inline-flex items-center justify-center text-[16px] leading-none hover:bg-[rgba(255,115,103,0.1)] hover:text-[var(--danger)] hover:border-[rgba(255,115,103,0.2)] cursor-pointer"
-                                        title="Delete"
-                                        on:click={(e) => deleteSaved(c, e)}
-                                        >×</button
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border border-transparent text-(--ink-3) w-6 h-6 rounded-sm inline-flex items-center justify-center text-[16px] leading-none hover:bg-[rgba(255,115,103,0.1)] hover:text-(--danger) hover:border-[rgba(255,115,103,0.2)] cursor-pointer"
+                                    title="Delete"
+                                    on:click={() => deleteSaved(c)}
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke-width="4"
+                                        stroke="currentColor"
+                                        class="size-3"
                                     >
-                                </div>
-                            </a>
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M6 18 18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
                         </li>
                     {/each}
                 </ul>
@@ -185,11 +198,11 @@
 
         <!-- new connection -->
         <section
-            class="bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden flex flex-col"
+            class="bg-(--bg-1) border border-(--line) rounded-lg overflow-hidden flex flex-col"
         >
-            <div class="px-5 py-4 border-b border-[var(--line)]">
+            <div class="px-5 py-4 border-b border-(--line)">
                 <h2
-                    class="font-[var(--font-display)] font-medium text-[22px] tracking-[-0.02em] m-0"
+                    class="font-(--font-display) text-[22px] tracking-[-0.02em] m-0"
                 >
                     New connection
                 </h2>
@@ -197,7 +210,7 @@
 
             <form
                 on:submit|preventDefault={connect}
-                class="p-5 flex flex-col gap-[14px]"
+                class="p-5 flex flex-col gap-3.5"
             >
                 <FormField label="Engine">
                     <Select bind:value={form.engine}>
@@ -249,11 +262,11 @@
                 </FormField>
 
                 <label
-                    class="flex items-center gap-[10px] text-[var(--ink-1)] text-[13px] cursor-pointer select-none py-1"
+                    class="flex items-center gap-2.5 text-(--ink-1) text-[13px] cursor-pointer select-none py-1"
                 >
                     <input
                         type="checkbox"
-                        class="accent-[var(--acc)] w-[14px] h-[14px]"
+                        class="accent-(--acc) w-3.5 h-3.5"
                         bind:checked={form.save}
                     />
                     <span
@@ -265,7 +278,7 @@
                     variant="primary"
                     type="submit"
                     disabled={busy}
-                    class="mt-[6px] justify-center py-[11px]"
+                    class="mt-1.5 justify-center py-2.75"
                 >
                     {busy ? "Connecting…" : "Connect →"}
                 </Btn>
@@ -273,26 +286,3 @@
         </section>
     </div>
 </div>
-
-<style>
-    .wordmark {
-        font-family: var(--font-display);
-        font-weight: 500;
-        font-size: 72px;
-        line-height: 0.9;
-        letter-spacing: -0.04em;
-        margin: 0;
-        font-variation-settings:
-            "opsz" 144,
-            "SOFT" 50;
-        background: linear-gradient(180deg, var(--ink-0) 0%, var(--ink-1) 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
-    @media (max-width: 880px) {
-        .wordmark {
-            font-size: 56px;
-        }
-    }
-</style>

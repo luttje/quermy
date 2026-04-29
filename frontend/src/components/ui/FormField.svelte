@@ -7,10 +7,10 @@
 
 <label class="block {extraClass}">
     <span
-        class="block text-[11px] font-semibold tracking-[0.04em] uppercase text-[var(--ink-2)] mb-[6px]"
+        class="block text-[11px] font-semibold tracking-[0.04em] uppercase muted mb-1.5"
     >
         {label}{#if optional}<span
-                class="text-[var(--ink-3)] normal-case tracking-normal font-normal ml-1 text-[11px]"
+                class="text-(--ink-3) normal-case tracking-normal font-normal ml-1 text-[11px]"
                 >optional</span
             >{/if}
     </span>

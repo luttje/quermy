@@ -377,24 +377,24 @@
 <!-- ═══════════════════════════════════════════════════════════ DATA mode -->
 {#if mode === "data"}
     <div
-        class="flex flex-col flex-1 min-h-0 bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden"
+        class="flex flex-col flex-1 min-h-0 bg-(--bg-1) border border-(--line) rounded-lg overflow-hidden"
     >
         {#if columns.length === 0}
-            <div class="py-16 px-6 text-center text-[var(--ink-2)]">
-                <div class="mono text-[36px] text-[var(--ink-3)] mb-2">∅</div>
+            <div class="py-16 px-6 text-center muted">
+                <div class="mono text-[36px] text-(--ink-3) mb-2">∅</div>
                 <div>No columns to display.</div>
             </div>
         {:else}
             <!-- Meta / toolbar -->
             <div
-                class="flex items-center gap-6 py-2 px-3 pl-4 border-b border-[var(--line)] bg-[var(--bg-2)] text-[12px] shrink-0 min-h-[38px]"
+                class="flex items-center gap-6 py-2 px-3 pl-4 border-b border-(--line) bg-(--bg-2) text-[12px] shrink-0 min-h-9.5"
             >
                 <span class="flex gap-2 items-baseline">
                     <span
-                        class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                        class="muted text-[10px] tracking-[0.06em] uppercase font-semibold"
                         >Rows</span
                     >
-                    <span class="text-[var(--ink-0)] text-[12px] mono">
+                    <span class="text-(--ink-0) text-[12px] mono">
                         {rows.length}{total !== null
                             ? ` / ${total.toLocaleString()}`
                             : ""}
@@ -402,27 +402,27 @@
                 </span>
                 <span class="flex gap-2 items-baseline">
                     <span
-                        class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                        class="muted text-[10px] tracking-[0.06em] uppercase font-semibold"
                         >Cols</span
                     >
-                    <span class="text-[var(--ink-0)] text-[12px] mono"
+                    <span class="text-(--ink-0) text-[12px] mono"
                         >{columns.length}</span
                     >
                 </span>
                 {#if durationMs !== null}
                     <span class="flex gap-2 items-baseline">
                         <span
-                            class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                            class="muted text-[10px] tracking-[0.06em] uppercase font-semibold"
                             >Time</span
                         >
-                        <span class="text-[var(--ink-0)] text-[12px] mono"
+                        <span class="text-(--ink-0) text-[12px] mono"
                             >{durationMs.toFixed(2)} ms</span
                         >
                     </span>
                 {/if}
 
                 {#if isEditable}
-                    <div class="ml-auto flex items-center gap-[6px]">
+                    <div class="ml-auto flex items-center gap-1.5">
                         {#if pendingCount > 0}
                             <button
                                 class="tb-btn tb-discard"
@@ -488,7 +488,7 @@
                                 >
                             {/if}
                         {:else}
-                            <span class="mono text-[var(--ink-3)] text-[10.5px]"
+                            <span class="mono text-(--ink-3) text-[10.5px]"
                                 >no PK — editing disabled</span
                             >
                         {/if}
@@ -503,25 +503,25 @@
                     <thead>
                         <tr>
                             <th
-                                class="rownum sticky top-0 z-[2] text-right mono text-[11px] select-none w-[1%]"
+                                class="rownum sticky top-0 z-2 text-right mono text-[11px] select-none w-[1%]"
                             ></th>
                             {#each columns as c}
                                 <th
-                                    class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] last:border-r-0 whitespace-nowrap align-top text-[var(--ink-0)] font-semibold text-[13px]"
+                                    class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) last:border-r-0 whitespace-nowrap align-top text-(--ink-0) font-semibold text-[13px]"
                                     class:pk={isPrimary(c)}
                                 >
-                                    <div class="flex items-center gap-[6px]">
+                                    <div class="flex items-center gap-1.5">
                                         {c.name}
                                         {#if isPrimary(c)}
                                             <span
-                                                class="mono text-[9px] bg-[var(--acc)] text-[#0a0c0a] px-1 py-[1px] rounded-[3px] font-bold tracking-[0.04em]"
+                                                class="mono text-[9px] bg-(--acc) text-[#0a0c0a] px-1 py-px rounded-[3px] font-bold tracking-[0.04em]"
                                                 title="Primary key">PK</span
                                             >
                                         {/if}
                                     </div>
                                     {#if c.type}
                                         <div
-                                            class="mono text-[var(--ink-3)] text-[10.5px] mt-[2px] font-normal"
+                                            class="mono text-(--ink-3) text-[10.5px] mt-0.5 font-normal"
                                         >
                                             {c.type}{c.nullable === false
                                                 ? " · NOT NULL"
@@ -536,7 +536,7 @@
                         {#each rows as row, i}
                             {@const editing = !!pendingEdits[i]}
                             <tr
-                                class="transition-[background] duration-[80ms] ease-out cursor-pointer hover:bg-[var(--bg-2)]"
+                                class="transition-[background] duration-80 ease-out cursor-pointer hover:bg-(--bg-2)"
                                 class:row-editing={editing}
                                 class:row-selected={!editing &&
                                     selectedRow === i}
@@ -557,14 +557,14 @@
                                 {#each columns as c}
                                     {#if editing}
                                         <td
-                                            class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)] last:border-r-0"
+                                            class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line) last:border-r-0"
                                             class:cell-dirty={isDirtyCell(
                                                 i,
                                                 c.name,
                                             )}
                                         >
                                             <input
-                                                class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                                class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                                 value={pendingEdits[i][c.name]}
                                                 on:input={(e) =>
                                                     handleCellInput(
@@ -578,10 +578,11 @@
                                     {:else}
                                         {@const v = formatCell(row[c.name])}
                                         <td
-                                            class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] last:border-r-0 text-[var(--ink-1)] max-w-[360px] overflow-hidden text-ellipsis whitespace-nowrap"
+                                            class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) last:border-r-0 text-(--ink-1) max-w-90 overflow-hidden text-ellipsis whitespace-nowrap"
                                         >
                                             {#if v === null}
-                                                <span class="null-tag"
+                                                <span
+                                                    class="text-(--ink-3) text-[10px] tracking-[0.06em] font-semibold border border-dashed border-(--line-strong) px-1.5 py-px rounded-[3px]"
                                                     >NULL</span
                                                 >
                                             {:else if v.length > 200}
@@ -605,10 +606,10 @@
                                 >
                                 {#each columns as c}
                                     <td
-                                        class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)] last:border-r-0"
+                                        class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line) last:border-r-0"
                                     >
                                         <input
-                                            class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                            class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                             bind:value={newRowValues[c.name]}
                                             placeholder={isAutoIncrement(c)
                                                 ? "auto"
@@ -625,7 +626,7 @@
 
                 {#if rows.length === 0 && !addingRow}
                     <div
-                        class="py-7 px-7 text-center text-[var(--ink-3)] text-[13px]"
+                        class="py-7 px-7 text-center text-(--ink-3) text-[13px]"
                     >
                         <span class="mono">// no rows</span>
                     </div>
@@ -637,34 +638,34 @@
     <!-- ══════════════════════════════════════════════ STRUCTURE mode -->
 {:else}
     <div
-        class="flex flex-col flex-1 min-h-0 bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden"
+        class="flex flex-col flex-1 min-h-0 bg-(--bg-1) border border-(--line) rounded-lg overflow-hidden"
     >
         <!-- Meta / toolbar -->
         <div
-            class="flex items-center gap-6 py-2 px-3 pl-4 border-b border-[var(--line)] bg-[var(--bg-2)] text-[12px] shrink-0 min-h-[38px]"
+            class="flex items-center gap-6 py-2 px-3 pl-4 border-b border-(--line) bg-(--bg-2) text-[12px] shrink-0 min-h-9.5"
         >
             <span class="flex gap-2 items-baseline">
                 <span
-                    class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                    class="muted text-[10px] tracking-[0.06em] uppercase font-semibold"
                     >Columns</span
                 >
-                <span class="text-[var(--ink-0)] text-[12px] mono"
+                <span class="text-(--ink-0) text-[12px] mono"
                     >{columns.length}</span
                 >
             </span>
             {#if durationMs !== null}
                 <span class="flex gap-2 items-baseline">
                     <span
-                        class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                        class="muted text-[10px] tracking-[0.06em] uppercase font-semibold"
                         >Time</span
                     >
-                    <span class="text-[var(--ink-0)] text-[12px] mono"
+                    <span class="text-(--ink-0) text-[12px] mono"
                         >{durationMs.toFixed(2)} ms</span
                     >
                 </span>
             {/if}
             {#if isEditable}
-                <div class="ml-auto flex items-center gap-[6px]">
+                <div class="ml-auto flex items-center gap-1.5">
                     {#if editingColIdx !== null}
                         <button
                             class="tb-btn tb-discard"
@@ -730,30 +731,30 @@
                 <thead>
                     <tr>
                         <th
-                            class="rownum sticky top-0 z-[2] text-right mono text-[11px] select-none w-[1%]"
+                            class="rownum sticky top-0 z-2 text-right mono text-[11px] select-none w-[1%]"
                         ></th>
                         <th
-                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Name</th
                         >
                         <th
-                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Type</th
                         >
                         <th
-                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Nullable</th
                         >
                         <th
-                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Key</th
                         >
                         <th
-                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >AI</th
                         >
                         <th
-                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Default</th
                         >
                     </tr>
@@ -761,7 +762,7 @@
                 <tbody>
                     {#each columns as col, i}
                         <tr
-                            class="transition-[background] duration-[80ms] ease-out cursor-pointer hover:bg-[var(--bg-2)]"
+                            class="transition-[background] duration-80 ease-out cursor-pointer hover:bg-(--bg-2)"
                             class:row-editing={editingColIdx === i}
                             class:row-selected={editingColIdx !== i &&
                                 selectedCol === i}
@@ -781,33 +782,33 @@
                             >
                             {#if editingColIdx === i}
                                 <td
-                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                    class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 >
                                     <input
-                                        class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                        class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                         bind:value={editColForm.name}
                                         placeholder="column_name"
                                     />
                                 </td>
                                 <td
-                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                    class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 >
                                     <input
-                                        class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                        class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                         list="mysql-types"
                                         bind:value={editColForm.type}
                                         placeholder="VARCHAR(255)"
                                     />
                                 </td>
                                 <td
-                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                    class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 >
                                     <label
-                                        class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                        class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                     >
                                         <input
                                             type="checkbox"
-                                            class="accent-[var(--acc)]"
+                                            class="accent-(--acc)"
                                             bind:checked={editColForm.nullable}
                                         />
                                         <span class="mono"
@@ -818,18 +819,18 @@
                                     </label>
                                 </td>
                                 <td
-                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--acc)] text-[11px] font-semibold tracking-[0.04em]"
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--acc) text-[11px] font-semibold tracking-[0.04em]"
                                     >{col.key || "—"}</td
                                 >
                                 <td
-                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                    class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 >
                                     <label
-                                        class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                        class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                     >
                                         <input
                                             type="checkbox"
-                                            class="accent-[var(--acc)]"
+                                            class="accent-(--acc)"
                                             bind:checked={
                                                 editColForm.autoIncrement
                                             }
@@ -842,42 +843,45 @@
                                     </label>
                                 </td>
                                 <td
-                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)]"
+                                    class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line)"
                                 >
                                     <input
-                                        class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                        class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                         bind:value={editColForm.default}
                                         placeholder="NULL"
                                     />
                                 </td>
                             {:else}
                                 <td
-                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] font-semibold text-[var(--ink-0)]"
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) font-semibold text-(--ink-0)"
                                     >{col.name}</td
                                 >
                                 <td
-                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ink-1)]"
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ink-1)"
                                     >{col.type}</td
                                 >
                                 <td
-                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ink-1)]"
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ink-1)"
                                     >{col.nullable !== false ? "YES" : "NO"}</td
                                 >
                                 <td
-                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--acc)] text-[11px] font-semibold tracking-[0.04em]"
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--acc) text-[11px] font-semibold tracking-[0.04em]"
                                     >{col.key || "—"}</td
                                 >
                                 <td
-                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ok)]"
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ok)"
                                     >{isAutoIncrement(col) ? "✓" : "—"}</td
                                 >
                                 <td
-                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] text-[var(--ink-1)]"
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) text-(--ink-1)"
                                 >
                                     {#if col.default !== null && col.default !== undefined}
                                         {col.default}
                                     {:else}
-                                        <span class="null-tag">NULL</span>
+                                        <span
+                                            class="text-(--ink-3) text-[10px] tracking-[0.06em] font-semibold border border-dashed border-(--line-strong) px-1.5 py-px rounded-[3px]"
+                                            >NULL</span
+                                        >
                                     {/if}
                                 </td>
                             {/if}
@@ -891,31 +895,31 @@
                                 >*</td
                             >
                             <td
-                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 ><input
-                                    class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                    class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                     bind:value={newColForm.name}
                                     placeholder="column_name"
                                 /></td
                             >
                             <td
-                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 ><input
-                                    class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                    class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                     list="mysql-types"
                                     bind:value={newColForm.type}
                                     placeholder="VARCHAR(255)"
                                 /></td
                             >
                             <td
-                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                             >
                                 <label
-                                    class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                    class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                 >
                                     <input
                                         type="checkbox"
-                                        class="accent-[var(--acc)]"
+                                        class="accent-(--acc)"
                                         bind:checked={newColForm.nullable}
                                     />
                                     <span class="mono"
@@ -926,18 +930,18 @@
                                 </label>
                             </td>
                             <td
-                                class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ink-1)]"
+                                class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ink-1)"
                                 >—</td
                             >
                             <td
-                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                             >
                                 <label
-                                    class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                    class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                 >
                                     <input
                                         type="checkbox"
-                                        class="accent-[var(--acc)]"
+                                        class="accent-(--acc)"
                                         bind:checked={newColForm.autoIncrement}
                                     />
                                     <span class="mono"
@@ -948,9 +952,9 @@
                                 </label>
                             </td>
                             <td
-                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)]"
+                                class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line)"
                                 ><input
-                                    class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
+                                    class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
                                     bind:value={newColForm.default}
                                     placeholder="NULL"
                                 /></td
@@ -961,9 +965,7 @@
             </table>
 
             {#if columns.length === 0 && !addingCol}
-                <div
-                    class="py-7 px-7 text-center text-[var(--ink-3)] text-[13px]"
-                >
+                <div class="py-7 px-7 text-center text-(--ink-3) text-[13px]">
                     <span class="mono">// no columns</span>
                 </div>
             {/if}
@@ -976,116 +978,3 @@
         <option value={t}></option>
     {/each}
 </datalist>
-
-<style>
-    /* State classes toggled via Svelte class: directive */
-    .row-editing {
-        background: rgba(200, 255, 90, 0.04) !important;
-    }
-    .row-selected {
-        background: rgba(80, 160, 255, 0.08) !important;
-        outline: 1px solid rgba(80, 160, 255, 0.25);
-        outline-offset: -1px;
-    }
-    .row-new {
-        background: rgba(90, 200, 255, 0.04) !important;
-    }
-    .cell-dirty {
-        background: rgba(255, 200, 50, 0.09) !important;
-    }
-
-    /* Sticky row-number column */
-    .rownum {
-        background: var(--bg-2);
-        color: var(--ink-3);
-        border-right: 1px solid var(--line-strong) !important;
-        position: sticky;
-        left: 0;
-    }
-    thead .rownum {
-        z-index: 2;
-    }
-    tbody tr:hover .rownum {
-        background: var(--bg-2);
-    }
-
-    /* PK column gradient header */
-    thead th.pk {
-        background: linear-gradient(
-            180deg,
-            rgba(200, 255, 90, 0.06),
-            var(--bg-2)
-        );
-    }
-
-    /* NULL tag */
-    .null-tag {
-        color: var(--ink-3);
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        font-weight: 600;
-        border: 1px dashed var(--line-strong);
-        padding: 1px 6px;
-        border-radius: 3px;
-    }
-
-    /* Toolbar buttons */
-    .tb-btn {
-        font-family: var(--font-mono);
-        font-size: 11px;
-        padding: 3px 10px;
-        border-radius: 4px;
-        border: 1px solid var(--line);
-        cursor: pointer;
-        background: transparent;
-        transition:
-            background 60ms,
-            color 60ms,
-            border-color 60ms;
-        white-space: nowrap;
-    }
-    .tb-btn:disabled {
-        opacity: 0.4;
-        cursor: default;
-    }
-    .tb-add {
-        color: var(--acc);
-        border-color: rgba(200, 255, 90, 0.35);
-    }
-    .tb-add:hover:not(:disabled) {
-        background: rgba(200, 255, 90, 0.1);
-        border-color: var(--acc);
-    }
-    .tb-edit {
-        color: var(--ink-1);
-    }
-    .tb-edit:hover:not(:disabled) {
-        background: var(--bg-1);
-        color: var(--ink-0);
-        border-color: var(--line-strong);
-    }
-    .tb-delete {
-        color: #ff6b6b;
-        border-color: rgba(255, 100, 100, 0.35);
-    }
-    .tb-delete:hover:not(:disabled) {
-        background: rgba(255, 100, 100, 0.1);
-        border-color: #ff6b6b;
-    }
-    .tb-save {
-        background: var(--acc);
-        color: #0a0c0a;
-        border-color: var(--acc);
-        font-weight: 600;
-    }
-    .tb-save:hover:not(:disabled) {
-        filter: brightness(1.1);
-    }
-    .tb-discard {
-        color: var(--ink-2);
-    }
-    .tb-discard:hover:not(:disabled) {
-        background: var(--bg-2);
-        color: var(--ink-1);
-    }
-</style>

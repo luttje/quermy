@@ -230,9 +230,7 @@
 <Toaster />
 
 {#if bootstrapping}
-    <div
-        class="flex-1 flex items-center justify-center text-[var(--ink-3)] mono"
-    >
+    <div class="flex-1 flex items-center justify-center text-(--ink-3) mono">
         initializing…
     </div>
 {:else if !$session}
@@ -243,32 +241,32 @@
     <div class="h-full flex flex-col overflow-hidden">
         <!-- Topbar -->
         <header
-            class="flex items-center gap-[14px] px-[18px] h-[44px] shrink-0 bg-[rgba(10,12,10,0.85)] backdrop-blur-[12px] border-b border-[var(--line)] z-50"
+            class="flex items-center gap-3.5 px-4.5 h-11 shrink-0 bg-[rgba(10,12,10,0.85)] backdrop-blur-md border-b border-(--line) z-50"
         >
             <div class="flex gap-2 items-center">
                 <span
-                    class="w-6 h-6 rounded-[5px] bg-[var(--acc)] text-[#0a0c0a] inline-flex items-center justify-center font-[var(--font-display)] font-semibold text-[15px] leading-none shadow-[0_0_10px_var(--acc-glow)]"
+                    class="w-6 h-6 rounded-[5px] bg-(--acc) text-[#0a0c0a] inline-flex items-center justify-center font-(--font-display) text-[15px] leading-none shadow-[0_0_10px_var(--acc-glow)]"
                     >Q</span
                 >
                 <span
-                    class="font-[var(--font-display)] font-medium text-[17px] tracking-[-0.01em] text-[var(--ink-0)]"
+                    class="font-(--font-display) text-[17px] tracking-[-0.01em] text-(--ink-0)"
                     >Quermy</span
                 >
             </div>
 
             <div
-                class="flex items-center gap-2 px-[10px] py-1 bg-[var(--bg-2)] border border-[var(--line)] rounded-full text-[11.5px]"
+                class="flex items-center gap-2 px-2.5 py-1 bg-(--bg-2) border border-(--line) rounded-full text-[11.5px]"
             >
                 <span
-                    class="w-[6px] h-[6px] rounded-full bg-[var(--ok)] shadow-[0_0_6px_rgba(127,217,127,0.5)] animate-pulse"
+                    class="w-1.5 h-1.5 rounded-full bg-(--ok) shadow-[0_0_6px_rgba(127,217,127,0.5)] animate-pulse"
                 ></span>
-                <span class="mono text-[var(--ink-1)]"
+                <span class="mono text-(--ink-1)"
                     >{$session.username}@{$session.host}{$session.port !== 3306
                         ? ":" + $session.port
                         : ""}</span
                 >
                 <span
-                    class="mono text-[9.5px] uppercase tracking-[0.08em] text-[var(--acc)] bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-[5px] py-[2px] rounded-[3px] font-semibold"
+                    class="mono text-[9.5px] uppercase tracking-[0.08em] text-(--acc) bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-1.25 py-0.5 rounded-[3px] font-semibold"
                     >{$session.engine}</span
                 >
             </div>
@@ -278,7 +276,7 @@
             <Btn
                 variant="ghost"
                 on:click={disconnect}
-                class="text-[12px] px-[10px] py-1">Disconnect</Btn
+                class="text-[12px] px-2.5 py-1">Disconnect</Btn
             >
         </header>
 
@@ -286,7 +284,7 @@
         <div class="flex-1 min-h-0 flex overflow-hidden">
             <!-- Left: Explorer tree -->
             <aside
-                class="shrink-0 bg-[var(--bg-1)] overflow-hidden flex flex-col"
+                class="shrink-0 bg-(--bg-1) overflow-hidden flex flex-col"
                 style="width: {leftWidth}px"
             >
                 <TreeView
@@ -303,21 +301,21 @@
             <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
                 <!-- SQL Editor pane (resizable) -->
                 <div
-                    class="shrink-0 flex flex-col overflow-hidden min-h-[100px]"
+                    class="shrink-0 flex flex-col overflow-hidden min-h-25"
                     style="height: {sqlPaneHeight}px"
                 >
                     <div
-                        class="flex items-center justify-between px-3 py-[6px] border-b border-[var(--line)] bg-[var(--bg-2)] shrink-0 gap-[10px]"
+                        class="flex items-center justify-between px-3 py-1.5 border-b border-(--line) bg-(--bg-2) shrink-0 gap-2.5"
                     >
                         <label
-                            class="flex items-center gap-[6px] mono cursor-pointer"
+                            class="flex items-center gap-1.5 mono cursor-pointer"
                         >
                             <span
-                                class="text-[9px] uppercase tracking-[0.1em] text-[var(--ink-3)] font-bold"
+                                class="text-[9px] uppercase tracking-widest text-(--ink-3) font-bold"
                                 >DB</span
                             >
                             <select
-                                class="bg-transparent border-0 text-[var(--ink-1)] font-[var(--font-mono)] text-[11.5px] p-0 min-w-[60px] focus:outline-none"
+                                class="bg-transparent border-0 text-(--ink-1) font-(--font-mono) text-[11.5px] p-0 min-w-15 focus:outline-none"
                                 bind:value={queryDb}
                             >
                                 <option value="">(none)</option>
@@ -334,11 +332,11 @@
                                 variant="primary"
                                 on:click={run}
                                 disabled={busy || !sql.trim()}
-                                class="py-1 px-[11px] text-[12px] gap-[5px]"
+                                class="py-1 px-2.75 text-[12px] gap-1.25"
                             >
                                 {busy ? "Running…" : "Run"}
                                 <span
-                                    class="mono text-[9px] bg-[rgba(10,12,10,0.15)] text-[rgba(10,12,10,0.65)] px-[5px] py-[2px] rounded border-0 ml-px"
+                                    class="mono text-[9px] bg-[rgba(10,12,10,0.15)] text-[rgba(10,12,10,0.65)] py-0.5 rounded border-0 ml-px"
                                     ><Kbd>⌘↵</Kbd></span
                                 >
                             </Btn>
@@ -352,7 +350,7 @@
 
                 <!-- Result pane -->
                 <div
-                    class="flex-1 min-h-0 overflow-y-auto flex flex-col p-[10px] gap-[10px]"
+                    class="flex-1 min-h-0 overflow-y-auto flex flex-col p-2.5 gap-2.5"
                 >
                     {#if result}
                         {#if result.isSelect}
@@ -368,10 +366,10 @@
                             />
                         {:else}
                             <div
-                                class="bg-[var(--bg-1)] border border-[rgba(127,217,127,0.25)] rounded-[var(--radius-lg)] px-4 py-[14px] flex gap-3 items-center text-[var(--ink-1)] text-[13px]"
+                                class="bg-(--bg-1) border border-[rgba(127,217,127,0.25)] rounded-lg px-4 py-3.5 flex gap-3 items-center text-(--ink-1) text-[13px]"
                             >
                                 <div
-                                    class="mono text-[9.5px] bg-[rgba(127,217,127,0.12)] text-[var(--ok)] px-[7px] py-[3px] rounded-[3px] font-bold tracking-[0.06em]"
+                                    class="mono text-[9.5px] bg-[rgba(127,217,127,0.12)] text-(--ok) px-1.75 py-0.75 rounded-[3px] font-bold tracking-[0.06em]"
                                 >
                                     OK
                                 </div>
@@ -389,7 +387,7 @@
                         {/if}
                     {:else}
                         <div
-                            class="text-[var(--ink-3)] text-center px-4 py-8 bg-[var(--bg-1)] border border-dashed border-[var(--line-strong)] rounded-[var(--radius-lg)] text-[13px]"
+                            class="text-(--ink-3) text-center px-4 py-8 bg-(--bg-1) border border-dashed border-(--line-strong) rounded-lg text-[13px]"
                         >
                             Press <Kbd>⌘ Enter</Kbd> or click
                             <strong>Run</strong> to execute, or pick a table from
@@ -399,39 +397,37 @@
 
                     {#if errors.length > 0}
                         <div
-                            class="shrink-0 bg-[var(--bg-1)] border border-[rgba(255,115,103,0.25)] rounded-[var(--radius-lg)] overflow-hidden h-[250px] overflow-y-auto"
+                            class="shrink-0 bg-(--bg-1) border border-[rgba(255,115,103,0.25)] rounded-lg overflow-hidden h-62.5 overflow-y-auto"
                         >
                             <div
-                                class="flex items-center gap-2 px-3 py-[7px] border-b border-[rgba(255,115,103,0.15)] bg-[rgba(255,115,103,0.05)]"
+                                class="flex items-center gap-2 px-3 py-1.75 border-b border-[rgba(255,115,103,0.15)] bg-[rgba(255,115,103,0.05)]"
                             >
                                 <span
-                                    class="mono text-[9.5px] font-bold tracking-[0.08em] text-[var(--danger)]"
+                                    class="mono text-[9.5px] font-bold tracking-[0.08em] text-(--danger)"
                                     >SQL ERRORS</span
                                 >
                                 <span
-                                    class="mono text-[9.5px] bg-[rgba(255,115,103,0.15)] text-[var(--danger)] px-[6px] py-[1px] rounded-full font-semibold"
+                                    class="mono text-[9.5px] bg-[rgba(255,115,103,0.15)] text-(--danger) px-1.5 py-px rounded-full font-semibold"
                                     >{errors.length}</span
                                 >
                                 <Btn
                                     variant="ghost"
                                     on:click={() => (errors = [])}
-                                    class="ml-auto text-[11px] px-2 py-[2px] text-[var(--ink-3)]"
+                                    class="ml-auto text-[11px] px-2 py-0.5 text-(--ink-3)"
                                     >Clear</Btn
                                 >
                             </div>
                             {#each errors as err}
                                 <div
-                                    class="px-3 py-[10px] border-b border-[var(--line)] last:border-b-0"
+                                    class="px-3 py-2.5 border-b border-(--line) last:border-b-0"
                                 >
-                                    <div
-                                        class="flex items-center gap-2 mb-[6px]"
-                                    >
+                                    <div class="flex items-center gap-2 mb-1.5">
                                         <span
-                                            class="mono text-[9.5px] font-bold tracking-[0.06em] text-[var(--danger)] bg-[rgba(255,115,103,0.12)] px-[7px] py-[3px] rounded-[3px]"
+                                            class="mono text-[9.5px] font-bold tracking-[0.06em] text-(--danger) bg-[rgba(255,115,103,0.12)] px-1.75 py-0.75 rounded-[3px]"
                                             >ERROR</span
                                         >
                                         <span
-                                            class="mono text-[10.5px] text-[var(--ink-3)]"
+                                            class="mono text-[10.5px] text-(--ink-3)"
                                             >{err.time.toLocaleTimeString([], {
                                                 hour: "2-digit",
                                                 minute: "2-digit",
@@ -440,7 +436,7 @@
                                         >
                                     </div>
                                     <pre
-                                        class="m-0 whitespace-pre-wrap text-[var(--ink-0)] mono text-[12px] leading-[1.5]">{err.message}</pre>
+                                        class="m-0 whitespace-pre-wrap text-(--ink-0) mono text-[12px] leading-normal">{err.message}</pre>
                                 </div>
                             {/each}
                         </div>
@@ -454,7 +450,7 @@
                 on:resize={handleRightResize}
             />
             <aside
-                class="shrink-0 bg-[var(--bg-1)] overflow-hidden"
+                class="shrink-0 bg-(--bg-1) overflow-hidden"
                 style="width: {rightWidth}px"
             >
                 <AIChatPanel />
