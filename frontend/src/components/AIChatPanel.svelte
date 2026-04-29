@@ -201,6 +201,22 @@
      * Messaging
      */
 
+    function buildContextMessage() {
+        try {
+            const p = new URLSearchParams(location.hash.slice(1));
+            const db = p.get("db");
+            const table = p.get("table");
+
+            if (db && table) {
+                return `[Context] The user is currently browsing the table \`${table}\` in database \`${db}\`.`;
+            } else if (db) {
+                return `[Context] The user is currently working in database \`${db}\`.`;
+            }
+        } catch (_) {}
+
+        return null;
+    }
+
     async function send() {
         const text = input.trim();
         if (!text || busy || !$activeAiKey) return;
@@ -211,14 +227,26 @@
         streamingReply = "";
         setTimeout(scrollToBottom, 0);
 
+        const contextMsg = buildContextMessage();
+
+        // Build the message list to send: strip internal bubbles, then inject
+        // a system context message immediately before the last user message.
+        const sendable = messages.filter(
+            (m) => !m.isSuggestion && !m.isQueryResult,
+        );
+        const withContext = contextMsg
+            ? [
+                  ...sendable.slice(0, -1),
+                  { role: "assistant", content: contextMsg },
+                  sendable[sendable.length - 1],
+              ]
+            : sendable;
+
         try {
             for await (const event of api.aiChatStream(
                 $activeAiKey.keyId,
                 $activeAiKey.model,
-                // Strip the initial assistant greeting and any internal result messages
-                messages
-                    .slice(1)
-                    .filter((m) => !m.isSuggestion && !m.isQueryResult),
+                withContext,
             )) {
                 if (event.type === "text") {
                     streamingReply += event.chunk;

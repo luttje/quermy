@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { api, BASE } from "../lib/api.js";
-    import { view, session, toast } from "../lib/store.js";
+    import { session, toast } from "../lib/store.js";
     import Btn from "../components/ui/Btn.svelte";
     import Input from "../components/ui/Input.svelte";
     import Select from "../components/ui/Select.svelte";
@@ -53,7 +53,6 @@
             const s = await api.getSession();
             session.set(s.active);
             toast("Connected", "success");
-            view.set({ name: "databases" });
         } catch (e) {
             toast(e.message, "error");
         } finally {
@@ -68,7 +67,6 @@
             const s = await api.getSession();
             session.set(s.active);
             toast(`Connected to ${c.name}`, "success");
-            view.set({ name: "databases" });
         } catch (e) {
             toast(e.message, "error");
         } finally {
