@@ -89,7 +89,7 @@
     <header class="hero">
         <div class="word-wrap">
             <h1 class="wordmark">Quermy</h1>
-            <span class="tag mono">// drop-in MySQL companion</span>
+            <span class="tag mono">// modern database administration</span>
         </div>
         <p class="lead">
             A keyboard-first relational client that lives in your stack. Connect
@@ -359,6 +359,7 @@
     }
 
     .conn-row {
+        cursor: pointer;
         width: 100%;
         display: flex;
         gap: 14px;
