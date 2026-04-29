@@ -57,6 +57,14 @@ For aggregations, prefer named expressions (`COUNT(*) AS order_count`) over
 anonymous ones. For date ranges, prefer half-open intervals (`>= start AND
 end`) over `BETWEEN` to avoid timezone and boundary surprises.
 
+When inserting into tables whose primary key is a UUID/GUID, prefer letting the
+database generate the value with `UUID()` or `UUID_TO_BIN(UUID(), 1)` rather than
+inventing one. Note in the rationale that application-generated UUIDs (e.g.
+Laravel's `HasUuids`, which uses ordered v7 UUIDs) follow a specific distribution;
+values you generate in a query will not match that distribution and may fragment
+indexes or sort differently. When in doubt, recommend the user create the row
+through the application instead.
+
 ## Safety and Destructive Operations
 
 The user's connection may have write permissions. Treat any statement that

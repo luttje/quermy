@@ -3,8 +3,14 @@
 namespace Quermy\Controllers;
 
 use Quermy\Ai\ChatService;
+use Quermy\Ai\Tools\DescribeTable;
+use Quermy\Ai\Tools\ExplainQuery;
+use Quermy\Ai\Tools\GetCreateTable;
 use Quermy\Ai\Tools\GetDatabases;
+use Quermy\Ai\Tools\GetForeignKeys;
 use Quermy\Ai\Tools\ListTables;
+use Quermy\Ai\Tools\SampleTable;
+use Quermy\Ai\Tools\SearchSchema;
 use Quermy\Ai\Tools\SuggestQuery;
 use Quermy\Http\ConnectionSession;
 use Quermy\Http\Json;
@@ -37,9 +43,23 @@ final class AiChatController extends BaseController
             Json::error('API key not found. Add one via the key manager.', 422);
         }
 
+        // Tool order isn't significant — the agent picks based on the
+        // #[AsTool] descriptions — but grouping by purpose is easier to
+        // reason about: discovery first, then introspection, then action.
         $tools = [
+            // Discovery
             new GetDatabases($this->session),
             new ListTables($this->session),
+            new SearchSchema($this->session),
+
+            // Introspection
+            new DescribeTable($this->session),
+            new GetForeignKeys($this->session),
+            new GetCreateTable($this->session),
+            new SampleTable($this->session),
+
+            // Query authoring
+            new ExplainQuery($this->session),
             new SuggestQuery(), // no DB access — just validates and echoes the SQL back
         ];
 

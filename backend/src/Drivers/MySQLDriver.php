@@ -286,6 +286,271 @@ class MySQLDriver implements DriverInterface
         $this->pdo->exec("ALTER TABLE $qDb.$qTbl DROP COLUMN $qCol");
     }
 
+    public function describeTable(string $database, string $table): array
+    {
+        $this->ensureConnected();
+
+        // Columns (using parameter binding — no need to validateIdent here
+        // because the values are bound, not interpolated).
+        $cstmt = $this->pdo->prepare(
+            "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY,
+                    COLUMN_DEFAULT, EXTRA, COLUMN_COMMENT
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = :tbl
+             ORDER BY ORDINAL_POSITION"
+        );
+        $cstmt->execute([':db' => $database, ':tbl' => $table]);
+        $columns = [];
+        foreach ($cstmt->fetchAll() as $c) {
+            $columns[] = [
+                'name'     => $c['COLUMN_NAME'],
+                'type'     => $c['COLUMN_TYPE'],
+                'nullable' => $c['IS_NULLABLE'] === 'YES',
+                'key'      => $c['COLUMN_KEY'] ?? '',
+                'default'  => $c['COLUMN_DEFAULT'],
+                'extra'    => $c['EXTRA'] ?? '',
+                'comment'  => $c['COLUMN_COMMENT'] ?? '',
+            ];
+        }
+
+        if ($columns === []) {
+            // Either the table doesn't exist or the user can't see it — be
+            // explicit, otherwise the LLM gets back an empty struct and
+            // happily writes a query against a non-existent table.
+            throw new RuntimeException("Table not found or not accessible: $database.$table");
+        }
+
+        // Indexes — group rows by INDEX_NAME, preserving SEQ_IN_INDEX order.
+        $istmt = $this->pdo->prepare(
+            "SELECT INDEX_NAME, COLUMN_NAME, NON_UNIQUE, SEQ_IN_INDEX
+             FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = :tbl
+             ORDER BY INDEX_NAME, SEQ_IN_INDEX"
+        );
+        $istmt->execute([':db' => $database, ':tbl' => $table]);
+
+        $byIndex = [];
+        foreach ($istmt->fetchAll() as $r) {
+            $name = $r['INDEX_NAME'];
+            if (!isset($byIndex[$name])) {
+                $byIndex[$name] = [
+                    'name'    => $name,
+                    'columns' => [],
+                    'unique'  => ((int)$r['NON_UNIQUE']) === 0,
+                ];
+            }
+            $byIndex[$name]['columns'][] = $r['COLUMN_NAME'];
+        }
+
+        $primaryKey = isset($byIndex['PRIMARY']) ? $byIndex['PRIMARY']['columns'] : [];
+        $indexes    = array_values($byIndex);
+
+        return [
+            'columns'    => $columns,
+            'primaryKey' => $primaryKey,
+            'indexes'    => $indexes,
+        ];
+    }
+
+    public function getForeignKeys(string $database, string $table): array
+    {
+        $this->ensureConnected();
+
+        // Outgoing: this table → others.
+        $outStmt = $this->pdo->prepare(
+            "SELECT k.COLUMN_NAME, k.REFERENCED_TABLE_SCHEMA, k.REFERENCED_TABLE_NAME,
+                    k.REFERENCED_COLUMN_NAME, k.CONSTRAINT_NAME,
+                    r.UPDATE_RULE, r.DELETE_RULE
+             FROM information_schema.KEY_COLUMN_USAGE k
+             JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+               ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+              AND r.CONSTRAINT_NAME   = k.CONSTRAINT_NAME
+             WHERE k.TABLE_SCHEMA = :db
+               AND k.TABLE_NAME   = :tbl
+               AND k.REFERENCED_TABLE_NAME IS NOT NULL
+             ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION"
+        );
+        $outStmt->execute([':db' => $database, ':tbl' => $table]);
+        $outgoing = [];
+        foreach ($outStmt->fetchAll() as $r) {
+            $outgoing[] = [
+                'column'             => $r['COLUMN_NAME'],
+                'referencedDatabase' => $r['REFERENCED_TABLE_SCHEMA'],
+                'referencedTable'    => $r['REFERENCED_TABLE_NAME'],
+                'referencedColumn'   => $r['REFERENCED_COLUMN_NAME'],
+                'constraintName'     => $r['CONSTRAINT_NAME'],
+                'onUpdate'           => $r['UPDATE_RULE'],
+                'onDelete'           => $r['DELETE_RULE'],
+            ];
+        }
+
+        // Incoming: others → this table.
+        $inStmt = $this->pdo->prepare(
+            "SELECT k.TABLE_SCHEMA  AS REFERENCING_SCHEMA,
+                    k.TABLE_NAME    AS REFERENCING_TABLE,
+                    k.COLUMN_NAME   AS REFERENCING_COLUMN,
+                    k.REFERENCED_COLUMN_NAME,
+                    k.CONSTRAINT_NAME,
+                    r.UPDATE_RULE, r.DELETE_RULE
+             FROM information_schema.KEY_COLUMN_USAGE k
+             JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+               ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+              AND r.CONSTRAINT_NAME   = k.CONSTRAINT_NAME
+             WHERE k.REFERENCED_TABLE_SCHEMA = :db
+               AND k.REFERENCED_TABLE_NAME   = :tbl
+             ORDER BY k.TABLE_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME, k.ORDINAL_POSITION"
+        );
+        $inStmt->execute([':db' => $database, ':tbl' => $table]);
+        $incoming = [];
+        foreach ($inStmt->fetchAll() as $r) {
+            $incoming[] = [
+                'column'              => $r['REFERENCED_COLUMN_NAME'],
+                'referencingDatabase' => $r['REFERENCING_SCHEMA'],
+                'referencingTable'    => $r['REFERENCING_TABLE'],
+                'referencingColumn'   => $r['REFERENCING_COLUMN'],
+                'constraintName'      => $r['CONSTRAINT_NAME'],
+                'onUpdate'            => $r['UPDATE_RULE'],
+                'onDelete'            => $r['DELETE_RULE'],
+            ];
+        }
+
+        return [
+            'outgoing' => $outgoing,
+            'incoming' => $incoming,
+        ];
+    }
+
+    public function sampleTable(string $database, string $table, int $limit): array
+    {
+        $this->ensureConnected();
+        // Identifier interpolation requires hard validation.
+        $database = $this->validateIdent($database);
+        $table    = $this->validateIdent($table);
+        $limit    = max(1, min(20, $limit));
+
+        $stmt = $this->pdo->query("SELECT * FROM `$database`.`$table` LIMIT $limit");
+        $rows = $stmt->fetchAll();
+
+        $columns = [];
+        for ($i = 0; $i < $stmt->columnCount(); $i++) {
+            $meta = $stmt->getColumnMeta($i) ?: [];
+            $columns[] = $meta['name'] ?? "col_$i";
+        }
+
+        // We can only know "truncated" cheaply by checking whether we got
+        // exactly $limit rows back. False negatives are possible (table
+        // might happen to have exactly $limit rows) but that's harmless —
+        // the agent treats this as a hint, not a guarantee.
+        $truncated = count($rows) >= $limit;
+
+        return [
+            'columns'   => $columns,
+            'rows'      => $rows,
+            'truncated' => $truncated,
+        ];
+    }
+
+    public function searchSchema(string $database, string $term, string $scope): array
+    {
+        $this->ensureConnected();
+
+        $like   = '%' . $this->escapeLike($term) . '%';
+        $tables  = [];
+        $columns = [];
+
+        if ($scope === 'tables' || $scope === 'all') {
+            $stmt = $this->pdo->prepare(
+                "SELECT TABLE_NAME, TABLE_COMMENT
+                 FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = :db
+                   AND TABLE_TYPE = 'BASE TABLE'
+                   AND (TABLE_NAME LIKE :term ESCAPE '\\\\'
+                        OR TABLE_COMMENT LIKE :term2 ESCAPE '\\\\')
+                 ORDER BY TABLE_NAME
+                 LIMIT 100"
+            );
+            $stmt->execute([':db' => $database, ':term' => $like, ':term2' => $like]);
+            foreach ($stmt->fetchAll() as $r) {
+                $tables[] = [
+                    'name'    => $r['TABLE_NAME'],
+                    'comment' => $r['TABLE_COMMENT'] ?? '',
+                ];
+            }
+        }
+
+        if ($scope === 'columns' || $scope === 'all') {
+            $stmt = $this->pdo->prepare(
+                "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, COLUMN_COMMENT
+                 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = :db
+                   AND (COLUMN_NAME LIKE :term ESCAPE '\\\\'
+                        OR COLUMN_COMMENT LIKE :term2 ESCAPE '\\\\')
+                 ORDER BY TABLE_NAME, ORDINAL_POSITION
+                 LIMIT 200"
+            );
+            $stmt->execute([':db' => $database, ':term' => $like, ':term2' => $like]);
+            foreach ($stmt->fetchAll() as $r) {
+                $columns[] = [
+                    'table'   => $r['TABLE_NAME'],
+                    'name'    => $r['COLUMN_NAME'],
+                    'type'    => $r['COLUMN_TYPE'],
+                    'comment' => $r['COLUMN_COMMENT'] ?? '',
+                ];
+            }
+        }
+
+        return ['tables' => $tables, 'columns' => $columns];
+    }
+
+    public function getCreateTable(string $database, string $table): string
+    {
+        $this->ensureConnected();
+        $database = $this->validateIdent($database);
+        $table    = $this->validateIdent($table);
+
+        $stmt = $this->pdo->query("SHOW CREATE TABLE `$database`.`$table`");
+        $row  = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException("Table not found: $database.$table");
+        }
+        // SHOW CREATE TABLE returns either ['Table' => ..., 'Create Table' => DDL]
+        // or for views ['View' => ..., 'Create View' => DDL]. Pick whichever
+        // "Create *" key is present.
+        foreach ($row as $key => $val) {
+            if (str_starts_with((string)$key, 'Create ')) {
+                return (string)$val;
+            }
+        }
+        throw new RuntimeException('Unexpected SHOW CREATE TABLE output.');
+    }
+
+    public function explainQuery(string $database, string $sql): array
+    {
+        $this->ensureConnected();
+
+        // Defense in depth — the tool already checks this, but the driver
+        // is the last line of defense and shouldn't trust its caller.
+        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $sql)) {
+            throw new RuntimeException('explainQuery only accepts SELECT statements.');
+        }
+        // Reject multi-statement payloads. We can't fully parse SQL with a
+        // regex but we can refuse the obvious case where someone tries to
+        // chain a destructive statement after the SELECT.
+        if (preg_match('/;\s*\S/', rtrim($sql, "; \t\n\r"))) {
+            throw new RuntimeException('explainQuery accepts only a single statement.');
+        }
+
+        if ($database !== '') {
+            $database = $this->validateIdent($database);
+            $this->pdo->exec("USE `$database`");
+        }
+
+        // Plain (tabular) EXPLAIN is enough for the agent — FORMAT=JSON is
+        // richer but bulkier and harder for the LLM to read.
+        $stmt = $this->pdo->query('EXPLAIN ' . $sql);
+        return $stmt->fetchAll();
+    }
+
     /*
      * Private helpers
      */
@@ -323,5 +588,16 @@ class MySQLDriver implements DriverInterface
         }
         if (strlen($type) > 100) throw new RuntimeException('Column type too long');
         return strtoupper($type);
+    }
+
+    /**
+     * Escape user input for use inside a LIKE pattern. The pattern itself
+     * (% and _ wildcards) is added by the caller; this strips those out
+     * of the user's term so a search for "user_id" doesn't match
+     * "userXid".
+     */
+    private function escapeLike(string $term): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
     }
 }
