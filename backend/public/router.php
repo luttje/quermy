@@ -1,4 +1,5 @@
-<?php
+<?php declare(strict_types=1);
+
 /**
  * Router for `php -S host:port -t public router.php` style usage.
  * Replicates what the .htaccess file does for Apache.
