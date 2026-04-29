@@ -10,6 +10,8 @@
     import Toaster from "./components/Toaster.svelte";
     import ResizeHandle from "./components/ResizeHandle.svelte";
     import SqlEditor from "./components/SqlEditor.svelte";
+    import Btn from "./components/ui/Btn.svelte";
+    import Kbd from "./components/ui/Kbd.svelte";
 
     let bootstrapping = true;
 
@@ -228,44 +230,65 @@
 <Toaster />
 
 {#if bootstrapping}
-    <div class="boot mono">initializing…</div>
+    <div
+        class="flex-1 flex items-center justify-center text-[var(--ink-3)] mono"
+    >
+        initializing…
+    </div>
 {:else if !$session}
-    <div class="connect-scroll">
+    <div class="flex-1 overflow-y-auto">
         <ConnectView />
     </div>
 {:else}
-    <div class="app-shell">
+    <div class="h-full flex flex-col overflow-hidden">
         <!-- Topbar -->
-        <header class="topbar">
-            <div class="brand">
-                <span class="brand-mark">Q</span>
-                <span class="brand-name">Quermy</span>
+        <header
+            class="flex items-center gap-[14px] px-[18px] h-[44px] shrink-0 bg-[rgba(10,12,10,0.85)] backdrop-blur-[12px] border-b border-[var(--line)] z-50"
+        >
+            <div class="flex gap-2 items-center">
+                <span
+                    class="w-6 h-6 rounded-[5px] bg-[var(--acc)] text-[#0a0c0a] inline-flex items-center justify-center font-[var(--font-display)] font-semibold text-[15px] leading-none shadow-[0_0_10px_var(--acc-glow)]"
+                    >Q</span
+                >
+                <span
+                    class="font-[var(--font-display)] font-medium text-[17px] tracking-[-0.01em] text-[var(--ink-0)]"
+                    >Quermy</span
+                >
             </div>
 
-            <div class="conn-pill">
-                <span class="conn-dot"></span>
-                <span class="conn-text mono">
-                    {$session.username}@{$session.host}{$session.port !== 3306
-                        ? ":" + $session.port
-                        : ""}
-                </span>
-                <span class="conn-engine mono">{$session.engine}</span>
-            </div>
-
-            <div class="spacer"></div>
-
-            <button
-                class="btn btn-ghost topbar-disconnect"
-                on:click={disconnect}
+            <div
+                class="flex items-center gap-2 px-[10px] py-1 bg-[var(--bg-2)] border border-[var(--line)] rounded-full text-[11.5px]"
             >
-                Disconnect
-            </button>
+                <span
+                    class="w-[6px] h-[6px] rounded-full bg-[var(--ok)] shadow-[0_0_6px_rgba(127,217,127,0.5)] animate-pulse"
+                ></span>
+                <span class="mono text-[var(--ink-1)]"
+                    >{$session.username}@{$session.host}{$session.port !== 3306
+                        ? ":" + $session.port
+                        : ""}</span
+                >
+                <span
+                    class="mono text-[9.5px] uppercase tracking-[0.08em] text-[var(--acc)] bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-[5px] py-[2px] rounded-[3px] font-semibold"
+                    >{$session.engine}</span
+                >
+            </div>
+
+            <div class="flex-1"></div>
+
+            <Btn
+                variant="ghost"
+                on:click={disconnect}
+                class="text-[12px] px-[10px] py-1">Disconnect</Btn
+            >
         </header>
 
         <!-- 3-panel workspace -->
-        <div class="workspace">
+        <div class="flex-1 min-h-0 flex overflow-hidden">
             <!-- Left: Explorer tree -->
-            <aside class="sidebar-left" style="width: {leftWidth}px">
+            <aside
+                class="shrink-0 bg-[var(--bg-1)] overflow-hidden flex flex-col"
+                style="width: {leftWidth}px"
+            >
                 <TreeView
                     {databases}
                     {busy}
@@ -277,31 +300,48 @@
             <ResizeHandle orientation="vertical" on:resize={handleLeftResize} />
 
             <!-- Middle: SQL editor + results -->
-            <div class="workspace-middle">
+            <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
                 <!-- SQL Editor pane (resizable) -->
-                <div class="sql-pane" style="height: {sqlPaneHeight}px">
-                    <div class="sql-head">
-                        <label class="db-pick mono">
-                            <span class="db-lbl">DB</span>
-                            <select class="db-sel" bind:value={queryDb}>
+                <div
+                    class="shrink-0 flex flex-col overflow-hidden min-h-[100px]"
+                    style="height: {sqlPaneHeight}px"
+                >
+                    <div
+                        class="flex items-center justify-between px-3 py-[6px] border-b border-[var(--line)] bg-[var(--bg-2)] shrink-0 gap-[10px]"
+                    >
+                        <label
+                            class="flex items-center gap-[6px] mono cursor-pointer"
+                        >
+                            <span
+                                class="text-[9px] uppercase tracking-[0.1em] text-[var(--ink-3)] font-bold"
+                                >DB</span
+                            >
+                            <select
+                                class="bg-transparent border-0 text-[var(--ink-1)] font-[var(--font-mono)] text-[11.5px] p-0 min-w-[60px] focus:outline-none"
+                                bind:value={queryDb}
+                            >
                                 <option value="">(none)</option>
                                 {#each databases as d}
                                     <option value={d}>{d}</option>
                                 {/each}
                             </select>
                         </label>
-                        <div class="sql-head-right">
-                            <span class="char-count muted mono"
+                        <div class="flex items-center gap-2">
+                            <span class="muted mono text-[10.5px]"
                                 >{sql.length} chars</span
                             >
-                            <button
-                                class="btn btn-primary run-btn"
+                            <Btn
+                                variant="primary"
                                 on:click={run}
                                 disabled={busy || !sql.trim()}
+                                class="py-1 px-[11px] text-[12px] gap-[5px]"
                             >
                                 {busy ? "Running…" : "Run"}
-                                <span class="kbd">⌘↵</span>
-                            </button>
+                                <span
+                                    class="mono text-[9px] bg-[rgba(10,12,10,0.15)] text-[rgba(10,12,10,0.65)] px-[5px] py-[2px] rounded border-0 ml-px"
+                                    ><Kbd>⌘↵</Kbd></span
+                                >
+                            </Btn>
                         </div>
                     </div>
                     <SqlEditor bind:value={sql} />
@@ -311,7 +351,9 @@
                 <ResizeHandle on:resize={handleSqlResize} />
 
                 <!-- Result pane -->
-                <div class="result-pane">
+                <div
+                    class="flex-1 min-h-0 overflow-y-auto flex flex-col p-[10px] gap-[10px]"
+                >
                     {#if result}
                         {#if result.isSelect}
                             <DataTable
@@ -325,8 +367,14 @@
                                 on:refresh={handleRefresh}
                             />
                         {:else}
-                            <div class="ok-result">
-                                <div class="ok-tag mono">OK</div>
+                            <div
+                                class="bg-[var(--bg-1)] border border-[rgba(127,217,127,0.25)] rounded-[var(--radius-lg)] px-4 py-[14px] flex gap-3 items-center text-[var(--ink-1)] text-[13px]"
+                            >
+                                <div
+                                    class="mono text-[9.5px] bg-[rgba(127,217,127,0.12)] text-[var(--ok)] px-[7px] py-[3px] rounded-[3px] font-bold tracking-[0.06em]"
+                                >
+                                    OK
+                                </div>
                                 <div>
                                     <strong class="mono"
                                         >{result.affected}</strong
@@ -340,32 +388,50 @@
                             </div>
                         {/if}
                     {:else}
-                        <div class="result-hint">
-                            Press <span class="kbd">⌘ Enter</span> or click
+                        <div
+                            class="text-[var(--ink-3)] text-center px-4 py-8 bg-[var(--bg-1)] border border-dashed border-[var(--line-strong)] rounded-[var(--radius-lg)] text-[13px]"
+                        >
+                            Press <Kbd>⌘ Enter</Kbd> or click
                             <strong>Run</strong> to execute, or pick a table from
                             the explorer.
                         </div>
                     {/if}
 
                     {#if errors.length > 0}
-                        <div class="error-log">
-                            <div class="error-log-header">
-                                <span class="error-log-title mono"
+                        <div
+                            class="shrink-0 bg-[var(--bg-1)] border border-[rgba(255,115,103,0.25)] rounded-[var(--radius-lg)] overflow-hidden h-[250px] overflow-y-auto"
+                        >
+                            <div
+                                class="flex items-center gap-2 px-3 py-[7px] border-b border-[rgba(255,115,103,0.15)] bg-[rgba(255,115,103,0.05)]"
+                            >
+                                <span
+                                    class="mono text-[9.5px] font-bold tracking-[0.08em] text-[var(--danger)]"
                                     >SQL ERRORS</span
                                 >
-                                <span class="error-log-count mono"
+                                <span
+                                    class="mono text-[9.5px] bg-[rgba(255,115,103,0.15)] text-[var(--danger)] px-[6px] py-[1px] rounded-full font-semibold"
                                     >{errors.length}</span
                                 >
-                                <button
-                                    class="btn btn-ghost error-log-clear"
-                                    on:click={() => (errors = [])}>Clear</button
+                                <Btn
+                                    variant="ghost"
+                                    on:click={() => (errors = [])}
+                                    class="ml-auto text-[11px] px-2 py-[2px] text-[var(--ink-3)]"
+                                    >Clear</Btn
                                 >
                             </div>
                             {#each errors as err}
-                                <div class="error-entry">
-                                    <div class="error-entry-meta">
-                                        <span class="err-tag mono">ERROR</span>
-                                        <span class="error-ts mono"
+                                <div
+                                    class="px-3 py-[10px] border-b border-[var(--line)] last:border-b-0"
+                                >
+                                    <div
+                                        class="flex items-center gap-2 mb-[6px]"
+                                    >
+                                        <span
+                                            class="mono text-[9.5px] font-bold tracking-[0.06em] text-[var(--danger)] bg-[rgba(255,115,103,0.12)] px-[7px] py-[3px] rounded-[3px]"
+                                            >ERROR</span
+                                        >
+                                        <span
+                                            class="mono text-[10.5px] text-[var(--ink-3)]"
                                             >{err.time.toLocaleTimeString([], {
                                                 hour: "2-digit",
                                                 minute: "2-digit",
@@ -374,7 +440,7 @@
                                         >
                                     </div>
                                     <pre
-                                        class="error-entry-msg mono">{err.message}</pre>
+                                        class="m-0 whitespace-pre-wrap text-[var(--ink-0)] mono text-[12px] leading-[1.5]">{err.message}</pre>
                                 </div>
                             {/each}
                         </div>
@@ -387,350 +453,12 @@
                 orientation="vertical"
                 on:resize={handleRightResize}
             />
-            <aside class="sidebar-right" style="width: {rightWidth}px">
+            <aside
+                class="shrink-0 bg-[var(--bg-1)] overflow-hidden"
+                style="width: {rightWidth}px"
+            >
                 <AIChatPanel />
             </aside>
         </div>
     </div>
 {/if}
-
-<style>
-    /* ---- Boot / connect wrapper ---- */
-    .boot {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--ink-3);
-    }
-
-    .connect-scroll {
-        flex: 1;
-        overflow-y: auto;
-    }
-
-    /* ---- App shell (workspace) ---- */
-    .app-shell {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    /* ---- Topbar ---- */
-    .topbar {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 0 18px;
-        height: 44px;
-        flex-shrink: 0;
-        background: rgba(10, 12, 10, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-bottom: 1px solid var(--line);
-        z-index: 50;
-    }
-
-    .brand {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-    .brand-mark {
-        width: 24px;
-        height: 24px;
-        border-radius: 5px;
-        background: var(--acc);
-        color: #0a0c0a;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-family: var(--font-display);
-        font-weight: 600;
-        font-size: 15px;
-        line-height: 1;
-        box-shadow: 0 0 10px var(--acc-glow);
-    }
-    .brand-name {
-        font-family: var(--font-display);
-        font-weight: 500;
-        font-size: 17px;
-        letter-spacing: -0.01em;
-        color: var(--ink-0);
-    }
-
-    .conn-pill {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 4px 10px 4px 8px;
-        background: var(--bg-2);
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        font-size: 11.5px;
-    }
-    .conn-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--ok);
-        box-shadow: 0 0 6px rgba(127, 217, 127, 0.5);
-        animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-        0%,
-        100% {
-            opacity: 1;
-        }
-        50% {
-            opacity: 0.5;
-        }
-    }
-    .conn-text {
-        color: var(--ink-1);
-    }
-    .conn-engine {
-        font-size: 9.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--acc);
-        background: rgba(200, 255, 90, 0.08);
-        border: 1px solid rgba(200, 255, 90, 0.2);
-        padding: 2px 5px;
-        border-radius: 3px;
-        font-weight: 600;
-    }
-
-    .spacer {
-        flex: 1;
-    }
-
-    .topbar-disconnect {
-        font-size: 12px;
-        padding: 4px 10px;
-    }
-
-    /* ---- Workspace (3 columns) ---- */
-    .workspace {
-        flex: 1;
-        min-height: 0;
-        display: flex;
-        overflow: hidden;
-    }
-
-    .sidebar-left {
-        flex-shrink: 0;
-        background: var(--bg-1);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .sidebar-right {
-        flex-shrink: 0;
-        background: var(--bg-1);
-        overflow: hidden;
-    }
-
-    .workspace-middle {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    /* ---- SQL pane ---- */
-    .sql-pane {
-        flex-shrink: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        min-height: 100px;
-    }
-
-    .sql-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 6px 12px;
-        border-bottom: 1px solid var(--line);
-        background: var(--bg-2);
-        flex-shrink: 0;
-        gap: 10px;
-    }
-
-    .db-pick {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .db-lbl {
-        font-size: 9px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--ink-3);
-        font-weight: 700;
-    }
-    .db-sel {
-        background: transparent;
-        border: 0;
-        color: var(--ink-1);
-        font-family: var(--font-mono);
-        font-size: 11.5px;
-        padding: 0;
-        min-width: 60px;
-    }
-    .db-sel:focus {
-        outline: none;
-    }
-
-    .sql-head-right {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .char-count {
-        font-size: 10.5px;
-    }
-
-    .run-btn {
-        padding: 4px 11px;
-        font-size: 12px;
-        gap: 5px;
-    }
-    .run-btn .kbd {
-        background: rgba(10, 12, 10, 0.15);
-        color: rgba(10, 12, 10, 0.65);
-        border-color: transparent;
-        font-size: 9px;
-        margin-left: 1px;
-    }
-
-    /* Make CodeMirror fill the sql-pane */
-    .sql-pane :global(.cm-editor) {
-        flex: 1;
-        min-height: 0;
-        height: 100%;
-        background: var(--bg-0);
-    }
-    .sql-pane :global(.cm-scroller) {
-        flex: 1;
-        min-height: 0;
-        overflow: auto;
-    }
-
-    /* ---- Result pane ---- */
-    .result-pane {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        padding: 10px;
-        gap: 10px;
-    }
-
-    .result-hint {
-        color: var(--ink-3);
-        text-align: center;
-        padding: 32px 16px;
-        background: var(--bg-1);
-        border: 1px dashed var(--line-strong);
-        border-radius: var(--radius-lg);
-        font-size: 13px;
-    }
-
-    .ok-result {
-        background: var(--bg-1);
-        border: 1px solid rgba(127, 217, 127, 0.25);
-        border-radius: var(--radius-lg);
-        padding: 14px 16px;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        color: var(--ink-1);
-        font-size: 13px;
-    }
-    .ok-tag {
-        font-size: 9.5px;
-        background: rgba(127, 217, 127, 0.12);
-        color: var(--ok);
-        padding: 3px 7px;
-        border-radius: 3px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-    }
-
-    /* ---- Error log ---- */
-    .error-log {
-        flex-shrink: 0;
-        background: var(--bg-1);
-        border: 1px solid rgba(255, 115, 103, 0.25);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        height: 250px;
-        overflow-y: auto;
-    }
-
-    .error-log-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 12px;
-        border-bottom: 1px solid rgba(255, 115, 103, 0.15);
-        background: rgba(255, 115, 103, 0.05);
-    }
-
-    .error-log-title {
-        font-size: 9.5px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        color: var(--danger);
-    }
-
-    .error-log-count {
-        font-size: 9.5px;
-        background: rgba(255, 115, 103, 0.15);
-        color: var(--danger);
-        padding: 1px 6px;
-        border-radius: 999px;
-        font-weight: 600;
-    }
-
-    .error-log-clear {
-        margin-left: auto;
-        font-size: 11px;
-        padding: 2px 8px;
-        color: var(--ink-3);
-    }
-
-    .error-entry {
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--line);
-    }
-    .error-entry:last-child {
-        border-bottom: none;
-    }
-
-    .error-entry-meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 6px;
-    }
-
-    .error-ts {
-        font-size: 10.5px;
-        color: var(--ink-3);
-    }
-
-    .error-entry-msg {
-        margin: 0;
-        white-space: pre-wrap;
-        color: var(--ink-0);
-        font-size: 12px;
-        line-height: 1.5;
-    }
-</style>

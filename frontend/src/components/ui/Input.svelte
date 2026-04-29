@@ -1,0 +1,16 @@
+<script>
+    export let type = "text";
+    export let value = "";
+    export let placeholder = "";
+    export let required = false;
+    let extraClass = "";
+    export { extraClass as class };
+</script>
+
+<input
+    {type}
+    {placeholder}
+    {required}
+    bind:value
+    class="w-full bg-[var(--bg-input)] border border-[var(--line)] rounded-[var(--radius)] px-3 py-[9px] text-[var(--ink-0)] mono text-[13px] transition-[border-color,box-shadow] duration-[120ms] ease-in-out placeholder:text-[var(--ink-3)] focus:outline-none focus:border-[var(--acc)] focus:shadow-[0_0_0_3px_var(--acc-glow)] {extraClass}"
+/>

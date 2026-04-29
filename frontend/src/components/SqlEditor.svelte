@@ -140,22 +140,18 @@
     }
 </script>
 
-<div bind:this={container} class="sql-editor"></div>
+<div
+    bind:this={container}
+    class="flex-1 min-h-0 overflow-hidden flex flex-col sql-editor"
+></div>
 
 <style>
-    .sql-editor {
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* Let CodeMirror fill the container */
+    /* Keep only :global() rules for CodeMirror internals */
     .sql-editor :global(.cm-editor) {
         flex: 1;
         min-height: 0;
         height: 100%;
+        background: var(--bg-0);
     }
 
     .sql-editor :global(.cm-scroller) {

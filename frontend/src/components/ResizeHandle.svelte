@@ -38,7 +38,9 @@
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <div
-    class="resize-handle {orientation}"
+    class="shrink-0 bg-[var(--line)] relative select-none transition-[background] duration-[80ms] hover:bg-[var(--acc)]"
+    class:horizontal={orientation === "horizontal"}
+    class:vertical={orientation === "vertical"}
     class:dragging
     on:mousedown={onMouseDown}
     role="separator"
@@ -47,14 +49,6 @@
 ></div>
 
 <style>
-    .resize-handle {
-        flex-shrink: 0;
-        background: var(--line);
-        transition: background 80ms;
-        position: relative;
-        user-select: none;
-    }
-
     .horizontal {
         height: 4px;
         width: 100%;
@@ -65,7 +59,6 @@
         position: absolute;
         inset: -4px 0;
     }
-
     .vertical {
         width: 4px;
         height: 100%;
@@ -76,9 +69,7 @@
         position: absolute;
         inset: 0 -4px;
     }
-
-    .resize-handle:hover,
-    .resize-handle.dragging {
+    .dragging {
         background: var(--acc);
     }
 </style>

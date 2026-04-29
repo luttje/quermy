@@ -139,18 +139,24 @@
     }
 </script>
 
-<nav class="tree">
-    <div class="tree-header">
-        <div class="tree-header-row">
-            <span class="tree-title mono">Explorer</span>
-            <button class="icon-btn" title="Collapse all" on:click={collapseAll}
-                >⊟</button
+<nav class="h-full flex flex-col overflow-hidden">
+    <!-- header -->
+    <div class="border-b border-[var(--line)] shrink-0">
+        <div class="flex items-center px-3 py-[9px] pb-2">
+            <span
+                class="flex-1 mono text-[9.5px] uppercase tracking-[0.1em] text-[var(--ink-3)] font-semibold"
+                >Explorer</span
+            >
+            <button
+                class="bg-transparent border-0 text-[var(--ink-3)] cursor-pointer px-1 py-[2px] rounded-[3px] text-[13px] leading-none transition-[background,color] duration-[60ms] hover:bg-[var(--bg-2)] hover:text-[var(--ink-1)]"
+                title="Collapse all"
+                on:click={collapseAll}>⊟</button
             >
         </div>
         {#if databases.length > 0}
-            <div class="tree-search-row">
+            <div class="px-2 pb-2">
                 <input
-                    class="tree-search mono"
+                    class="w-full bg-[var(--bg-2)] border border-[var(--line)] rounded text-[var(--ink-1)] mono text-[11px] px-[7px] py-1 outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)]"
                     type="search"
                     placeholder="filter…"
                     bind:value={searchQuery}
@@ -159,70 +165,87 @@
         {/if}
     </div>
 
-    <div class="tree-body">
+    <!-- body -->
+    <div class="flex-1 overflow-y-auto py-1 px-[6px]">
         {#if filteredDatabases.length === 0}
-            <div class="tree-empty mono">
+            <div class="mono px-[10px] py-4 text-[var(--ink-3)] text-[11.5px]">
                 {#if searchQuery.trim()}no match{:else}no databases{/if}
             </div>
         {:else}
             {#each filteredDatabases as db}
-                <div class="db-group">
+                <div class="flex flex-col">
                     <button
-                        class="tree-node db-node"
+                        class="w-full flex items-center gap-[5px] bg-transparent border-0 py-1 px-1 pr-2 text-left text-[var(--ink-1)] rounded min-w-0 transition-[background,color] duration-[60ms] hover:bg-[var(--bg-2)] hover:text-[var(--ink-0)]"
                         on:click={() => toggleDb(db)}
                         title={db}
                     >
                         <span
-                            class="node-arrow"
-                            class:open={expandedDbs.has(db)}>›</span
+                            class="text-[11px] text-[var(--ink-3)] w-[10px] shrink-0 inline-block leading-none transition-transform duration-[120ms] ease-in-out"
+                            class:rotate-90={expandedDbs.has(db)}>›</span
                         >
-                        <span class="node-icon db-icon">◎</span>
-                        <span class="node-label">{db}</span>
+                        <span
+                            class="text-[11px] text-[rgba(200,255,90,0.6)] w-[14px] text-center shrink-0"
+                            >◎</span
+                        >
+                        <span
+                            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[12px]"
+                            >{db}</span
+                        >
                         {#if loadingDbs.has(db)}
-                            <span class="spinner" aria-label="Loading"></span>
+                            <span
+                                class="shrink-0 w-[10px] h-[10px] border-[1.5px] border-[var(--ink-3)] border-t-[var(--acc)] rounded-full animate-spin"
+                                aria-label="Loading"
+                            ></span>
                         {/if}
                     </button>
 
                     {#if expandedDbs.has(db)}
                         {@const vt = visibleTables(db, tableMap)}
                         {#if vt}
-                            <div class="db-children">
+                            <div class="pl-[10px]">
                                 {#if vt.length === 0}
-                                    <div class="tree-empty-inner mono">
+                                    <div
+                                        class="mono px-[10px] py-1 pb-[6px] text-[var(--ink-3)] text-[11px]"
+                                    >
                                         no tables
                                     </div>
                                 {:else}
                                     {#each vt as t}
                                         {@const tk = tableKey(db, t.name)}
-                                        <div class="table-group">
+                                        <div class="flex flex-col">
                                             <button
-                                                class="tree-node table-node"
+                                                class="w-full flex items-center gap-[5px] bg-transparent border-0 py-1 px-1 pr-2 text-left text-[var(--ink-1)] rounded min-w-0 transition-[background,color] duration-[60ms] hover:bg-[var(--bg-2)] hover:text-[var(--ink-0)]"
                                                 on:click={() =>
                                                     toggleTable(db, t.name)}
                                                 title={t.name}
                                             >
                                                 <span
-                                                    class="node-arrow"
-                                                    class:open={expandedTables.has(
+                                                    class="text-[11px] text-[var(--ink-3)] w-[10px] shrink-0 inline-block leading-none transition-transform duration-[120ms] ease-in-out"
+                                                    class:rotate-90={expandedTables.has(
                                                         tk,
                                                     )}>›</span
                                                 >
-                                                <span class="node-icon">▦</span>
-                                                <span class="node-label"
+                                                <span
+                                                    class="text-[11px] text-[var(--ink-3)] w-[14px] text-center shrink-0"
+                                                    >▦</span
+                                                >
+                                                <span
+                                                    class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[12px]"
                                                     >{t.name}</span
                                                 >
                                             </button>
 
                                             {#if expandedTables.has(tk)}
-                                                <div class="table-children">
+                                                <div class="pl-[22px]">
                                                     <button
-                                                        class="tree-node leaf-node"
-                                                        class:active={activeNode ===
-                                                            leafKey(
-                                                                db,
-                                                                t.name,
-                                                                "data",
-                                                            )}
+                                                        class="w-full flex items-center gap-[5px] bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-[60ms] {activeNode ===
+                                                        leafKey(
+                                                            db,
+                                                            t.name,
+                                                            'data',
+                                                        )
+                                                            ? 'bg-[rgba(200,255,90,0.1)] text-[var(--acc)]'
+                                                            : 'text-[var(--ink-2)] hover:bg-[var(--bg-2)] hover:text-[var(--ink-0)]'}"
                                                         on:click={() =>
                                                             selectLeaf(
                                                                 db,
@@ -231,27 +254,29 @@
                                                             )}
                                                     >
                                                         <span
-                                                            class="node-icon leaf-icon"
+                                                            class="text-[11px] w-[14px] text-center shrink-0 text-[var(--ink-3)]"
                                                             >≡</span
                                                         >
-                                                        <span class="node-label"
+                                                        <span
+                                                            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
                                                             >Data</span
                                                         >
                                                         {#if busy && activeNode === leafKey(db, t.name, "data")}
                                                             <span
-                                                                class="spinner"
+                                                                class="shrink-0 w-[10px] h-[10px] border-[1.5px] border-[var(--ink-3)] border-t-[var(--acc)] rounded-full animate-spin"
                                                                 aria-label="Loading"
                                                             ></span>
                                                         {/if}
                                                     </button>
                                                     <button
-                                                        class="tree-node leaf-node"
-                                                        class:active={activeNode ===
-                                                            leafKey(
-                                                                db,
-                                                                t.name,
-                                                                "structure",
-                                                            )}
+                                                        class="w-full flex items-center gap-[5px] bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-[60ms] {activeNode ===
+                                                        leafKey(
+                                                            db,
+                                                            t.name,
+                                                            'structure',
+                                                        )
+                                                            ? 'bg-[rgba(200,255,90,0.1)] text-[var(--acc)]'
+                                                            : 'text-[var(--ink-2)] hover:bg-[var(--bg-2)] hover:text-[var(--ink-0)]'}"
                                                         on:click={() =>
                                                             selectLeaf(
                                                                 db,
@@ -260,15 +285,16 @@
                                                             )}
                                                     >
                                                         <span
-                                                            class="node-icon leaf-icon"
+                                                            class="text-[11px] w-[14px] text-center shrink-0 text-[var(--ink-3)]"
                                                             >#</span
                                                         >
-                                                        <span class="node-label"
+                                                        <span
+                                                            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
                                                             >Structure</span
                                                         >
                                                         {#if busy && activeNode === leafKey(db, t.name, "structure")}
                                                             <span
-                                                                class="spinner"
+                                                                class="shrink-0 w-[10px] h-[10px] border-[1.5px] border-[var(--ink-3)] border-t-[var(--acc)] rounded-full animate-spin"
                                                                 aria-label="Loading"
                                                             ></span>
                                                         {/if}
@@ -286,201 +312,3 @@
         {/if}
     </div>
 </nav>
-
-<style>
-    .tree {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    .tree-header {
-        border-bottom: 1px solid var(--line);
-        flex-shrink: 0;
-    }
-
-    .tree-header-row {
-        display: flex;
-        align-items: center;
-        padding: 9px 8px 8px 12px;
-    }
-
-    .tree-title {
-        flex: 1;
-        font-size: 9.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--ink-3);
-        font-weight: 600;
-    }
-
-    .icon-btn {
-        background: transparent;
-        border: 0;
-        color: var(--ink-3);
-        cursor: pointer;
-        padding: 2px 4px;
-        border-radius: 3px;
-        font-size: 13px;
-        line-height: 1;
-        transition:
-            background 60ms,
-            color 60ms;
-    }
-
-    .icon-btn:hover {
-        background: var(--bg-2);
-        color: var(--ink-1);
-    }
-
-    .tree-search-row {
-        padding: 0 8px 8px;
-    }
-
-    .tree-search {
-        width: 100%;
-        background: var(--bg-2);
-        border: 1px solid var(--line);
-        border-radius: 4px;
-        color: var(--ink-1);
-        font-size: 11px;
-        padding: 4px 7px;
-        outline: none;
-        box-sizing: border-box;
-    }
-
-    .tree-search::placeholder {
-        color: var(--ink-3);
-    }
-
-    .tree-search:focus {
-        border-color: var(--acc, #c8ff5a);
-    }
-
-    .tree-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 4px 6px;
-    }
-
-    .tree-empty {
-        padding: 16px 10px;
-        color: var(--ink-3);
-        font-size: 11.5px;
-    }
-
-    .tree-empty-inner {
-        padding: 4px 10px 6px;
-        color: var(--ink-3);
-        font-size: 11px;
-    }
-
-    .db-group,
-    .table-group {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .db-children {
-        padding-left: 10px;
-    }
-
-    .table-children {
-        padding-left: 22px;
-    }
-
-    /* Nodes */
-    .tree-node {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        background: transparent;
-        border: 0;
-        padding: 4px 8px 4px 4px;
-        text-align: left;
-        color: var(--ink-1);
-        border-radius: 4px;
-        transition:
-            background 60ms,
-            color 60ms;
-        min-width: 0;
-    }
-
-    .tree-node:hover {
-        background: var(--bg-2);
-        color: var(--ink-0);
-    }
-
-    .tree-node.active {
-        background: rgba(200, 255, 90, 0.1);
-        color: var(--acc);
-    }
-
-    .node-arrow {
-        font-size: 11px;
-        color: var(--ink-3);
-        width: 10px;
-        flex-shrink: 0;
-        display: inline-block;
-        transition: transform 120ms ease;
-        line-height: 1;
-    }
-
-    .node-arrow.open {
-        transform: rotate(90deg);
-    }
-
-    .node-icon {
-        font-size: 11px;
-        color: var(--ink-3);
-        width: 14px;
-        text-align: center;
-        flex-shrink: 0;
-    }
-
-    .db-icon {
-        color: rgba(200, 255, 90, 0.6);
-    }
-
-    .leaf-icon {
-        color: var(--ink-3);
-    }
-
-    .node-label {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-family: var(--font-mono);
-        font-size: 12px;
-    }
-
-    .leaf-node .node-label {
-        color: var(--ink-2);
-        font-size: 11.5px;
-    }
-
-    .leaf-node:hover .node-label,
-    .leaf-node.active .node-label {
-        color: inherit;
-    }
-
-    .spinner {
-        flex-shrink: 0;
-        width: 10px;
-        height: 10px;
-        border: 1.5px solid var(--ink-3);
-        border-top-color: var(--acc, #c8ff5a);
-        border-radius: 50%;
-        animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-</style>

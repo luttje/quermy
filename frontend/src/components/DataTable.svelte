@@ -376,46 +376,59 @@
 
 <!-- ═══════════════════════════════════════════════════════════ DATA mode -->
 {#if mode === "data"}
-    <div class="datatable-wrap">
+    <div
+        class="flex flex-col flex-1 min-h-0 bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden"
+    >
         {#if columns.length === 0}
-            <div class="empty-state">
-                <div class="empty-mark">∅</div>
+            <div class="py-16 px-6 text-center text-[var(--ink-2)]">
+                <div class="mono text-[36px] text-[var(--ink-3)] mb-2">∅</div>
                 <div>No columns to display.</div>
             </div>
         {:else}
             <!-- Meta / toolbar -->
-            <div class="meta-bar">
-                <span class="meta-item">
-                    <span class="meta-label">Rows</span>
-                    <span class="meta-value mono">
+            <div
+                class="flex items-center gap-6 py-2 px-3 pl-4 border-b border-[var(--line)] bg-[var(--bg-2)] text-[12px] shrink-0 min-h-[38px]"
+            >
+                <span class="flex gap-2 items-baseline">
+                    <span
+                        class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                        >Rows</span
+                    >
+                    <span class="text-[var(--ink-0)] text-[12px] mono">
                         {rows.length}{total !== null
                             ? ` / ${total.toLocaleString()}`
                             : ""}
                     </span>
                 </span>
-                <span class="meta-item">
-                    <span class="meta-label">Cols</span>
-                    <span class="meta-value mono">{columns.length}</span>
+                <span class="flex gap-2 items-baseline">
+                    <span
+                        class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                        >Cols</span
+                    >
+                    <span class="text-[var(--ink-0)] text-[12px] mono"
+                        >{columns.length}</span
+                    >
                 </span>
                 {#if durationMs !== null}
-                    <span class="meta-item">
-                        <span class="meta-label">Time</span>
-                        <span class="meta-value mono"
+                    <span class="flex gap-2 items-baseline">
+                        <span
+                            class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                            >Time</span
+                        >
+                        <span class="text-[var(--ink-0)] text-[12px] mono"
                             >{durationMs.toFixed(2)} ms</span
                         >
                     </span>
                 {/if}
 
                 {#if isEditable}
-                    <div class="toolbar-right">
+                    <div class="ml-auto flex items-center gap-[6px]">
                         {#if pendingCount > 0}
                             <button
                                 class="tb-btn tb-discard"
                                 on:click={discardAll}
-                                disabled={dataBusy}
+                                disabled={dataBusy}>Discard</button
                             >
-                                Discard
-                            </button>
                             <button
                                 class="tb-btn tb-save"
                                 on:click={saveAll}
@@ -475,7 +488,7 @@
                                 >
                             {/if}
                         {:else}
-                            <span class="no-pk-hint mono"
+                            <span class="mono text-[var(--ink-3)] text-[10.5px]"
                                 >no PK — editing disabled</span
                             >
                         {/if}
@@ -483,24 +496,33 @@
                 {/if}
             </div>
 
-            <div class="scroll">
-                <table>
+            <div class="flex-1 overflow-auto min-h-0">
+                <table
+                    class="border-separate border-spacing-0 w-full text-[12.5px]"
+                >
                     <thead>
                         <tr>
-                            <th class="rownum"></th>
+                            <th
+                                class="rownum sticky top-0 z-[2] text-right mono text-[11px] select-none w-[1%]"
+                            ></th>
                             {#each columns as c}
-                                <th class:pk={isPrimary(c)}>
-                                    <div class="th-name">
+                                <th
+                                    class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] last:border-r-0 whitespace-nowrap align-top text-[var(--ink-0)] font-semibold text-[13px]"
+                                    class:pk={isPrimary(c)}
+                                >
+                                    <div class="flex items-center gap-[6px]">
                                         {c.name}
                                         {#if isPrimary(c)}
                                             <span
-                                                class="pk-badge"
+                                                class="mono text-[9px] bg-[var(--acc)] text-[#0a0c0a] px-1 py-[1px] rounded-[3px] font-bold tracking-[0.04em]"
                                                 title="Primary key">PK</span
                                             >
                                         {/if}
                                     </div>
                                     {#if c.type}
-                                        <div class="th-type mono">
+                                        <div
+                                            class="mono text-[var(--ink-3)] text-[10.5px] mt-[2px] font-normal"
+                                        >
                                             {c.type}{c.nullable === false
                                                 ? " · NOT NULL"
                                                 : ""}
@@ -514,6 +536,7 @@
                         {#each rows as row, i}
                             {@const editing = !!pendingEdits[i]}
                             <tr
+                                class="transition-[background] duration-[80ms] ease-out cursor-pointer hover:bg-[var(--bg-2)]"
                                 class:row-editing={editing}
                                 class:row-selected={!editing &&
                                     selectedRow === i}
@@ -527,18 +550,21 @@
                                         startEditRow(i);
                                 }}
                             >
-                                <td class="rownum mono">{i + 1}</td>
+                                <td
+                                    class="rownum mono text-right text-[11px] select-none w-[1%]"
+                                    >{i + 1}</td
+                                >
                                 {#each columns as c}
                                     {#if editing}
                                         <td
-                                            class="edit-cell"
+                                            class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)] last:border-r-0"
                                             class:cell-dirty={isDirtyCell(
                                                 i,
                                                 c.name,
                                             )}
                                         >
                                             <input
-                                                class="cell-input mono"
+                                                class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                                 value={pendingEdits[i][c.name]}
                                                 on:input={(e) =>
                                                     handleCellInput(
@@ -552,8 +578,7 @@
                                     {:else}
                                         {@const v = formatCell(row[c.name])}
                                         <td
-                                            class="mono"
-                                            class:null-cell={v === null}
+                                            class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] last:border-r-0 text-[var(--ink-1)] max-w-[360px] overflow-hidden text-ellipsis whitespace-nowrap"
                                         >
                                             {#if v === null}
                                                 <span class="null-tag"
@@ -574,11 +599,16 @@
 
                         {#if addingRow}
                             <tr class="row-new" bind:this={newRowEl}>
-                                <td class="rownum mono">*</td>
+                                <td
+                                    class="rownum mono text-right text-[11px] select-none w-[1%]"
+                                    >*</td
+                                >
                                 {#each columns as c}
-                                    <td class="edit-cell">
+                                    <td
+                                        class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)] last:border-r-0"
+                                    >
                                         <input
-                                            class="cell-input mono"
+                                            class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                             bind:value={newRowValues[c.name]}
                                             placeholder={isAutoIncrement(c)
                                                 ? "auto"
@@ -594,7 +624,9 @@
                 </table>
 
                 {#if rows.length === 0 && !addingRow}
-                    <div class="empty-rows">
+                    <div
+                        class="py-7 px-7 text-center text-[var(--ink-3)] text-[13px]"
+                    >
                         <span class="mono">// no rows</span>
                     </div>
                 {/if}
@@ -604,22 +636,35 @@
 
     <!-- ══════════════════════════════════════════════ STRUCTURE mode -->
 {:else}
-    <div class="datatable-wrap">
-        <div class="meta-bar">
-            <span class="meta-item">
-                <span class="meta-label">Columns</span>
-                <span class="meta-value mono">{columns.length}</span>
+    <div
+        class="flex flex-col flex-1 min-h-0 bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden"
+    >
+        <!-- Meta / toolbar -->
+        <div
+            class="flex items-center gap-6 py-2 px-3 pl-4 border-b border-[var(--line)] bg-[var(--bg-2)] text-[12px] shrink-0 min-h-[38px]"
+        >
+            <span class="flex gap-2 items-baseline">
+                <span
+                    class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                    >Columns</span
+                >
+                <span class="text-[var(--ink-0)] text-[12px] mono"
+                    >{columns.length}</span
+                >
             </span>
             {#if durationMs !== null}
-                <span class="meta-item">
-                    <span class="meta-label">Time</span>
-                    <span class="meta-value mono"
+                <span class="flex gap-2 items-baseline">
+                    <span
+                        class="text-[var(--ink-2)] text-[10px] tracking-[0.06em] uppercase font-semibold"
+                        >Time</span
+                    >
+                    <span class="text-[var(--ink-0)] text-[12px] mono"
                         >{durationMs.toFixed(2)} ms</span
                     >
                 </span>
             {/if}
             {#if isEditable}
-                <div class="toolbar-right">
+                <div class="ml-auto flex items-center gap-[6px]">
                     {#if editingColIdx !== null}
                         <button
                             class="tb-btn tb-discard"
@@ -678,22 +723,45 @@
             {/if}
         </div>
 
-        <div class="scroll">
-            <table>
+        <div class="flex-1 overflow-auto min-h-0">
+            <table
+                class="border-separate border-spacing-0 w-full text-[12.5px]"
+            >
                 <thead>
                     <tr>
-                        <th class="rownum"></th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Nullable</th>
-                        <th>Key</th>
-                        <th>AI</th>
-                        <th>Default</th>
+                        <th
+                            class="rownum sticky top-0 z-[2] text-right mono text-[11px] select-none w-[1%]"
+                        ></th>
+                        <th
+                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            >Name</th
+                        >
+                        <th
+                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            >Type</th
+                        >
+                        <th
+                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            >Nullable</th
+                        >
+                        <th
+                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            >Key</th
+                        >
+                        <th
+                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] border-r border-r-[var(--line)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            >AI</th
+                        >
+                        <th
+                            class="sticky top-0 z-[1] bg-[var(--bg-2)] text-left px-[14px] py-[10px] border-b border-b-[var(--line-strong)] whitespace-nowrap text-[var(--ink-0)] font-semibold text-[13px]"
+                            >Default</th
+                        >
                     </tr>
                 </thead>
                 <tbody>
                     {#each columns as col, i}
                         <tr
+                            class="transition-[background] duration-[80ms] ease-out cursor-pointer hover:bg-[var(--bg-2)]"
                             class:row-editing={editingColIdx === i}
                             class:row-selected={editingColIdx !== i &&
                                 selectedCol === i}
@@ -706,29 +774,40 @@
                                 )
                                     startEditCol(i);
                             }}
-                            style="cursor: pointer"
                         >
-                            <td class="rownum mono">{i + 1}</td>
+                            <td
+                                class="rownum mono text-right text-[11px] select-none w-[1%]"
+                                >{i + 1}</td
+                            >
                             {#if editingColIdx === i}
-                                <td class="edit-cell">
+                                <td
+                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                >
                                     <input
-                                        class="cell-input mono"
+                                        class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                         bind:value={editColForm.name}
                                         placeholder="column_name"
                                     />
                                 </td>
-                                <td class="edit-cell">
+                                <td
+                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                >
                                     <input
-                                        class="cell-input mono"
+                                        class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                         list="mysql-types"
                                         bind:value={editColForm.type}
                                         placeholder="VARCHAR(255)"
                                     />
                                 </td>
-                                <td class="edit-cell edit-cell-check">
-                                    <label class="check-label">
+                                <td
+                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                >
+                                    <label
+                                        class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                    >
                                         <input
                                             type="checkbox"
+                                            class="accent-[var(--acc)]"
                                             bind:checked={editColForm.nullable}
                                         />
                                         <span class="mono"
@@ -738,11 +817,19 @@
                                         >
                                     </label>
                                 </td>
-                                <td class="mono col-key">{col.key || "—"}</td>
-                                <td class="edit-cell edit-cell-check">
-                                    <label class="check-label">
+                                <td
+                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--acc)] text-[11px] font-semibold tracking-[0.04em]"
+                                    >{col.key || "—"}</td
+                                >
+                                <td
+                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                                >
+                                    <label
+                                        class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                    >
                                         <input
                                             type="checkbox"
+                                            class="accent-[var(--acc)]"
                                             bind:checked={
                                                 editColForm.autoIncrement
                                             }
@@ -754,24 +841,39 @@
                                         >
                                     </label>
                                 </td>
-                                <td class="edit-cell">
+                                <td
+                                    class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)]"
+                                >
                                     <input
-                                        class="cell-input mono"
+                                        class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                         bind:value={editColForm.default}
                                         placeholder="NULL"
                                     />
                                 </td>
                             {:else}
-                                <td class="mono col-name">{col.name}</td>
-                                <td class="mono">{col.type}</td>
-                                <td class="mono"
+                                <td
+                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] font-semibold text-[var(--ink-0)]"
+                                    >{col.name}</td
+                                >
+                                <td
+                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ink-1)]"
+                                    >{col.type}</td
+                                >
+                                <td
+                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ink-1)]"
                                     >{col.nullable !== false ? "YES" : "NO"}</td
                                 >
-                                <td class="mono col-key">{col.key || "—"}</td>
-                                <td class="mono ai-cell"
+                                <td
+                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--acc)] text-[11px] font-semibold tracking-[0.04em]"
+                                    >{col.key || "—"}</td
+                                >
+                                <td
+                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ok)]"
                                     >{isAutoIncrement(col) ? "✓" : "—"}</td
                                 >
-                                <td class="mono">
+                                <td
+                                    class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] text-[var(--ink-1)]"
+                                >
                                     {#if col.default !== null && col.default !== undefined}
                                         {col.default}
                                     {:else}
@@ -784,26 +886,36 @@
 
                     {#if addingCol}
                         <tr class="row-new">
-                            <td class="rownum mono">*</td>
-                            <td class="edit-cell"
+                            <td
+                                class="rownum mono text-right text-[11px] select-none w-[1%]"
+                                >*</td
+                            >
+                            <td
+                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
                                 ><input
-                                    class="cell-input mono"
+                                    class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                     bind:value={newColForm.name}
                                     placeholder="column_name"
                                 /></td
                             >
-                            <td class="edit-cell"
+                            <td
+                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
                                 ><input
-                                    class="cell-input mono"
+                                    class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                     list="mysql-types"
                                     bind:value={newColForm.type}
                                     placeholder="VARCHAR(255)"
                                 /></td
                             >
-                            <td class="edit-cell edit-cell-check">
-                                <label class="check-label">
+                            <td
+                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                            >
+                                <label
+                                    class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                >
                                     <input
                                         type="checkbox"
+                                        class="accent-[var(--acc)]"
                                         bind:checked={newColForm.nullable}
                                     />
                                     <span class="mono"
@@ -813,11 +925,19 @@
                                     >
                                 </label>
                             </td>
-                            <td class="mono">—</td>
-                            <td class="edit-cell edit-cell-check">
-                                <label class="check-label">
+                            <td
+                                class="mono py-[7px] px-[14px] border-b border-b-[var(--line)] border-r border-r-[var(--line)] text-[var(--ink-1)]"
+                                >—</td
+                            >
+                            <td
+                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)] border-r border-r-[var(--line)]"
+                            >
+                                <label
+                                    class="inline-flex items-center gap-[6px] cursor-pointer text-[11.5px] text-[var(--ink-1)] whitespace-nowrap"
+                                >
                                     <input
                                         type="checkbox"
+                                        class="accent-[var(--acc)]"
                                         bind:checked={newColForm.autoIncrement}
                                     />
                                     <span class="mono"
@@ -827,9 +947,10 @@
                                     >
                                 </label>
                             </td>
-                            <td class="edit-cell"
+                            <td
+                                class="edit-cell !py-1 !px-[6px] align-middle border-b border-b-[var(--line)]"
                                 ><input
-                                    class="cell-input mono"
+                                    class="w-full min-w-[72px] bg-[var(--bg-1)] border border-[var(--line)] rounded-[3px] text-[var(--ink-0)] mono text-[12px] py-[3px] px-[7px] outline-none focus:border-[var(--acc)] placeholder:text-[var(--ink-3)] box-border"
                                     bind:value={newColForm.default}
                                     placeholder="NULL"
                                 /></td
@@ -840,7 +961,9 @@
             </table>
 
             {#if columns.length === 0 && !addingCol}
-                <div class="empty-rows">
+                <div
+                    class="py-7 px-7 text-center text-[var(--ink-3)] text-[13px]"
+                >
                     <span class="mono">// no columns</span>
                 </div>
             {/if}
@@ -855,52 +978,58 @@
 </datalist>
 
 <style>
-    .datatable-wrap {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-height: 0;
-        background: var(--bg-1);
-        border: 1px solid var(--line);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
+    /* State classes toggled via Svelte class: directive */
+    .row-editing {
+        background: rgba(200, 255, 90, 0.04) !important;
+    }
+    .row-selected {
+        background: rgba(80, 160, 255, 0.08) !important;
+        outline: 1px solid rgba(80, 160, 255, 0.25);
+        outline-offset: -1px;
+    }
+    .row-new {
+        background: rgba(90, 200, 255, 0.04) !important;
+    }
+    .cell-dirty {
+        background: rgba(255, 200, 50, 0.09) !important;
     }
 
-    .meta-bar {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        padding: 8px 12px 8px 16px;
-        border-bottom: 1px solid var(--line);
+    /* Sticky row-number column */
+    .rownum {
         background: var(--bg-2);
-        font-size: 12px;
-        flex-shrink: 0;
-        min-height: 38px;
+        color: var(--ink-3);
+        border-right: 1px solid var(--line-strong) !important;
+        position: sticky;
+        left: 0;
     }
-    .meta-item {
-        display: flex;
-        gap: 8px;
-        align-items: baseline;
+    thead .rownum {
+        z-index: 2;
     }
-    .meta-label {
-        color: var(--ink-2);
+    tbody tr:hover .rownum {
+        background: var(--bg-2);
+    }
+
+    /* PK column gradient header */
+    thead th.pk {
+        background: linear-gradient(
+            180deg,
+            rgba(200, 255, 90, 0.06),
+            var(--bg-2)
+        );
+    }
+
+    /* NULL tag */
+    .null-tag {
+        color: var(--ink-3);
         font-size: 10px;
         letter-spacing: 0.06em;
-        text-transform: uppercase;
         font-weight: 600;
-    }
-    .meta-value {
-        color: var(--ink-0);
-        font-size: 12px;
-    }
-
-    .toolbar-right {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        border: 1px dashed var(--line-strong);
+        padding: 1px 6px;
+        border-radius: 3px;
     }
 
+    /* Toolbar buttons */
     .tb-btn {
         font-family: var(--font-mono);
         font-size: 11px;
@@ -908,6 +1037,7 @@
         border-radius: 4px;
         border: 1px solid var(--line);
         cursor: pointer;
+        background: transparent;
         transition:
             background 60ms,
             color 60ms,
@@ -918,9 +1048,7 @@
         opacity: 0.4;
         cursor: default;
     }
-
     .tb-add {
-        background: transparent;
         color: var(--acc);
         border-color: rgba(200, 255, 90, 0.35);
     }
@@ -929,9 +1057,7 @@
         border-color: var(--acc);
     }
     .tb-edit {
-        background: transparent;
         color: var(--ink-1);
-        border-color: var(--line);
     }
     .tb-edit:hover:not(:disabled) {
         background: var(--bg-1);
@@ -939,7 +1065,6 @@
         border-color: var(--line-strong);
     }
     .tb-delete {
-        background: transparent;
         color: #ff6b6b;
         border-color: rgba(255, 100, 100, 0.35);
     }
@@ -957,289 +1082,10 @@
         filter: brightness(1.1);
     }
     .tb-discard {
-        background: transparent;
         color: var(--ink-2);
-        border-color: var(--line);
     }
     .tb-discard:hover:not(:disabled) {
         background: var(--bg-2);
         color: var(--ink-1);
-    }
-
-    .no-pk-hint {
-        color: var(--ink-3);
-        font-size: 10.5px;
-    }
-
-    .scroll {
-        flex: 1;
-        overflow: auto;
-        min-height: 0;
-    }
-
-    table {
-        border-collapse: separate;
-        border-spacing: 0;
-        width: 100%;
-        font-size: 12.5px;
-    }
-
-    thead th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        background: var(--bg-2);
-        text-align: left;
-        padding: 10px 14px;
-        border-bottom: 1px solid var(--line-strong);
-        border-right: 1px solid var(--line);
-        white-space: nowrap;
-        vertical-align: top;
-        color: var(--ink-0);
-        font-weight: 600;
-        font-size: 13px;
-    }
-    thead th:last-child {
-        border-right: 0;
-    }
-    thead th.pk {
-        background: linear-gradient(
-            180deg,
-            rgba(200, 255, 90, 0.06),
-            var(--bg-2)
-        );
-    }
-    .th-name {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .th-type {
-        color: var(--ink-3);
-        font-size: 10.5px;
-        margin-top: 2px;
-        letter-spacing: 0.02em;
-        font-weight: 400;
-    }
-    .pk-badge {
-        font-family: var(--font-mono);
-        font-size: 9px;
-        background: var(--acc);
-        color: #0a0c0a;
-        padding: 1px 4px;
-        border-radius: 3px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-    }
-
-    tbody tr {
-        transition: background 80ms ease;
-        cursor: pointer;
-    }
-    tbody tr:hover {
-        background: var(--bg-2);
-    }
-    tbody tr:hover td.rownum {
-        background: var(--bg-2);
-    }
-
-    tbody td {
-        padding: 7px 14px;
-        border-bottom: 1px solid var(--line);
-        border-right: 1px solid var(--line);
-        color: var(--ink-1);
-        max-width: 360px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    tbody td:last-child {
-        border-right: 0;
-    }
-
-    .rownum {
-        background: var(--bg-2);
-        color: var(--ink-3);
-        text-align: right;
-        font-size: 11px;
-        user-select: none;
-        width: 1%;
-        border-right: 1px solid var(--line-strong) !important;
-        position: sticky;
-        left: 0;
-    }
-    thead .rownum {
-        z-index: 2;
-    }
-
-    .null-tag {
-        color: var(--ink-3);
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        font-weight: 600;
-        border: 1px dashed var(--line-strong);
-        padding: 1px 6px;
-        border-radius: 3px;
-    }
-
-    .row-editing {
-        background: rgba(200, 255, 90, 0.04) !important;
-    }
-    .row-selected {
-        background: rgba(80, 160, 255, 0.08) !important;
-        outline: 1px solid rgba(80, 160, 255, 0.25);
-        outline-offset: -1px;
-    }
-    .row-new {
-        background: rgba(90, 200, 255, 0.04) !important;
-    }
-
-    .edit-cell {
-        padding: 4px 6px !important;
-        vertical-align: middle;
-    }
-    .cell-dirty {
-        background: rgba(255, 200, 50, 0.09) !important;
-    }
-
-    .cell-input {
-        width: 100%;
-        min-width: 72px;
-        background: var(--bg-1);
-        border: 1px solid var(--line);
-        border-radius: 3px;
-        color: var(--ink-0);
-        font-size: 12px;
-        padding: 3px 7px;
-        outline: none;
-        box-sizing: border-box;
-    }
-    .cell-input:focus {
-        border-color: var(--acc, #c8ff5a);
-    }
-    .cell-input::placeholder {
-        color: var(--ink-3);
-    }
-
-    .edit-cell-check {
-        vertical-align: middle;
-    }
-    .check-label {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-        font-size: 11.5px;
-        color: var(--ink-1);
-        white-space: nowrap;
-    }
-    .check-label input[type="checkbox"] {
-        accent-color: var(--acc, #c8ff5a);
-        cursor: pointer;
-    }
-
-    .actions-th {
-        width: 32px;
-        border-right: 0 !important;
-    }
-    .actions-cell {
-        width: 32px;
-        padding: 0 4px !important;
-        text-align: center;
-        vertical-align: middle;
-        border-right: 0 !important;
-    }
-    .actions-cell-pair {
-        width: 56px;
-        display: flex;
-        gap: 3px;
-        align-items: center;
-        justify-content: center;
-        padding: 3px 4px !important;
-    }
-
-    .row-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 4px;
-        border: 1px solid transparent;
-        background: transparent;
-        cursor: pointer;
-        font-size: 13px;
-        line-height: 1;
-        color: var(--ink-3);
-        opacity: 0;
-        transition:
-            opacity 60ms,
-            background 60ms,
-            color 60ms,
-            border-color 60ms;
-        flex-shrink: 0;
-        padding: 0;
-    }
-    .row-btn:disabled {
-        opacity: 0.3 !important;
-        cursor: default;
-    }
-    tr:hover .row-btn,
-    .row-editing .row-btn,
-    .row-new .row-btn {
-        opacity: 1;
-    }
-
-    .row-edit:hover {
-        background: var(--bg-2);
-        color: var(--ink-0);
-        border-color: var(--line);
-    }
-    .row-ok {
-        color: var(--acc);
-        border-color: rgba(200, 255, 90, 0.3);
-        opacity: 1;
-    }
-    .row-ok:hover:not(:disabled) {
-        background: rgba(200, 255, 90, 0.1);
-        border-color: var(--acc);
-    }
-    .row-x {
-        color: var(--ink-3);
-        opacity: 1;
-    }
-    .row-x:hover {
-        color: #ff6b6b;
-        border-color: rgba(255, 100, 100, 0.4);
-        background: rgba(255, 100, 100, 0.06);
-    }
-
-    .col-name {
-        font-weight: 600;
-        color: var(--ink-0);
-    }
-    .col-key {
-        color: var(--acc);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-    }
-
-    .empty-rows {
-        padding: 28px;
-        text-align: center;
-        color: var(--ink-3);
-        font-size: 13px;
-    }
-    .empty-state {
-        padding: 64px 24px;
-        text-align: center;
-        color: var(--ink-2);
-    }
-    .empty-mark {
-        font-family: var(--font-mono);
-        font-size: 36px;
-        color: var(--ink-3);
-        margin-bottom: 8px;
     }
 </style>

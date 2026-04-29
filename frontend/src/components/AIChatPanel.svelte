@@ -44,192 +44,69 @@
     }
 </script>
 
-<div class="chat-panel">
-    <div class="chat-header">
-        <div class="chat-title">
-            <span class="ai-icon">✦</span>
+<div class="h-full flex flex-col overflow-hidden">
+    <!-- header -->
+    <div
+        class="px-[14px] py-[9px] border-b border-[var(--line)] flex items-center justify-between shrink-0 bg-[var(--bg-2)]"
+    >
+        <div
+            class="flex items-center gap-[7px] text-[12.5px] font-medium text-[var(--ink-1)]"
+        >
+            <span class="text-[var(--acc)] text-[13px]">✦</span>
             <span>AI Assistant</span>
         </div>
-        <span class="mock-badge mono">mock</span>
+        <span
+            class="mono text-[9px] px-[6px] py-[2px] bg-[var(--bg-3)] border border-[var(--line-strong)] rounded-[3px] text-[var(--ink-3)] tracking-[0.08em] uppercase"
+            >mock</span
+        >
     </div>
 
-    <div class="chat-messages" bind:this={messagesEl}>
+    <!-- messages -->
+    <div
+        class="flex-1 min-h-0 overflow-y-auto px-[10px] py-3 flex flex-col gap-[10px]"
+        bind:this={messagesEl}
+    >
         {#each messages as msg}
-            <div class="msg" class:user={msg.role === "user"}>
+            <div
+                class="flex gap-[7px] items-start {msg.role === 'user'
+                    ? 'flex-row-reverse'
+                    : ''}"
+            >
                 {#if msg.role === "assistant"}
-                    <div class="msg-avatar">✦</div>
+                    <div
+                        class="w-[22px] h-[22px] rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-[var(--acc)] flex items-center justify-center text-[11px] shrink-0 mt-[2px]"
+                    >
+                        ✦
+                    </div>
                 {/if}
-                <div class="msg-bubble">{msg.content}</div>
+                <div
+                    class="max-w-[88%] px-[11px] py-[7px] rounded-lg text-[12px] leading-[1.5] break-words {msg.role ===
+                    'user'
+                        ? 'bg-[rgba(200,255,90,0.07)] border border-[rgba(200,255,90,0.15)] text-[var(--ink-0)]'
+                        : 'bg-[var(--bg-2)] border border-[var(--line)] text-[var(--ink-1)]'}"
+                >
+                    {msg.content}
+                </div>
             </div>
         {/each}
     </div>
 
-    <div class="chat-footer">
+    <!-- footer -->
+    <div
+        class="border-t border-[var(--line)] p-2 flex gap-[6px] items-end shrink-0 bg-[var(--bg-1)]"
+    >
         <textarea
-            class="chat-input"
+            class="flex-1 bg-[var(--bg-input)] border border-[var(--line)] rounded-[var(--radius)] px-[10px] py-[7px] text-[12px] text-[var(--ink-0)] resize-none leading-[1.45] min-h-0 focus:outline-none focus:border-[var(--acc)] focus:shadow-[0_0_0_2px_var(--acc-glow)] placeholder:text-[var(--ink-3)]"
             placeholder="Ask about your data…"
             bind:value={input}
             on:keydown={onKeydown}
             rows="3"
         ></textarea>
         <button
-            class="send-btn"
+            class="w-[30px] h-[30px] bg-[var(--acc)] text-[#0a0c0a] border-0 rounded-[var(--radius)] text-[15px] font-bold flex items-center justify-center shrink-0 transition-[background] duration-[80ms] disabled:bg-[var(--bg-3)] disabled:text-[var(--ink-3)] enabled:hover:bg-[var(--acc-d)]"
             on:click={send}
             disabled={!input.trim()}
-            title="Send (Enter)"
+            title="Send (Enter)">↑</button
         >
-            ↑
-        </button>
     </div>
 </div>
-
-<style>
-    .chat-panel {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    .chat-header {
-        padding: 9px 14px;
-        border-bottom: 1px solid var(--line);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-shrink: 0;
-        background: var(--bg-2);
-    }
-
-    .chat-title {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: var(--ink-1);
-    }
-
-    .ai-icon {
-        color: var(--acc);
-        font-size: 13px;
-    }
-
-    .mock-badge {
-        font-size: 9px;
-        padding: 2px 6px;
-        background: var(--bg-3);
-        border: 1px solid var(--line-strong);
-        border-radius: 3px;
-        color: var(--ink-3);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-
-    .chat-messages {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        padding: 12px 10px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .msg {
-        display: flex;
-        gap: 7px;
-        align-items: flex-start;
-    }
-
-    .msg.user {
-        flex-direction: row-reverse;
-    }
-
-    .msg-avatar {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: rgba(200, 255, 90, 0.08);
-        border: 1px solid rgba(200, 255, 90, 0.2);
-        color: var(--acc);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    .msg-bubble {
-        max-width: 88%;
-        padding: 7px 11px;
-        border-radius: 8px;
-        font-size: 12px;
-        line-height: 1.5;
-        color: var(--ink-1);
-        background: var(--bg-2);
-        border: 1px solid var(--line);
-        word-break: break-word;
-    }
-
-    .msg.user .msg-bubble {
-        background: rgba(200, 255, 90, 0.07);
-        border-color: rgba(200, 255, 90, 0.15);
-        color: var(--ink-0);
-    }
-
-    .chat-footer {
-        border-top: 1px solid var(--line);
-        padding: 8px;
-        display: flex;
-        gap: 6px;
-        align-items: flex-end;
-        flex-shrink: 0;
-        background: var(--bg-1);
-    }
-
-    .chat-input {
-        flex: 1;
-        background: var(--bg-input);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 7px 10px;
-        font-size: 12px;
-        color: var(--ink-0);
-        resize: none;
-        line-height: 1.45;
-        min-height: 0;
-    }
-
-    .chat-input:focus {
-        outline: none;
-        border-color: var(--acc);
-        box-shadow: 0 0 0 2px var(--acc-glow);
-    }
-
-    .send-btn {
-        width: 30px;
-        height: 30px;
-        background: var(--acc);
-        color: #0a0c0a;
-        border: 0;
-        border-radius: var(--radius);
-        font-size: 15px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        transition: background 80ms;
-    }
-
-    .send-btn:disabled {
-        background: var(--bg-3);
-        color: var(--ink-3);
-    }
-
-    .send-btn:not(:disabled):hover {
-        background: var(--acc-d);
-    }
-</style>

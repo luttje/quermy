@@ -2,6 +2,10 @@
     import { onMount } from "svelte";
     import { api } from "../lib/api.js";
     import { view, session, toast } from "../lib/store.js";
+    import Btn from "../components/ui/Btn.svelte";
+    import Input from "../components/ui/Input.svelte";
+    import Select from "../components/ui/Select.svelte";
+    import FormField from "../components/ui/FormField.svelte";
 
     let connections = [];
     let engines = ["mysql"];
@@ -85,62 +89,88 @@
     }
 </script>
 
-<div class="connect-page animate-in">
-    <header class="hero">
-        <div class="word-wrap">
+<div class="animate-in max-w-[1080px] mx-auto px-8 py-16 w-full">
+    <header class="mb-14 max-w-[640px]">
+        <div class="flex items-baseline gap-[14px] flex-wrap">
             <h1 class="wordmark">Quermy</h1>
-            <span class="tag mono">// modern database administration</span>
+            <span class="mono text-[var(--acc)] text-[13px]"
+                >// modern database administration</span
+            >
         </div>
-        <p class="lead">
+        <p
+            class="text-[var(--ink-1)] text-[16px] leading-[1.55] mt-4 max-w-[520px]"
+        >
             A keyboard-first relational client that lives in your stack. Connect
             once, and your databases are a few keystrokes away — for as long as
             you keep the project around.
         </p>
     </header>
 
-    <div class="grid">
+    <div class="grid grid-cols-2 gap-7 max-[880px]:grid-cols-1">
         <!-- saved connections -->
-        <section class="panel">
-            <div class="panel-head">
-                <h2>Saved connections</h2>
-                <span class="count mono">{connections.length}</span>
+        <section
+            class="bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden flex flex-col"
+        >
+            <div
+                class="px-5 py-4 border-b border-[var(--line)] flex justify-between items-baseline"
+            >
+                <h2
+                    class="font-[var(--font-display)] font-medium text-[22px] tracking-[-0.02em] m-0"
+                >
+                    Saved connections
+                </h2>
+                <span class="mono text-[var(--ink-3)] text-[12px]"
+                    >{connections.length}</span
+                >
             </div>
 
             {#if loading}
-                <div class="placeholder mono">loading…</div>
+                <div class="py-14 px-6 text-center text-[var(--ink-2)] mono">
+                    loading…
+                </div>
             {:else if connections.length === 0}
-                <div class="placeholder">
-                    <div class="placeholder-mark">⌁</div>
+                <div class="py-14 px-6 text-center text-[var(--ink-2)]">
+                    <div class="text-[32px] text-[var(--ink-3)] mb-3">⌁</div>
                     <div>No saved connections yet.</div>
-                    <div
-                        class="muted"
-                        style="font-size: 12px; margin-top: 4px;"
-                    >
+                    <div class="text-[var(--ink-2)] text-[12px] mt-1">
                         Save your first one on the right.
                     </div>
                 </div>
             {:else}
-                <ul class="conn-list">
+                <ul class="list-none m-0 p-[6px] flex flex-col gap-[2px]">
                     {#each connections as c (c.id)}
                         <li>
                             <a
-                                class="conn-row"
+                                class="group w-full flex gap-[14px] items-center bg-transparent border border-transparent rounded-[var(--radius)] px-[14px] py-3 text-left cursor-pointer transition-[background,border-color] duration-[80ms] hover:bg-[var(--bg-2)] hover:border-[var(--line)]"
                                 on:click={() => connectSaved(c)}
                                 disabled={busy}
                             >
-                                <div class="conn-engine mono">{c.engine}</div>
-                                <div class="conn-body">
-                                    <div class="conn-name">{c.name}</div>
-                                    <div class="conn-meta mono">
+                                <div
+                                    class="mono text-[10px] uppercase tracking-[0.08em] text-[var(--acc)] bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-2 py-1 rounded-[4px] font-semibold shrink-0"
+                                >
+                                    {c.engine}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div
+                                        class="font-medium text-[var(--ink-0)] text-[14px] mb-[2px] whitespace-nowrap overflow-hidden text-ellipsis"
+                                    >
+                                        {c.name}
+                                    </div>
+                                    <div
+                                        class="mono text-[var(--ink-2)] text-[11.5px] whitespace-nowrap overflow-hidden text-ellipsis"
+                                    >
                                         {c.username}@{c.host}:{c.port}{c.database
                                             ? ` · ${c.database}`
                                             : ""}
                                     </div>
                                 </div>
-                                <div class="conn-actions">
-                                    <span class="conn-arrow">↩</span>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span
+                                        class="text-[var(--ink-3)] text-[16px] transition-[color,transform] duration-[100ms] group-hover:text-[var(--acc)] group-hover:translate-x-[2px]"
+                                        >↩</span
+                                    >
                                     <button
-                                        class="btn-icon"
+                                        class="bg-transparent border border-transparent text-[var(--ink-3)] w-6 h-6 rounded-[4px] inline-flex items-center justify-center text-[16px] leading-none hover:bg-[rgba(255,115,103,0.1)] hover:text-[var(--danger)] hover:border-[rgba(255,115,103,0.2)] cursor-pointer"
                                         title="Delete"
                                         on:click={(e) => deleteSaved(c, e)}
                                         >×</button
@@ -154,120 +184,97 @@
         </section>
 
         <!-- new connection -->
-        <section class="panel">
-            <div class="panel-head">
-                <h2>New connection</h2>
+        <section
+            class="bg-[var(--bg-1)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden flex flex-col"
+        >
+            <div class="px-5 py-4 border-b border-[var(--line)]">
+                <h2
+                    class="font-[var(--font-display)] font-medium text-[22px] tracking-[-0.02em] m-0"
+                >
+                    New connection
+                </h2>
             </div>
 
-            <form on:submit|preventDefault={connect} class="form">
-                <label class="field">
-                    <span class="lbl">Engine</span>
-                    <select class="select" bind:value={form.engine}>
+            <form
+                on:submit|preventDefault={connect}
+                class="p-5 flex flex-col gap-[14px]"
+            >
+                <FormField label="Engine">
+                    <Select bind:value={form.engine}>
                         {#each engines as e}<option value={e}>{e}</option
                             >{/each}
-                    </select>
-                </label>
+                    </Select>
+                </FormField>
 
-                <label class="field">
-                    <span class="lbl">Display name</span>
-                    <input
-                        class="input"
+                <FormField label="Display name">
+                    <Input
                         type="text"
                         bind:value={form.name}
                         placeholder="e.g. staging-db"
                     />
-                </label>
+                </FormField>
 
-                <div class="row">
-                    <label class="field flex-3">
-                        <span class="lbl">Host</span>
-                        <input
-                            class="input"
-                            type="text"
-                            bind:value={form.host}
-                            required
-                        />
-                    </label>
-                    <label class="field flex-1">
-                        <span class="lbl">Port</span>
-                        <input
-                            class="input"
-                            type="number"
-                            bind:value={form.port}
-                            required
-                        />
-                    </label>
+                <div class="grid grid-cols-[3fr_1fr] gap-3">
+                    <FormField label="Host">
+                        <Input type="text" bind:value={form.host} required />
+                    </FormField>
+                    <FormField label="Port">
+                        <Input type="number" bind:value={form.port} required />
+                    </FormField>
                 </div>
 
-                <div class="row">
-                    <label class="field flex-1">
-                        <span class="lbl">Username</span>
-                        <input
-                            class="input"
+                <div class="grid grid-cols-2 gap-3">
+                    <FormField label="Username">
+                        <Input
                             type="text"
                             bind:value={form.username}
                             required
                         />
-                    </label>
-                    <label class="field flex-1">
-                        <span class="lbl">Password</span>
-                        <input
-                            class="input"
+                    </FormField>
+                    <FormField label="Password">
+                        <Input
                             type="password"
                             bind:value={form.password}
                             placeholder="••••••"
                         />
-                    </label>
+                    </FormField>
                 </div>
 
-                <label class="field">
-                    <span class="lbl"
-                        >Default database <span class="optional">optional</span
-                        ></span
-                    >
-                    <input
-                        class="input"
+                <FormField label="Default database" optional>
+                    <Input
                         type="text"
                         bind:value={form.database}
                         placeholder="leave empty to choose later"
                     />
-                </label>
+                </FormField>
 
-                <label class="checkbox">
-                    <input type="checkbox" bind:checked={form.save} />
+                <label
+                    class="flex items-center gap-[10px] text-[var(--ink-1)] text-[13px] cursor-pointer select-none py-1"
+                >
+                    <input
+                        type="checkbox"
+                        class="accent-[var(--acc)] w-[14px] h-[14px]"
+                        bind:checked={form.save}
+                    />
                     <span
                         >Save this connection (password encrypted at rest)</span
                     >
                 </label>
 
-                <button class="btn btn-primary" type="submit" disabled={busy}>
+                <Btn
+                    variant="primary"
+                    type="submit"
+                    disabled={busy}
+                    class="mt-[6px] justify-center py-[11px]"
+                >
                     {busy ? "Connecting…" : "Connect →"}
-                </button>
+                </Btn>
             </form>
         </section>
     </div>
 </div>
 
 <style>
-    .connect-page {
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 64px 32px;
-        width: 100%;
-    }
-
-    .hero {
-        margin-bottom: 56px;
-        max-width: 640px;
-    }
-
-    .word-wrap {
-        display: flex;
-        align-items: baseline;
-        gap: 14px;
-        flex-wrap: wrap;
-    }
-
     .wordmark {
         font-family: var(--font-display);
         font-weight: 500;
@@ -283,214 +290,9 @@
         background-clip: text;
         color: transparent;
     }
-
-    .tag {
-        color: var(--acc);
-        font-size: 13px;
-    }
-
-    .lead {
-        color: var(--ink-1);
-        font-size: 16px;
-        line-height: 1.55;
-        margin-top: 16px;
-        max-width: 520px;
-    }
-
-    .grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 28px;
-    }
     @media (max-width: 880px) {
-        .grid {
-            grid-template-columns: 1fr;
-        }
         .wordmark {
             font-size: 56px;
         }
-    }
-
-    .panel {
-        background: var(--bg-1);
-        border: 1px solid var(--line);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    .panel-head {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--line);
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-    }
-    .panel-head h2 {
-        font-family: var(--font-display);
-        font-weight: 500;
-        font-size: 22px;
-        margin: 0;
-        letter-spacing: -0.02em;
-    }
-    .count {
-        color: var(--ink-3);
-        font-size: 12px;
-    }
-
-    .placeholder {
-        padding: 56px 24px;
-        text-align: center;
-        color: var(--ink-2);
-    }
-    .placeholder-mark {
-        font-size: 32px;
-        color: var(--ink-3);
-        margin-bottom: 12px;
-    }
-
-    .conn-list {
-        list-style: none;
-        margin: 0;
-        padding: 6px;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .conn-row {
-        cursor: pointer;
-        width: 100%;
-        display: flex;
-        gap: 14px;
-        align-items: center;
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: var(--radius);
-        padding: 12px 14px;
-        text-align: left;
-        transition:
-            background 80ms ease,
-            border-color 80ms ease;
-    }
-    .conn-row:hover {
-        background: var(--bg-2);
-        border-color: var(--line);
-    }
-    .conn-row:hover .conn-arrow {
-        color: var(--acc);
-        transform: translateX(2px);
-    }
-
-    .conn-engine {
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--acc);
-        background: rgba(200, 255, 90, 0.08);
-        border: 1px solid rgba(200, 255, 90, 0.2);
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: 600;
-    }
-
-    .conn-body {
-        flex: 1;
-        min-width: 0;
-    }
-    .conn-name {
-        font-weight: 500;
-        color: var(--ink-0);
-        font-size: 14px;
-        margin-bottom: 2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .conn-meta {
-        color: var(--ink-2);
-        font-size: 11.5px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .conn-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .conn-arrow {
-        color: var(--ink-3);
-        font-size: 16px;
-        transition:
-            color 100ms ease,
-            transform 100ms ease;
-    }
-    .btn-icon {
-        background: transparent;
-        border: 1px solid transparent;
-        color: var(--ink-3);
-        width: 24px;
-        height: 24px;
-        border-radius: 4px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        line-height: 1;
-    }
-    .btn-icon:hover {
-        background: rgba(255, 115, 103, 0.1);
-        color: var(--danger);
-        border-color: rgba(255, 115, 103, 0.2);
-    }
-
-    .form {
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-    }
-    .row {
-        display: flex;
-        gap: 12px;
-    }
-    .flex-1 {
-        flex: 1;
-    }
-    .flex-3 {
-        flex: 3;
-    }
-
-    .optional {
-        color: var(--ink-3);
-        font-weight: 400;
-        text-transform: none;
-        letter-spacing: 0;
-        font-size: 11px;
-        margin-left: 4px;
-    }
-
-    .checkbox {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--ink-1);
-        font-size: 13px;
-        cursor: pointer;
-        user-select: none;
-        padding: 4px 0;
-    }
-    .checkbox input {
-        accent-color: var(--acc);
-        width: 14px;
-        height: 14px;
-    }
-
-    .btn-primary {
-        margin-top: 6px;
-        justify-content: center;
-        padding: 11px 14px;
     }
 </style>

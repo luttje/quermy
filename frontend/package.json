@@ -16,6 +16,8 @@
     "dependencies": {
         "@codemirror/lang-sql": "^6.10.0",
         "@codemirror/theme-one-dark": "^6.1.3",
-        "codemirror": "^6.0.2"
+        "@tailwindcss/vite": "^4.2.4",
+        "codemirror": "^6.0.2",
+        "tailwindcss": "^4.2.4"
     }
 }
