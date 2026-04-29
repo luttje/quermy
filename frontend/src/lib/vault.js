@@ -183,6 +183,40 @@ export function lockVault() {
     _cryptoKey = null;
 }
 
+/**
+ * Re-encrypt all stored credentials under a new master password, or remove
+ * encryption entirely.  The vault must already be unlocked (or in plain mode).
+ *
+ * @param {string|null} newMasterPassword
+ *   null / '' → switch to plain mode (no password)
+ *   string    → switch to (or stay in) protected mode with the new password
+ */
+export async function changeVaultPassword(newMasterPassword) {
+    // 1. Snapshot everything decrypted with the current key before re-keying.
+    const rawConns = await idbGetAll('connections');
+    const rawKeys = await idbGetAll('aiKeys');
+
+    const plainConns = await Promise.all(
+        rawConns.map(async (c) => ({ rec: c, pwd: await decrypt(c.passwordEnc) }))
+    );
+    const plainKeys = await Promise.all(
+        rawKeys.map(async (k) => ({ rec: k, key: await decrypt(k.apiKeyEnc) }))
+    );
+
+    // 2. Re-initialise the vault — clears all stores and sets the new in-memory key.
+    await setupVault(newMasterPassword);
+
+    // 3. Re-save connections re-encrypted with the new key.
+    for (const { rec, pwd } of plainConns) {
+        await idbPut('connections', { ...rec, passwordEnc: await encrypt(pwd) });
+    }
+
+    // 4. Re-save AI keys re-encrypted with the new key.
+    for (const { rec, key } of plainKeys) {
+        await idbPut('aiKeys', { ...rec, apiKeyEnc: await encrypt(key) });
+    }
+}
+
 // ---------------------------------------------------------------------------
 // PBKDF2 key derivation
 // ---------------------------------------------------------------------------

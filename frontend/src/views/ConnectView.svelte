@@ -12,6 +12,16 @@
     let engines = [];
     let loading = true;
 
+    // Vault settings
+    let vaultMode = "plain";
+    let showVaultSettings = false;
+    let vaultAction = ""; // '' | 'change' | 'add' | 'remove'
+    let vaultNewPassword = "";
+    let vaultConfirmPassword = "";
+    let vaultBusy = false;
+    let vaultError = "";
+    let vaultSuccess = "";
+
     /**
      * When the server admin has configured a server_connection in config.php,
      * this will be set to { engine, host, port, database } and the UI switches
@@ -53,12 +63,14 @@
 
     onMount(async () => {
         try {
-            const [conns, engRes, cfgRes] = await Promise.all([
+            const [conns, engRes, cfgRes, mode] = await Promise.all([
                 vault.listConnections(),
                 api.getEngines(),
                 api.getServerConfig(),
+                vault.getVaultMode(),
             ]);
             connections = conns;
+            vaultMode = mode;
             engines = engRes.engines || [];
             serverConnection = cfgRes.serverConnection ?? null;
 
@@ -135,22 +147,249 @@
             toast(e.message, "error");
         }
     }
+
+    function openVaultSettings() {
+        vaultAction = "";
+        vaultError = "";
+        vaultSuccess = "";
+        vaultNewPassword = "";
+        vaultConfirmPassword = "";
+        showVaultSettings = true;
+    }
+
+    function closeVaultSettings() {
+        showVaultSettings = false;
+    }
+
+    function startVaultAction(action) {
+        vaultAction = action;
+        vaultError = "";
+        vaultSuccess = "";
+        vaultNewPassword = "";
+        vaultConfirmPassword = "";
+    }
+
+    async function applyVaultChange() {
+        vaultError = "";
+        if (vaultAction !== "remove") {
+            if (!vaultNewPassword) {
+                vaultError = "Enter a new password.";
+                return;
+            }
+            if (vaultNewPassword.length < 8) {
+                vaultError = "Password must be at least 8 characters.";
+                return;
+            }
+            if (vaultNewPassword !== vaultConfirmPassword) {
+                vaultError = "Passwords do not match.";
+                return;
+            }
+        }
+        vaultBusy = true;
+        try {
+            await vault.changeVaultPassword(
+                vaultAction === "remove" ? null : vaultNewPassword,
+            );
+            vaultMode = await vault.getVaultMode();
+            vaultSuccess =
+                vaultAction === "remove"
+                    ? "Master password removed. Credentials are now unencrypted."
+                    : vaultAction === "add"
+                      ? "Master password set. Credentials are now encrypted."
+                      : "Master password changed.";
+            vaultAction = "";
+            vaultNewPassword = "";
+            vaultConfirmPassword = "";
+        } catch (e) {
+            vaultError = e.message;
+        } finally {
+            vaultBusy = false;
+        }
+    }
+
+    function handleVaultKeydown(e) {
+        if (e.key === "Enter" && vaultAction && vaultAction !== "remove")
+            applyVaultChange();
+        if (e.key === "Escape") closeVaultSettings();
+    }
 </script>
 
 <div class="animate-in max-w-270 mx-auto px-8 py-16 w-full">
-    <header class="mb-14 max-w-160">
-        <div class="flex items-baseline gap-3.5 flex-wrap">
-            <h1 class="wordmark">Quermy</h1>
-            <span class="mono text-(--acc) text-[13px]"
-                >// modern database administration</span
-            >
+    <header class="mb-14 flex justify-between items-start gap-4">
+        <div class="max-w-160">
+            <div class="flex items-baseline gap-3.5 flex-wrap">
+                <h1 class="wordmark">Quermy</h1>
+                <span class="mono text-(--acc) text-[13px]"
+                    >// modern database administration</span
+                >
+            </div>
+            <p class="text-(--ink-1) text-[16px] leading-[1.55] mt-4 max-w-130">
+                A keyboard-first relational client that lives in your stack.
+                Connect once, and your databases are a few keystrokes away — for
+                as long as you keep the project around.
+            </p>
         </div>
-        <p class="text-(--ink-1) text-[16px] leading-[1.55] mt-4 max-w-130">
-            A keyboard-first relational client that lives in your stack. Connect
-            once, and your databases are a few keystrokes away — for as long as
-            you keep the project around.
-        </p>
+        <button
+            type="button"
+            on:click={openVaultSettings}
+            title="Vault settings"
+            class="cursor-pointer shrink-0 mt-1 w-8 h-8 flex items-center justify-center rounded-(--radius) border border-(--line) bg-(--bg-2) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-4 h-4"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                />
+            </svg>
+        </button>
     </header>
+
+    {#if showVaultSettings}
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Vault settings"
+            tabindex="-1"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            on:keydown={handleVaultKeydown}
+        >
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="absolute inset-0" on:click={closeVaultSettings}></div>
+            <div
+                class="relative bg-(--bg-1) border border-(--line) rounded-lg w-full max-w-sm mx-4 flex flex-col shadow-2xl"
+            >
+                <!-- header -->
+                <div
+                    class="px-5 py-4 border-b border-(--line) flex items-center justify-between"
+                >
+                    <h2 class="text-(--ink-0) font-semibold text-base">
+                        Vault settings
+                    </h2>
+                    <button
+                        type="button"
+                        on:click={closeVaultSettings}
+                        class="text-(--ink-3) hover:text-(--ink-0) text-lg leading-none w-6 h-6 flex items-center justify-center rounded"
+                        >✕</button
+                    >
+                </div>
+
+                <!-- body -->
+                <div class="p-5 flex flex-col gap-4">
+                    <!-- current mode -->
+                    <div class="flex items-center gap-2.5">
+                        <span class="muted text-sm">Mode:</span>
+                        {#if vaultMode === "protected"}
+                            <span
+                                class="mono text-[10px] uppercase tracking-[0.08em] text-(--acc) bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-2 py-0.5 rounded-sm font-semibold"
+                                >Encrypted</span
+                            >
+                        {:else}
+                            <span
+                                class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3) bg-(--bg-2) border border-(--line) px-2 py-0.5 rounded-sm"
+                                >Unencrypted</span
+                            >
+                        {/if}
+                    </div>
+
+                    {#if vaultSuccess}
+                        <p class="text-sm" style="color: var(--ok)">
+                            {vaultSuccess}
+                        </p>
+                    {/if}
+
+                    {#if vaultAction === ""}
+                        <!-- action buttons -->
+                        <div class="flex flex-col gap-2">
+                            {#if vaultMode === "protected"}
+                                <button
+                                    type="button"
+                                    on:click={() => startVaultAction("change")}
+                                    class="text-left px-3 py-2.5 rounded-(--radius) border border-(--line) text-(--ink-1) text-sm hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
+                                    >Change master password</button
+                                >
+                                <button
+                                    type="button"
+                                    on:click={() => startVaultAction("remove")}
+                                    class="text-left px-3 py-2.5 rounded-(--radius) border border-(--line) text-(--ink-1) text-sm hover:border-(--danger) hover:text-(--danger) transition-colors duration-80"
+                                    >Remove master password</button
+                                >
+                            {:else}
+                                <button
+                                    type="button"
+                                    on:click={() => startVaultAction("add")}
+                                    class="text-left px-3 py-2.5 rounded-(--radius) border border-(--line) text-(--ink-1) text-sm hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
+                                    >Add master password</button
+                                >
+                            {/if}
+                        </div>
+                    {:else}
+                        <!-- action form -->
+                        {#if vaultAction === "remove"}
+                            <p class="muted text-sm leading-relaxed">
+                                Your saved credentials will be re-saved without
+                                encryption. You won't need a password to access
+                                them.
+                            </p>
+                        {:else}
+                            <div class="flex flex-col gap-2">
+                                <input
+                                    type="password"
+                                    bind:value={vaultNewPassword}
+                                    placeholder="New master password"
+                                    class="w-full bg-(--bg-2) border border-(--line) rounded-(--radius) px-3 py-2 text-sm text-(--ink-0) placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc)"
+                                />
+                                <input
+                                    type="password"
+                                    bind:value={vaultConfirmPassword}
+                                    placeholder="Confirm new password"
+                                    class="w-full bg-(--bg-2) border border-(--line) rounded-(--radius) px-3 py-2 text-sm text-(--ink-0) placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc)"
+                                />
+                            </div>
+                        {/if}
+
+                        {#if vaultError}
+                            <p class="text-(--danger) text-sm">{vaultError}</p>
+                        {/if}
+
+                        <div class="flex gap-2 justify-end">
+                            <button
+                                type="button"
+                                on:click={() => startVaultAction("")}
+                                disabled={vaultBusy}
+                                class="px-3 py-1.5 text-sm rounded-(--radius) border border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80 disabled:opacity-40"
+                                >Back</button
+                            >
+                            <Btn
+                                variant={vaultAction === "remove"
+                                    ? "danger"
+                                    : "primary"}
+                                disabled={vaultBusy}
+                                on:click={applyVaultChange}
+                            >
+                                {vaultBusy
+                                    ? "Saving…"
+                                    : vaultAction === "remove"
+                                      ? "Remove password"
+                                      : vaultAction === "add"
+                                        ? "Set password"
+                                        : "Change password"}
+                            </Btn>
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    {/if}
 
     {#if loading}
         <div class="muted mono text-center py-14">loading…</div>
