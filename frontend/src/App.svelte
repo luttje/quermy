@@ -57,6 +57,7 @@
     let result = null; // { columns, rows, total, durationMs, isSelect, affected }
     let errors = []; // [{ message, time }] — persistent SQL error log, newest first
     let tableContext = null; // { db, table, mode } — set when browsing via tree
+    let sqlEditor;
 
     // Resizable panes
     let sqlPaneHeight = 220;
@@ -161,6 +162,9 @@
             tMode === "data"
                 ? `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`
                 : `SHOW COLUMNS FROM ${qDb}.${qTbl};`;
+
+        // Push the new value into CodeMirror's internal state
+        sqlEditor?.setValue(sql);
 
         busy = true;
         tableContext = null;
@@ -356,7 +360,7 @@
                             </Btn>
                         </div>
                     </div>
-                    <SqlEditor bind:value={sql} />
+                    <SqlEditor bind:value={sql} bind:this={sqlEditor} />
                 </div>
 
                 <!-- Resize handle -->
