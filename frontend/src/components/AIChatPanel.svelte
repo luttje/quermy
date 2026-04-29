@@ -233,15 +233,12 @@
         const btn = e.target.closest(".copy-code-btn");
         if (!btn) return;
         const code = decodeURIComponent(btn.dataset.code ?? "");
-        navigator.clipboard
-            .writeText(code)
-            .then(() => {
-                btn.textContent = "Copied!";
-                setTimeout(() => {
-                    btn.textContent = "Copy";
-                }, 2000);
-            })
-            .catch(() => {});
+        navigator.clipboard.writeText(code).then(() => {
+            btn.textContent = "Copied!";
+            setTimeout(() => {
+                btn.textContent = "Copy";
+            }, 2000);
+        });
     }
 
     function handleMessagesKeydown(e) {
@@ -417,10 +414,21 @@
                                     {/if}
                                     <button
                                         class="copy-sql-btn text-[10px] px-1.5 py-0.5 bg-(--bg-3) border border-(--line) rounded-[3px] text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
-                                        on:click={() => {
+                                        on:click={(event) => {
                                             navigator.clipboard
                                                 .writeText(msg.sql)
-                                                .catch(() => {});
+                                                .then(() => {
+                                                    let btn = event.target;
+                                                    btn.textContent = "Copied!";
+                                                    console.log(
+                                                        "SQL copied to clipboard:",
+                                                        msg.sql,
+                                                    );
+                                                    setTimeout(() => {
+                                                        btn.textContent =
+                                                            "Copy";
+                                                    }, 2000);
+                                                });
                                         }}
                                     >
                                         Copy
@@ -527,7 +535,7 @@
                 rows="3"
             ></textarea>
             <button
-                class="w-7.5 h-7.5 bg-(--acc) text-[#0a0c0a] border-0 rounded-(--radius) text-[15px] font-bold flex items-center justify-center shrink-0 transition-[background] duration-80 disabled:bg-(--bg-3) disabled:text-(--ink-3) enabled:hover:bg-(--acc-d)"
+                class="cursor-pointer w-7.5 h-7.5 bg-(--acc) text-[#0a0c0a] border-0 rounded-(--radius) text-[15px] font-bold flex items-center justify-center shrink-0 transition-[background] duration-80 disabled:bg-(--bg-3) disabled:text-(--ink-3) enabled:hover:bg-(--acc-d)"
                 on:click={send}
                 disabled={!input.trim() || busy || !$activeAiKey}
                 title="Send (Enter)">↑</button
