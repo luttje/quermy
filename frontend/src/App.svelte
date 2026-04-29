@@ -513,7 +513,9 @@
                 class="shrink-0 bg-(--bg-1) overflow-hidden"
                 style="width: {rightWidth}px"
             >
-                <AIChatPanel />
+                <VaultGate>
+                    <AIChatPanel />
+                </VaultGate>
             </aside>
         </div>
     </div>
