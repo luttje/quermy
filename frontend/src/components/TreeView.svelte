@@ -51,6 +51,25 @@
         return `${db}\0${table ?? ""}\0${mode ?? ""}`;
     }
 
+    async function ensureDbTablesLoaded(db) {
+        if (tableMap[db]) return true;
+
+        loadingDbs.add(db);
+        loadingDbs = new Set(loadingDbs);
+        try {
+            const r = await api.listTables(db);
+            tableMap[db] = r.tables || [];
+            tableMap = { ...tableMap };
+            return true;
+        } catch (e) {
+            toast(e.message, "error");
+            return false;
+        } finally {
+            loadingDbs.delete(db);
+            loadingDbs = new Set(loadingDbs);
+        }
+    }
+
     async function toggleDb(db) {
         if (expandedDbs.has(db)) {
             expandedDbs.delete(db);
@@ -153,6 +172,17 @@
             expandedDbs = new Set(expandedDbs);
         }
 
+        // Keep table list available when opening db-level nodes (e.g. Views)
+        // so the tree state matches table-level navigation behavior.
+        if (mode && !tableMap[db]) {
+            const ok = await ensureDbTablesLoaded(db);
+            if (!ok) {
+                expandedDbs.delete(db);
+                expandedDbs = new Set(expandedDbs);
+                return;
+            }
+        }
+
         if (!mode) {
             activeNode = null;
             return;
@@ -164,19 +194,8 @@
         }
 
         if (!tableMap[db]) {
-            loadingDbs.add(db);
-            loadingDbs = new Set(loadingDbs);
-            try {
-                const r = await api.listTables(db);
-                tableMap[db] = r.tables || [];
-                tableMap = { ...tableMap };
-            } catch (e) {
-                toast(e.message, "error");
-                return;
-            } finally {
-                loadingDbs.delete(db);
-                loadingDbs = new Set(loadingDbs);
-            }
+            const ok = await ensureDbTablesLoaded(db);
+            if (!ok) return;
         }
 
         const tk = tableKey(db, table);
@@ -190,7 +209,11 @@
 
     onMount(async () => {
         if (db) {
-            await syncFromContext({ db, table: null, mode: null });
+            const initialCtx =
+                activeContext?.db === db
+                    ? activeContext
+                    : { db, table: null, mode: null };
+            await syncFromContext(initialCtx);
             await tick(); // wait for Svelte to render the expanded state
             const dbButton = dbRefs[db];
 
