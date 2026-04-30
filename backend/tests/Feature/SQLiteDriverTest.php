@@ -16,7 +16,9 @@ use Tests\Support\EngineDialect;
  *
  * SQLite-specific checks cover: INTEGER PRIMARY KEY auto-increment,
  * EXPLAIN QUERY PLAN output, DROP COLUMN (skipped when the linked SQLite
- * is < 3.35), and the fact that modifyColumn always throws.
+ * is < 3.35), modifyColumn always throws, reorderColumn always throws,
+ * primary-key management throws, FK management throws, and the connection
+ * type being "file".
  */
 
 // Path to the seed database relative to the project root.
@@ -64,7 +66,8 @@ it('reports its engine id and metadata', function () {
     expect($meta['id'])->toBe('sqlite')
         ->and($meta['defaultPort'])->toBe(0)
         ->and($meta['connectionType'])->toBe('file')
-        ->and($meta['identifierOpen'])->toBe('"');
+        ->and($meta['identifierOpen'])->toBe('"')
+        ->and($meta['identifierClose'])->toBe('"');
 });
 
 it('connects to the seed database file and reads it', function () use ($seedPath) {
@@ -85,30 +88,98 @@ it('connects to the seed database file and reads it', function () use ($seedPath
 });
 
 /*
- * Shared contract
+ * Shared contract — capabilities
  */
 it('exposes capabilities of the expected shape', fn() => $this->contract->capabilitiesShape());
+
+it('capabilities report SQLite-appropriate flags', function () {
+    $caps = $this->driver->getCapabilities();
+
+    expect($caps['supportsAutoIncrement'])->toBeTrue()  // INTEGER PRIMARY KEY acts as ROWID alias
+        ->and($caps['supportsColumnAfter'])->toBeFalse()
+        ->and($caps['supportsModifyColumn'])->toBeFalse()
+        ->and($caps['supportsReorderColumn'])->toBeFalse()
+        ->and($caps['supportsGetCreateTable'])->toBeTrue()
+        ->and($caps['supportsExplain'])->toBeTrue()
+        ->and($caps['supportsForeignKeys'])->toBeTrue()
+        ->and($caps['supportsIndexManagement'])->toBeTrue()
+        ->and($caps['supportsPrimaryKeyManagement'])->toBeFalse()
+        ->and($caps['supportsForeignKeyManagement'])->toBeFalse()
+        ->and($caps['identifierOpen'])->toBe('"')
+        ->and($caps['identifierClose'])->toBe('"');
+});
+
+/*
+ * Shared contract — databases & tables
+ */
 it('lists databases including the target', fn() => $this->contract->listDatabasesIncludesTarget());
 it('lists tables created in the database', fn() => $this->contract->listTablesShowsCreatedTables());
+it('listTables includes rows and size metadata', fn() => $this->contract->listTablesIncludesRowsAndSize());
+
+/*
+ * Shared contract — CRUD
+ */
 it('round-trips CRUD operations', fn() => $this->contract->crudRoundTrip());
+it('browseTable supports offset-based pagination', fn() => $this->contract->browseTablePagination());
 it('refuses delete without a where clause', fn() => $this->contract->deleteRequiresWhere());
 it('refuses update without where or values', fn() => $this->contract->updateRequiresWhereAndValues());
 it('refuses insert without values', fn() => $this->contract->insertRequiresValues());
 it('rejects malformed identifiers in browseTable', fn() => $this->contract->identifierValidationRejectsInjection());
-it('describes a table with columns and primary key', fn() => $this->contract->describeTableReturnsColumns());
-it('throws when describing an unknown table', fn() => $this->contract->describeUnknownTableThrows());
-it('classifies SELECT vs non-SELECT in runQuery', fn() => $this->contract->runQueryClassifiesStatements());
-it('adds and drops a column', fn() => $this->contract->addAndDropColumn());
-it('samples rows up to the limit', fn() => $this->contract->sampleTableTruncates());
-it('searches schema by table and column', fn() => $this->contract->searchSchemaFindsTablesAndColumns());
-it('returns CREATE TABLE DDL', fn() => $this->contract->getCreateTableReturnsDdl());
-it('explains SELECT and rejects other statement types', fn() => $this->contract->explainAcceptsSelectAndRejectsOther());
-it('reports outgoing foreign keys on the child table', fn() => $this->contract->foreignKeysIntrospection());
 
 /*
- * SQLite-specific quirks
+ * Shared contract — table description
  */
+it('describes a table with columns and primary key', fn() => $this->contract->describeTableReturnsColumns());
+it('describeTable column entries have all required keys', fn() => $this->contract->describeTableColumnShape());
+it('throws when describing an unknown table', fn() => $this->contract->describeUnknownTableThrows());
 
+/*
+ * Shared contract — runQuery
+ */
+it('classifies SELECT vs non-SELECT in runQuery', fn() => $this->contract->runQueryClassifiesStatements());
+it('runQuery result includes column metadata', fn() => $this->contract->runQueryReturnsColumnMeta());
+
+/*
+ * Shared contract — column DDL
+ */
+it('adds and drops a column', fn() => $this->contract->addAndDropColumn());
+it('adds a nullable column with a default value', fn() => $this->contract->addNullableColumnWithDefault());
+
+/*
+ * Shared contract — sampling & search
+ */
+it('samples rows up to the limit', fn() => $this->contract->sampleTableTruncates());
+it('searches schema by table and column', fn() => $this->contract->searchSchemaFindsTablesAndColumns());
+it('searchSchema "all" scope returns both tables and columns', fn() => $this->contract->searchSchemaAllScopeReturnsBoth());
+it('searchSchema returns empty arrays when nothing matches', fn() => $this->contract->searchSchemaReturnsEmptyForNoMatch());
+
+/*
+ * Shared contract — DDL introspection & EXPLAIN
+ */
+it('returns CREATE TABLE DDL', fn() => $this->contract->getCreateTableReturnsDdl());
+it('explains SELECT and rejects other statement types', fn() => $this->contract->explainAcceptsSelectAndRejectsOther());
+
+/*
+ * Shared contract — foreign key introspection
+ */
+it('reports outgoing foreign keys on the child table', fn() => $this->contract->foreignKeysIntrospection());
+it('outgoing FK entries have all required keys', fn() => $this->contract->foreignKeysOutgoingShape());
+
+/*
+ * Shared contract — index management
+ */
+it('creates and drops a regular index', fn() => $this->contract->createAndDropRegularIndex());
+it('creates and drops a unique index', fn() => $this->contract->createAndDropUniqueIndex());
+it('creates a composite index on multiple columns', fn() => $this->contract->createCompositeIndex());
+
+/*
+ * Shared contract — unsupported operations throw
+ */
+it('reorderColumn throws because SQLite does not support it', fn() => $this->contract->reorderColumnThrowsWhenUnsupported());
+
+/*
+ * SQLite-specific: INTEGER PRIMARY KEY auto-increment
+ */
 it('INTEGER PRIMARY KEY acts as an auto-increment alias and reports the insert id', function () {
     $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "autoinc_probe"');
     $this->driver->runQuery(
@@ -126,6 +197,9 @@ it('INTEGER PRIMARY KEY acts as an auto-increment alias and reports the insert i
         ->and($second['insertId'])->toBe(2);
 });
 
+/*
+ * SQLite-specific: EXPLAIN QUERY PLAN shape
+ */
 it('EXPLAIN QUERY PLAN returns rows with id/parent/detail columns', function () {
     $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "explain_probe"');
     $this->driver->runQuery($this->database, 'CREATE TABLE "explain_probe" (id INTEGER PRIMARY KEY, val TEXT)');
@@ -138,6 +212,9 @@ it('EXPLAIN QUERY PLAN returns rows with id/parent/detail columns', function () 
     expect($first)->toHaveKeys(['id', 'parent', 'detail']);
 });
 
+/*
+ * SQLite-specific: modifyColumn unsupported
+ */
 it('modifyColumn always throws because SQLite does not support it', function () {
     $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "nomodify_probe"');
     $this->driver->runQuery(
@@ -153,6 +230,9 @@ it('modifyColumn always throws because SQLite does not support it', function () 
     ]))->toThrow(RuntimeException::class);
 });
 
+/*
+ * SQLite-specific: DROP COLUMN (conditional on SQLite >= 3.35)
+ */
 it('DROP COLUMN is skipped on SQLite < 3.35', function () {
     // The contract's addAndDropColumn() already exercises the happy path
     // on SQLite >= 3.35. This test ensures that on older runtimes the
@@ -175,13 +255,62 @@ it('DROP COLUMN is skipped on SQLite < 3.35', function () {
         ->toThrow(RuntimeException::class);
 });
 
+/*
+ * SQLite-specific: primary key management throws
+ */
+it('createIndex throws when trying to add a primary key (unsupported post-creation)', function () {
+    $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "pk_add_probe"');
+    $this->driver->runQuery($this->database, 'CREATE TABLE "pk_add_probe" (id INTEGER, name TEXT)');
+
+    expect(fn() => $this->driver->createIndex($this->database, 'pk_add_probe', [
+        'name'    => 'PRIMARY',
+        'columns' => ['id'],
+        'unique'  => false,
+        'primary' => true,
+    ]))->toThrow(RuntimeException::class);
+});
+
+it('dropIndex throws when trying to drop a primary key (unsupported)', function () {
+    $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "pk_drop_probe"');
+    $this->driver->runQuery($this->database, 'CREATE TABLE "pk_drop_probe" (id INTEGER PRIMARY KEY)');
+
+    expect(fn() => $this->driver->dropIndex($this->database, 'pk_drop_probe', 'PRIMARY', true))
+        ->toThrow(RuntimeException::class);
+});
+
+/*
+ * SQLite-specific: FK management throws
+ */
+it('createForeignKey throws because SQLite does not support post-creation FK constraints', function () {
+    $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "fk_add_child"');
+    $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "fk_add_parent"');
+    $this->driver->runQuery($this->database, 'CREATE TABLE "fk_add_parent" (id INTEGER PRIMARY KEY)');
+    $this->driver->runQuery($this->database, 'CREATE TABLE "fk_add_child" (id INTEGER PRIMARY KEY, parent_id INTEGER)');
+
+    expect(fn() => $this->driver->createForeignKey($this->database, 'fk_add_child', [
+        'name'              => 'fk_add_con',
+        'columns'           => ['parent_id'],
+        'referencedTable'   => 'fk_add_parent',
+        'referencedColumns' => ['id'],
+        'onUpdate'          => 'RESTRICT',
+        'onDelete'          => 'RESTRICT',
+    ]))->toThrow(RuntimeException::class);
+});
+
+it('dropForeignKey throws because SQLite does not support it', function () {
+    expect(fn() => $this->driver->dropForeignKey($this->database, 'any_table', 'any_constraint'))
+        ->toThrow(RuntimeException::class);
+});
+
+/*
+ * SQLite-specific: stable database list
+ */
 it('listDatabases always returns exactly ["main"]', function () {
     expect($this->driver->listDatabases())->toBe(['main']);
 });
 
 it('getCapabilities reports connectionType as file', function () {
     $caps = $this->driver->getCapabilities();
-    // SQLite is a file-based engine; the identifier quoting uses double-quotes.
     expect($caps['identifierOpen'])->toBe('"')
         ->and($caps['supportsColumnAfter'])->toBeFalse()
         ->and($caps['supportsModifyColumn'])->toBeFalse();
