@@ -229,6 +229,50 @@ final class DriverContract
         }
     }
 
+    // -------------------------------------------------------------------------
+    // View management
+    // -------------------------------------------------------------------------
+
+    public function viewManagementRoundTrip(): void
+    {
+        $table = 'view_source_probe';
+        $view  = 'view_probe';
+
+        $this->driver->dropView($this->database, $view);
+        $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
+        $this->driver->runQuery(
+            $this->database,
+            "CREATE TABLE {$this->q($table)} (
+                id    {$this->int()} PRIMARY KEY,
+                label {$this->varchar(50)}
+            )"
+        );
+        $this->driver->insertRow($this->database, $table, ['id' => 1, 'label' => 'a']);
+        $this->driver->insertRow($this->database, $table, ['id' => 2, 'label' => 'b']);
+
+        $this->driver->upsertView(
+            $this->database,
+            $view,
+            "SELECT id, label FROM {$this->q($table)}"
+        );
+
+        $views = $this->driver->listViews($this->database);
+        expect($views)->toContain($view);
+
+        $definition = $this->driver->getViewDefinition($this->database, $view);
+        expect(strtolower($definition))->toContain('select')
+            ->and(strtolower($definition))->toContain(strtolower($table));
+
+        $result = $this->driver->runQuery($this->database, "SELECT * FROM {$this->q($view)}");
+        expect($result['isSelect'])->toBeTrue()
+            ->and($result['rows'])->toHaveCount(2);
+
+        $this->driver->dropView($this->database, $view);
+
+        $viewsAfterDrop = $this->driver->listViews($this->database);
+        expect($viewsAfterDrop)->not->toContain($view);
+    }
+
     public function describeTableReturnsColumns(): void
     {
         $table = 'describe_probe';
@@ -519,6 +563,7 @@ final class DriverContract
             'supportsIndexManagement',
             'supportsPrimaryKeyManagement',
             'supportsForeignKeyManagement',
+            'supportsViewManagement',
             'welcomeQuery',
             'structureQueryTemplate',
             'identifierOpen',
@@ -538,6 +583,7 @@ final class DriverContract
             'supportsIndexManagement',
             'supportsPrimaryKeyManagement',
             'supportsForeignKeyManagement',
+            'supportsViewManagement',
         ] as $flag) {
             expect($caps[$flag])->toBeBool("$flag must be a bool");
         }

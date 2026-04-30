@@ -48,6 +48,59 @@ final class DatabaseController extends BaseController
         }
     }
 
+    #[Route('GET', '/api/databases/{db}/views')]
+    public function listViews(string $db): void
+    {
+        $driver = $this->session->open();
+        try {
+            Json::send(['views' => $driver->listViews($db)]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('GET', '/api/databases/{db}/views/{view}')]
+    public function getViewDefinition(string $db, string $view): void
+    {
+        $driver = $this->session->open();
+        try {
+            Json::send([
+                'name'       => $view,
+                'definition' => $driver->getViewDefinition($db, $view),
+            ]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('PUT', '/api/databases/{db}/views/{view}')]
+    public function upsertView(string $db, string $view): void
+    {
+        $body       = Json::readBody();
+        $definition = trim((string)($body['definition'] ?? ''));
+        if ($definition === '') Json::error('definition is required', 400);
+
+        $driver = $this->session->open();
+        try {
+            $driver->upsertView($db, $view, $definition);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('DELETE', '/api/databases/{db}/views/{view}')]
+    public function dropView(string $db, string $view): void
+    {
+        $driver = $this->session->open();
+        try {
+            $driver->dropView($db, $view);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
     #[Route('GET', '/api/databases/{db}/collations')]
     public function listDatabaseCollations(string $db): void
     {

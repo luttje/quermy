@@ -114,6 +114,7 @@ it('exposes capabilities of the expected shape', fn() => $this->contract->capabi
 it('lists databases including the target', fn() => $this->contract->listDatabasesIncludesTarget());
 it('lists tables created in the database', fn() => $this->contract->listTablesShowsCreatedTables());
 it('listTables includes rows and size metadata', fn() => $this->contract->listTablesIncludesRowsAndSize());
+it('manages views through the driver contract', fn() => $this->contract->viewManagementRoundTrip());
 
 /*
  * Shared contract — CRUD

@@ -71,6 +71,7 @@ class PostgreSQLDriver implements DriverInterface
             'supportsRenameDatabase'         => true,
             'supportsAlterDatabaseCollation' => false,
             'supportsDropDatabase'           => true,
+            'supportsViewManagement'         => true,
             'welcomeQuery'           => 'SELECT NOW() AS now, version() AS version;',
             'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = '{table}'\nORDER BY ordinal_position;",
             'identifierOpen'         => '"',
@@ -140,6 +141,60 @@ class PostgreSQLDriver implements DriverInterface
             ];
         }
         return $out;
+    }
+
+    public function listViews(string $database): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->query(
+            "SELECT table_name
+             FROM information_schema.views
+             WHERE table_schema = 'public'
+             ORDER BY table_name"
+        );
+        return array_map(static fn($r) => $r['table_name'], $stmt->fetchAll());
+    }
+
+    public function getViewDefinition(string $database, string $view): string
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            "SELECT view_definition
+             FROM information_schema.views
+             WHERE table_schema = 'public' AND table_name = :view"
+        );
+        $stmt->execute([':view' => $view]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException("View not found: $view");
+        }
+        return trim((string)($row['view_definition'] ?? ''));
+    }
+
+    public function upsertView(string $database, string $view, string $definition): void
+    {
+        $this->ensureConnected();
+        $name = $this->validateIdent($view);
+        $body = trim($definition);
+        if ($body === '') {
+            throw new RuntimeException('View definition is empty');
+        }
+        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
+            throw new RuntimeException('View definition must be a SELECT statement.');
+        }
+        if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
+            throw new RuntimeException('View definition must be a single statement.');
+        }
+        $qView = $this->quoteIdent($name);
+        $this->pdo->exec("CREATE OR REPLACE VIEW public.$qView AS\n$body");
+    }
+
+    public function dropView(string $database, string $view): void
+    {
+        $this->ensureConnected();
+        $name  = $this->validateIdent($view);
+        $qView = $this->quoteIdent($name);
+        $this->pdo->exec("DROP VIEW IF EXISTS public.$qView");
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array

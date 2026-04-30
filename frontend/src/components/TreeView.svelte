@@ -7,6 +7,7 @@
     export let busy = false;
     export let activeContext = null; // { db, table, mode } — set when restoring from URL
     export let db = null; // Optional: if set, auto-expand this DB on mount and when it appears in the list
+    export let capabilities = null;
 
     const dispatch = createEventDispatcher();
 
@@ -16,12 +17,38 @@
     let tableMap = {}; // db -> tables[]
     let loadingDbs = new Set();
     let activeNode = null; // "db\0table\0mode"
+    let commonDbNodes = [];
+
+    $: commonDbNodes = [
+        {
+            mode: "views",
+            label: "Views",
+            icon: "◫",
+            enabled: capabilities?.supportsViewManagement !== false,
+        },
+        { mode: "events", label: "Events", icon: "◷", enabled: false },
+        {
+            mode: "stored-procedures",
+            label: "Stored Procedures",
+            icon: "λ",
+            enabled: false,
+        },
+        {
+            mode: "stored-functions",
+            label: "Stored Functions",
+            icon: "ƒ",
+            enabled: false,
+        },
+    ];
 
     function tableKey(db, table) {
         return `${db}\0${table}`;
     }
+    function dbNodeKey(db, mode) {
+        return `${db}\0\0${mode ?? ""}`;
+    }
     function leafKey(db, table, mode) {
-        return `${db}\0${table}\0${mode}`;
+        return `${db}\0${table ?? ""}\0${mode ?? ""}`;
     }
 
     async function toggleDb(db) {
@@ -70,6 +97,12 @@
         dispatch("openTable", { db, table, mode });
     }
 
+    function selectDbNode(db, mode, enabled) {
+        if (!enabled) return;
+        activeNode = dbNodeKey(db, mode);
+        dispatch("openTable", { db, table: null, mode });
+    }
+
     let searchQuery = "";
     let filteredDatabases = databases;
 
@@ -82,6 +115,9 @@
                 if (db.toLowerCase().includes(q)) return true;
                 const tables = tableMap[db];
                 return (
+                    commonDbNodes.some((n) =>
+                        n.label.toLowerCase().includes(q),
+                    ) ||
                     tables &&
                     tables.some((t) => t.name.toLowerCase().includes(q))
                 );
@@ -115,6 +151,16 @@
         if (!expandedDbs.has(db)) {
             expandedDbs.add(db);
             expandedDbs = new Set(expandedDbs);
+        }
+
+        if (!mode) {
+            activeNode = null;
+            return;
+        }
+
+        if (!table) {
+            activeNode = dbNodeKey(db, mode);
+            return;
         }
 
         if (!tableMap[db]) {
@@ -229,8 +275,46 @@
 
                     {#if expandedDbs.has(db)}
                         {@const vt = visibleTables(db, tableMap)}
-                        {#if vt}
-                            <div class="pl-2.5">
+                        <div class="pl-2.5">
+                            <div class="pb-1">
+                                {#each commonDbNodes as node}
+                                    <button
+                                        class="w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color,opacity] duration-60 {activeNode ===
+                                        dbNodeKey(db, node.mode)
+                                            ? 'bg-[rgba(200,255,90,0.1)] text-(--acc)'
+                                            : node.enabled
+                                              ? 'muted hover:bg-(--bg-2) hover:text-(--ink-0) cursor-pointer'
+                                              : 'text-(--ink-3) opacity-55 cursor-not-allowed'}"
+                                        disabled={!node.enabled}
+                                        on:click={() =>
+                                            selectDbNode(
+                                                db,
+                                                node.mode,
+                                                node.enabled,
+                                            )}
+                                        title={node.enabled
+                                            ? node.label
+                                            : `${node.label} (coming soon)`}
+                                    >
+                                        <span
+                                            class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
+                                            >{node.icon}</span
+                                        >
+                                        <span
+                                            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
+                                            >{node.label}</span
+                                        >
+                                        {#if !node.enabled}
+                                            <span
+                                                class="mono text-[9px] uppercase tracking-[0.05em] text-(--ink-3)"
+                                                >Soon</span
+                                            >
+                                        {/if}
+                                    </button>
+                                {/each}
+                            </div>
+
+                            {#if vt}
                                 {#if vt.length === 0}
                                     <div
                                         class="mono px-2.5 py-1 pb-1.5 text-(--ink-3) text-[11px]"
@@ -394,8 +478,8 @@
                                         </div>
                                     {/each}
                                 {/if}
-                            </div>
-                        {/if}
+                            {/if}
+                        </div>
                     {/if}
                 </div>
             {/each}

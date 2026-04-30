@@ -137,6 +137,7 @@ interface DriverInterface
      * - supportsRenameDatabase:   renameDatabase() is implemented
      * - supportsAlterDatabaseCollation: alterDatabaseCollation() is implemented
      * - supportsDropDatabase:     dropDatabase() is implemented
+     * - supportsViewManagement:   list/get/create-or-replace/drop views are implemented
      * - welcomeQuery:             default SQL shown when the user opens a new connection
      * - structureQueryTemplate:   default SQL for the "structure" view; use {db}/{table} tokens
      * - identifierOpen/Close:     quoting characters for identifiers (e.g. ` or ")
@@ -157,6 +158,7 @@ interface DriverInterface
      *   supportsRenameDatabase: bool,
      *   supportsAlterDatabaseCollation: bool,
      *   supportsDropDatabase: bool,
+     *   supportsViewManagement: bool,
      *   welcomeQuery: string,
      *   structureQueryTemplate: string,
      *   identifierOpen: string,
@@ -307,4 +309,33 @@ interface DriverInterface
      * @return list<string>
      */
     public function listDatabaseCollations(string $database): array;
+
+    // -------------------------------------------------------------------------
+    // View management
+    // -------------------------------------------------------------------------
+
+    /**
+     * List view names in a database/schema.
+     *
+     * @return list<string>
+     */
+    public function listViews(string $database): array;
+
+    /**
+     * Return the SELECT-definition body of a view (without CREATE VIEW wrapper).
+     */
+    public function getViewDefinition(string $database, string $view): string;
+
+    /**
+     * Create or replace a view from a SELECT-definition body.
+     *
+     * Implementations should provide "replace" semantics even when the engine
+     * has no native CREATE OR REPLACE VIEW syntax.
+     */
+    public function upsertView(string $database, string $view, string $definition): void;
+
+    /**
+     * Drop a view if it exists.
+     */
+    public function dropView(string $database, string $view): void;
 }

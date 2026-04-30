@@ -72,6 +72,7 @@ class SQLiteDriver implements DriverInterface
             'supportsRenameDatabase'         => false,
             'supportsAlterDatabaseCollation' => false,
             'supportsDropDatabase'           => false,
+            'supportsViewManagement'         => true,
             'welcomeQuery'           => 'SELECT sqlite_version() AS version;',
             'structureQueryTemplate' => 'PRAGMA table_info("{table}");',
             'identifierOpen'         => '"',
@@ -122,6 +123,67 @@ class SQLiteDriver implements DriverInterface
             $out[] = ['name' => $row['name'], 'rows' => null, 'size' => null];
         }
         return $out;
+    }
+
+    public function listViews(string $database): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->query(
+            "SELECT name
+             FROM sqlite_master
+             WHERE type = 'view' AND name NOT LIKE 'sqlite_%'
+             ORDER BY name"
+        );
+        return array_map(static fn($r) => $r['name'], $stmt->fetchAll());
+    }
+
+    public function getViewDefinition(string $database, string $view): string
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            "SELECT sql
+             FROM sqlite_master
+             WHERE type = 'view' AND name = :view"
+        );
+        $stmt->execute([':view' => $view]);
+        $row = $stmt->fetch();
+        if (!$row || !isset($row['sql'])) {
+            throw new RuntimeException("View not found: $view");
+        }
+
+        $sql = trim((string)$row['sql']);
+        if (preg_match('/\bAS\b(.*)$/is', $sql, $m)) {
+            return trim($m[1]);
+        }
+        return $sql;
+    }
+
+    public function upsertView(string $database, string $view, string $definition): void
+    {
+        $this->ensureConnected();
+        $name = $this->validateIdent($view);
+        $body = trim($definition);
+        if ($body === '') {
+            throw new RuntimeException('View definition is empty');
+        }
+        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
+            throw new RuntimeException('View definition must be a SELECT statement.');
+        }
+        if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
+            throw new RuntimeException('View definition must be a single statement.');
+        }
+
+        $qView = $this->quoteIdent($name);
+        $this->pdo->exec("DROP VIEW IF EXISTS $qView");
+        $this->pdo->exec("CREATE VIEW $qView AS\n$body");
+    }
+
+    public function dropView(string $database, string $view): void
+    {
+        $this->ensureConnected();
+        $name  = $this->validateIdent($view);
+        $qView = $this->quoteIdent($name);
+        $this->pdo->exec("DROP VIEW IF EXISTS $qView");
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array

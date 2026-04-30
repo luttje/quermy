@@ -19,6 +19,7 @@
     import Kbd from "./components/ui/Kbd.svelte";
     import SearchView from "./views/SearchView.svelte";
     import DatabaseEditView from "./views/DatabaseEditView.svelte";
+    import ViewEditorView from "./views/ViewEditorView.svelte";
 
     let bootstrapping = true;
     let criticalSystemError = null;
@@ -49,9 +50,11 @@
             const p = new URLSearchParams(raw);
             const db = p.get("db");
             const table = p.get("table");
-            const mode = p.get("mode") || "data";
+            const hashMode = p.get("mode");
+            const mode = hashMode || (table ? "data" : null);
             const context = {};
 
+            if (!db) return null;
             if (db) context.db = db;
             if (table) context.table = table;
             if (mode) context.mode = mode;
@@ -79,7 +82,7 @@
     let busy = false;
     let result = null; // { columns, rows, total, durationMs, isSelect, affected }
     let errors = []; // [{ message, time }] — persistent SQL error log, newest first
-    let tableContext = null; // { db, table, mode } — set when browsing via tree
+    let tableContext = null; // { db, table|null, mode } — set when browsing via tree
     let defaultDb = null;
     let sqlEditor;
 
@@ -222,7 +225,8 @@
 
     async function handleOpenTable(e) {
         const { db: tDb, table: tTbl, mode: tMode } = e.detail;
-        const newCtx = { db: tDb, table: tTbl, mode: tMode };
+        const newCtx = { db: tDb, mode: tMode };
+        if (tTbl) newCtx.table = tTbl;
         history.pushState(newCtx, "", buildHash(newCtx));
         await loadOpenStateFromUrl(newCtx);
     }
@@ -234,6 +238,8 @@
 
     async function loadOpenStateFromUrl(ctx) {
         const { db: tDb, table: tTbl, mode: tMode } = ctx;
+        if (!tDb) return;
+
         queryDb = tDb;
 
         // Also populate the SQL editor for reference / manual tweaking
@@ -246,7 +252,9 @@
         }
         const qDb = quoteIdent(tDb);
 
-        if (tTbl) {
+        if (tMode === "views" && !tTbl) {
+            sql = `-- View editor for ${qDb}\n-- Use the panel below to manage views across engines.`;
+        } else if (tTbl) {
             const qTbl = quoteIdent(tTbl);
             if (tMode === "data") {
                 sql = `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`;
@@ -270,6 +278,13 @@
         busy = true;
         tableContext = null;
         result = null;
+
+        if (tMode === "views" && !tTbl) {
+            defaultDb = tDb;
+            tableContext = { db: tDb, table: null, mode: "views" };
+            busy = false;
+            return;
+        }
 
         if (tTbl) {
             try {
@@ -496,6 +511,7 @@
                 <TreeView
                     {databases}
                     {busy}
+                    capabilities={$capabilities}
                     activeContext={tableContext}
                     bind:db={defaultDb}
                     on:runSql={handleRunSql}
@@ -561,7 +577,12 @@
                 <div
                     class="flex-1 min-h-0 overflow-y-auto flex flex-col p-2.5 gap-2.5"
                 >
-                    {#if result}
+                    {#if tableContext?.mode === "views"}
+                        <ViewEditorView
+                            db={tableContext.db}
+                            capabilities={$capabilities}
+                        />
+                    {:else if result}
                         {#if tableContext?.mode === "indexes"}
                             <IndexesTable
                                 db={tableContext.db}

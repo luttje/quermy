@@ -69,6 +69,13 @@ export const api = {
   // data
   listDatabases: () => request('GET', '/databases'),
   listTables: (db) => request('GET', `/databases/${encodeURIComponent(db)}/tables`),
+  listViews: (db) => request('GET', `/databases/${encodeURIComponent(db)}/views`),
+  getViewDefinition: (db, view) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/views/${encodeURIComponent(view)}`),
+  saveViewDefinition: (db, view, definition) =>
+    request('PUT', `/databases/${encodeURIComponent(db)}/views/${encodeURIComponent(view)}`, { definition }),
+  dropView: (db, view) =>
+    request('DELETE', `/databases/${encodeURIComponent(db)}/views/${encodeURIComponent(view)}`),
   browseTable: (db, t, limit = 100, offset = 0) =>
     request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}?limit=${limit}&offset=${offset}`),
   runQuery: (db, sql) => request('POST', '/query', { database: db, sql }),
