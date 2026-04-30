@@ -589,10 +589,6 @@
                                                 .then(() => {
                                                     let btn = event.target;
                                                     btn.textContent = "Copied!";
-                                                    console.log(
-                                                        "SQL copied to clipboard:",
-                                                        msg.sql,
-                                                    );
                                                     setTimeout(() => {
                                                         btn.textContent =
                                                             "Copy";
