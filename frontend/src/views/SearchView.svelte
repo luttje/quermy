@@ -174,7 +174,7 @@
             progress = { current: 0, total: targets.length };
 
             const safe = prepTerm(searchTerm.trim());
-            const pattern = `%${safe}%`;
+            const pattern = `${safe}`;
 
             for (const { db, table } of targets) {
                 if (stopRequested) {
