@@ -319,6 +319,68 @@
                                                             ></span>
                                                         {/if}
                                                     </button>
+                                                    <button
+                                                        class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
+                                                        leafKey(
+                                                            db,
+                                                            t.name,
+                                                            'indexes',
+                                                        )
+                                                            ? 'bg-[rgba(200,255,90,0.1)] text-(--acc)'
+                                                            : 'muted hover:bg-(--bg-2) hover:text-(--ink-0)'}"
+                                                        on:click={() =>
+                                                            selectLeaf(
+                                                                db,
+                                                                t.name,
+                                                                "indexes",
+                                                            )}
+                                                    >
+                                                        <span
+                                                            class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
+                                                            >⌗</span
+                                                        >
+                                                        <span
+                                                            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
+                                                            >Indexes</span
+                                                        >
+                                                        {#if busy && activeNode === leafKey(db, t.name, "indexes")}
+                                                            <span
+                                                                class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
+                                                                aria-label="Loading"
+                                                            ></span>
+                                                        {/if}
+                                                    </button>
+                                                    <button
+                                                        class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
+                                                        leafKey(
+                                                            db,
+                                                            t.name,
+                                                            'foreign-keys',
+                                                        )
+                                                            ? 'bg-[rgba(200,255,90,0.1)] text-(--acc)'
+                                                            : 'muted hover:bg-(--bg-2) hover:text-(--ink-0)'}"
+                                                        on:click={() =>
+                                                            selectLeaf(
+                                                                db,
+                                                                t.name,
+                                                                "foreign-keys",
+                                                            )}
+                                                    >
+                                                        <span
+                                                            class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
+                                                            >↗</span
+                                                        >
+                                                        <span
+                                                            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
+                                                            >Foreign Keys</span
+                                                        >
+                                                        {#if busy && activeNode === leafKey(db, t.name, "foreign-keys")}
+                                                            <span
+                                                                class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
+                                                                aria-label="Loading"
+                                                            ></span>
+                                                        {/if}
+                                                    </button>
                                                 </div>
                                             {/if}
                                         </div>

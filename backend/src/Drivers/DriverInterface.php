@@ -131,6 +131,9 @@ interface DriverInterface
      * - supportsGetCreateTable:   getCreateTable() returns meaningful DDL
      * - supportsExplain:          explainQuery() is supported
      * - supportsForeignKeys:      getForeignKeys() returns data
+     * - supportsIndexManagement:  createIndex()/dropIndex() for non-PK indexes
+     * - supportsPrimaryKeyManagement: createIndex(primary)/dropIndex(isPrimary) supported
+     * - supportsForeignKeyManagement: createForeignKey()/dropForeignKey() supported
      * - welcomeQuery:             default SQL shown when the user opens a new connection
      * - structureQueryTemplate:   default SQL for the "structure" view; use {db}/{table} tokens
      * - identifierOpen/Close:     quoting characters for identifiers (e.g. ` or ")
@@ -145,6 +148,9 @@ interface DriverInterface
      *   supportsGetCreateTable: bool,
      *   supportsExplain: bool,
      *   supportsForeignKeys: bool,
+     *   supportsIndexManagement: bool,
+     *   supportsPrimaryKeyManagement: bool,
+     *   supportsForeignKeyManagement: bool,
      *   welcomeQuery: string,
      *   structureQueryTemplate: string,
      *   identifierOpen: string,
@@ -183,6 +189,43 @@ interface DriverInterface
      * }
      */
     public function getForeignKeys(string $database, string $table): array;
+
+    /**
+     * Create an index (including PRIMARY KEY or UNIQUE) on a table.
+     *
+     * @param array{name:string,columns:list<string>,unique:bool,primary:bool} $definition
+     *   - primary: true  → add PRIMARY KEY (ignores name)
+     *   - unique:  true  → CREATE UNIQUE INDEX
+     *   - otherwise      → CREATE INDEX
+     * @throws \RuntimeException when the engine does not support this operation.
+     */
+    public function createIndex(string $database, string $table, array $definition): void;
+
+    /**
+     * Drop an index or primary key from a table.
+     *
+     * @param bool $isPrimary When true, drops the PRIMARY KEY constraint rather
+     *                        than a named index. $indexName is still passed so
+     *                        engines that store the PK by its constraint name
+     *                        (PostgreSQL, SQL Server) can use it directly.
+     * @throws \RuntimeException when the engine does not support this operation.
+     */
+    public function dropIndex(string $database, string $table, string $indexName, bool $isPrimary): void;
+
+    /**
+     * Add a FOREIGN KEY constraint to a table.
+     *
+     * @param array{name:string,columns:list<string>,referencedTable:string,referencedColumns:list<string>,onUpdate:string,onDelete:string} $definition
+     * @throws \RuntimeException when the engine does not support this operation.
+     */
+    public function createForeignKey(string $database, string $table, array $definition): void;
+
+    /**
+     * Drop a FOREIGN KEY constraint from a table.
+     *
+     * @throws \RuntimeException when the engine does not support this operation.
+     */
+    public function dropForeignKey(string $database, string $table, string $constraintName): void;
 
     /**
      * Read a small unordered sample of rows so the agent can see actual

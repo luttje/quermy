@@ -9,6 +9,8 @@
     import TreeView from "./components/TreeView.svelte";
     import AIChatPanel from "./components/AIChatPanel.svelte";
     import DataTable from "./components/DataTable.svelte";
+    import IndexesTable from "./components/IndexesTable.svelte";
+    import ForeignKeysTable from "./components/ForeignKeysTable.svelte";
     import Toaster from "./components/Toaster.svelte";
     import ResizeHandle from "./components/ResizeHandle.svelte";
     import SqlEditor from "./components/SqlEditor.svelte";
@@ -228,6 +230,10 @@
             const qTbl = quoteIdent(tTbl);
             if (tMode === "data") {
                 sql = `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`;
+            } else if (tMode === "indexes") {
+                sql = `-- Indexes on ${qDb}.${qTbl}`;
+            } else if (tMode === "foreign-keys") {
+                sql = `-- Foreign key constraints on ${qDb}.${qTbl}`;
             } else {
                 const tmpl = $capabilities?.structureQueryTemplate;
                 sql = tmpl
@@ -248,16 +254,26 @@
         if (tTbl) {
             try {
                 const t0 = performance.now();
-                const r = await api.browseTable(tDb, tTbl);
-                const dt = performance.now() - t0;
-                result = {
-                    columns: r.columns,
-                    rows: r.rows,
-                    affected: r.total,
-                    isSelect: true,
-                    durationMs: Math.round(dt * 100) / 100,
-                };
-                tableContext = { db: tDb, table: tTbl, mode: tMode };
+                if (tMode === "indexes") {
+                    const r = await api.getTableIndexes(tDb, tTbl);
+                    result = { indexes: r.indexes };
+                    tableContext = { db: tDb, table: tTbl, mode: tMode };
+                } else if (tMode === "foreign-keys") {
+                    const r = await api.getTableForeignKeys(tDb, tTbl);
+                    result = { outgoing: r.outgoing, incoming: r.incoming };
+                    tableContext = { db: tDb, table: tTbl, mode: tMode };
+                } else {
+                    const r = await api.browseTable(tDb, tTbl);
+                    const dt = performance.now() - t0;
+                    result = {
+                        columns: r.columns,
+                        rows: r.rows,
+                        affected: r.total,
+                        isSelect: true,
+                        durationMs: Math.round(dt * 100) / 100,
+                    };
+                    tableContext = { db: tDb, table: tTbl, mode: tMode };
+                }
             } catch (e) {
                 errors = [{ message: e.message, time: new Date() }, ...errors];
             } finally {
@@ -274,18 +290,32 @@
         busy = true;
         try {
             const t0 = performance.now();
-            const r = await api.browseTable(
-                tableContext.db,
-                tableContext.table,
-            );
-            const dt = performance.now() - t0;
-            result = {
-                columns: r.columns,
-                rows: r.rows,
-                affected: r.total,
-                isSelect: true,
-                durationMs: Math.round(dt * 100) / 100,
-            };
+            if (tableContext.mode === "indexes") {
+                const r = await api.getTableIndexes(
+                    tableContext.db,
+                    tableContext.table,
+                );
+                result = { indexes: r.indexes };
+            } else if (tableContext.mode === "foreign-keys") {
+                const r = await api.getTableForeignKeys(
+                    tableContext.db,
+                    tableContext.table,
+                );
+                result = { outgoing: r.outgoing, incoming: r.incoming };
+            } else {
+                const r = await api.browseTable(
+                    tableContext.db,
+                    tableContext.table,
+                );
+                const dt = performance.now() - t0;
+                result = {
+                    columns: r.columns,
+                    rows: r.rows,
+                    affected: r.total,
+                    isSelect: true,
+                    durationMs: Math.round(dt * 100) / 100,
+                };
+            }
         } catch (e) {
             toast(e.message, "error");
         } finally {
@@ -480,7 +510,24 @@
                     class="flex-1 min-h-0 overflow-y-auto flex flex-col p-2.5 gap-2.5"
                 >
                     {#if result}
-                        {#if result.isSelect}
+                        {#if tableContext?.mode === "indexes"}
+                            <IndexesTable
+                                db={tableContext.db}
+                                table={tableContext.table}
+                                indexes={result.indexes ?? []}
+                                capabilities={$capabilities}
+                                on:refresh={handleRefresh}
+                            />
+                        {:else if tableContext?.mode === "foreign-keys"}
+                            <ForeignKeysTable
+                                db={tableContext.db}
+                                table={tableContext.table}
+                                outgoing={result.outgoing ?? []}
+                                incoming={result.incoming ?? []}
+                                capabilities={$capabilities}
+                                on:refresh={handleRefresh}
+                            />
+                        {:else if result.isSelect}
                             <DataTable
                                 columns={result.columns}
                                 rows={result.rows}

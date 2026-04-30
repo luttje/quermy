@@ -65,6 +65,9 @@ class PostgreSQLDriver implements DriverInterface
             'supportsGetCreateTable' => true,
             'supportsExplain'        => true,
             'supportsForeignKeys'    => true,
+            'supportsIndexManagement'       => true,
+            'supportsPrimaryKeyManagement'  => true,
+            'supportsForeignKeyManagement'  => true,
             'welcomeQuery'           => 'SELECT NOW() AS now, version() AS version;',
             'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = '{table}'\nORDER BY ordinal_position;",
             'identifierOpen'         => '"',
@@ -627,9 +630,85 @@ class PostgreSQLDriver implements DriverInterface
         return $rows;
     }
 
+    public function createIndex(string $database, string $table, array $definition): void
+    {
+        $this->ensureConnected();
+        $this->validateIdent($table);
+        $qTbl = $this->quoteIdent($table);
+        $cols = implode(', ', array_map([$this, 'quoteIdent'], $definition['columns']));
+
+        if (!empty($definition['primary'])) {
+            $this->pdo->exec("ALTER TABLE public.$qTbl ADD PRIMARY KEY ($cols)");
+        } else {
+            $this->validateIdent($definition['name']);
+            $qIdx = $this->quoteIdent($definition['name']);
+            $uniq = !empty($definition['unique']) ? 'UNIQUE ' : '';
+            $this->pdo->exec("CREATE {$uniq}INDEX $qIdx ON public.$qTbl ($cols)");
+        }
+    }
+
+    public function dropIndex(string $database, string $table, string $indexName, bool $isPrimary): void
+    {
+        $this->ensureConnected();
+        $this->validateIdent($table);
+        $qTbl = $this->quoteIdent($table);
+
+        if ($isPrimary) {
+            // Use the provided index name — it IS the constraint name in PostgreSQL (e.g. table_pkey).
+            $this->validateIdent($indexName);
+            $qCons = $this->quoteIdent($indexName);
+            $this->pdo->exec("ALTER TABLE public.$qTbl DROP CONSTRAINT $qCons");
+        } else {
+            $this->validateIdent($indexName);
+            $qIdx = $this->quoteIdent($indexName);
+            $this->pdo->exec("DROP INDEX public.$qIdx");
+        }
+    }
+
+    public function createForeignKey(string $database, string $table, array $definition): void
+    {
+        $this->ensureConnected();
+        $this->validateIdent($table);
+        $this->validateIdent($definition['name']);
+        $this->validateIdent($definition['referencedTable']);
+        $qTbl    = $this->quoteIdent($table);
+        $qCons   = $this->quoteIdent($definition['name']);
+        $qRefTbl = $this->quoteIdent($definition['referencedTable']);
+        $cols    = implode(', ', array_map([$this, 'quoteIdent'], $definition['columns']));
+        $refCols = implode(', ', array_map([$this, 'quoteIdent'], $definition['referencedColumns']));
+        $onUpdate = $this->sanitizeReferentialAction($definition['onUpdate'] ?? 'RESTRICT');
+        $onDelete = $this->sanitizeReferentialAction($definition['onDelete'] ?? 'RESTRICT');
+
+        $this->pdo->exec(
+            "ALTER TABLE public.$qTbl ADD CONSTRAINT $qCons "
+            . "FOREIGN KEY ($cols) REFERENCES public.$qRefTbl ($refCols) "
+            . "ON UPDATE $onUpdate ON DELETE $onDelete"
+        );
+    }
+
+    public function dropForeignKey(string $database, string $table, string $constraintName): void
+    {
+        $this->ensureConnected();
+        $this->validateIdent($table);
+        $this->validateIdent($constraintName);
+        $qTbl  = $this->quoteIdent($table);
+        $qCons = $this->quoteIdent($constraintName);
+        $this->pdo->exec("ALTER TABLE public.$qTbl DROP CONSTRAINT $qCons");
+    }
+
     /*
      * Private helpers
      */
+
+    private function sanitizeReferentialAction(string $action): string
+    {
+        $valid  = ['CASCADE', 'RESTRICT', 'SET NULL', 'SET DEFAULT', 'NO ACTION'];
+        $action = strtoupper(trim($action));
+        if (!in_array($action, $valid, true)) {
+            throw new RuntimeException("Invalid referential action: $action");
+        }
+        return $action;
+    }
 
     private function ensureConnected(): void
     {

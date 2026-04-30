@@ -74,6 +74,22 @@ export const api = {
     reorderColumn: (db, t, colName, afterColName) =>
         request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}/position`, { after: afterColName ?? null }),
 
+    // index management
+    getTableIndexes: (db, t) =>
+        request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/indexes`),
+    createIndex: (db, t, def) =>
+        request('POST', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/indexes`, def),
+    dropIndex: (db, t, indexName, isPrimary) =>
+        request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/indexes/${encodeURIComponent(indexName)}`, { isPrimary: !!isPrimary }),
+
+    // foreign key management
+    getTableForeignKeys: (db, t) =>
+        request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/foreign-keys`),
+    createForeignKey: (db, t, def) =>
+        request('POST', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/foreign-keys`, def),
+    dropForeignKey: (db, t, constraint) =>
+        request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/foreign-keys/${encodeURIComponent(constraint)}`),
+
     /**
      * Export selected tables in the given format. Returns { blob, filename }.
      * @param {Record<string, string[]>} databases  { dbName: [table, …] }

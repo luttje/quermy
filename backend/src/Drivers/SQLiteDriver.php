@@ -66,6 +66,9 @@ class SQLiteDriver implements DriverInterface
             'supportsGetCreateTable' => true,
             'supportsExplain'        => true,
             'supportsForeignKeys'    => true,
+            'supportsIndexManagement'       => true,
+            'supportsPrimaryKeyManagement'  => false,
+            'supportsForeignKeyManagement'  => false,
             'welcomeQuery'           => 'SELECT sqlite_version() AS version;',
             'structureQueryTemplate' => 'PRAGMA table_info("{table}");',
             'identifierOpen'         => '"',
@@ -410,6 +413,52 @@ class SQLiteDriver implements DriverInterface
         }
         $stmt = $this->pdo->query('EXPLAIN QUERY PLAN ' . $sql);
         return $stmt->fetchAll();
+    }
+
+    public function createIndex(string $database, string $table, array $definition): void
+    {
+        $this->ensureConnected();
+        if (!empty($definition['primary'])) {
+            throw new RuntimeException(
+                'SQLite does not support adding a primary key after table creation. '
+                . 'To change a primary key, recreate the table.'
+            );
+        }
+        $this->validateIdent($definition['name']);
+        $this->validateIdent($table);
+        $qTbl = $this->quoteIdent($table);
+        $qIdx = $this->quoteIdent($definition['name']);
+        $cols = implode(', ', array_map([$this, 'quoteIdent'], $definition['columns']));
+        $uniq = !empty($definition['unique']) ? 'UNIQUE ' : '';
+        $this->pdo->exec("CREATE {$uniq}INDEX $qIdx ON $qTbl ($cols)");
+    }
+
+    public function dropIndex(string $database, string $table, string $indexName, bool $isPrimary): void
+    {
+        $this->ensureConnected();
+        if ($isPrimary) {
+            throw new RuntimeException(
+                'SQLite does not support dropping a primary key without recreating the table.'
+            );
+        }
+        $this->validateIdent($indexName);
+        $qIdx = $this->quoteIdent($indexName);
+        $this->pdo->exec("DROP INDEX $qIdx");
+    }
+
+    public function createForeignKey(string $database, string $table, array $definition): void
+    {
+        throw new RuntimeException(
+            'SQLite does not support adding foreign key constraints after table creation. '
+            . 'Foreign key constraints must be declared when creating the table.'
+        );
+    }
+
+    public function dropForeignKey(string $database, string $table, string $constraintName): void
+    {
+        throw new RuntimeException(
+            'SQLite does not support dropping foreign key constraints without recreating the table.'
+        );
     }
 
     /*
