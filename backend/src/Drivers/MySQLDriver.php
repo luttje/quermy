@@ -60,6 +60,9 @@ class MySQLDriver implements DriverInterface
             'supportsIndexManagement'        => true,
             'supportsPrimaryKeyManagement'   => true,
             'supportsForeignKeyManagement'   => true,
+            'supportsRenameDatabase'         => true,
+            'supportsAlterDatabaseCollation' => true,
+            'supportsDropDatabase'           => true,
             'welcomeQuery'            => 'SELECT NOW() AS now, VERSION() AS version;',
             'structureQueryTemplate'  => 'SHOW COLUMNS FROM `{db}`.`{table}`;',
             'identifierOpen'          => '`',
@@ -794,6 +797,87 @@ class MySQLDriver implements DriverInterface
         $this->pdo->exec("ALTER TABLE $qDb.$qTbl DROP FOREIGN KEY $qCons");
     }
 
+    public function getDatabaseInfo(string $database): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            'SELECT DEFAULT_CHARACTER_SET_NAME AS charset, DEFAULT_COLLATION_NAME AS collation ' .
+            'FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = :db'
+        );
+        $stmt->execute([':db' => $database]);
+        $row = $stmt->fetch();
+        return [
+            'name'      => $database,
+            'charset'   => $row['charset']   ?? null,
+            'collation' => $row['collation'] ?? null,
+        ];
+    }
+
+    public function renameDatabase(string $database, string $newName): void
+    {
+        $this->ensureConnected();
+        $db  = $this->validateIdent($database);
+        $ndb = $this->validateIdent($newName);
+
+        // Capture charset/collation from the source schema
+        $info    = $this->getDatabaseInfo($db);
+        $charset = $this->validateIdent($info['charset'] ?? 'utf8mb4');
+        $coll    = $this->sanitizeCollationName($info['collation'] ?? 'utf8mb4_unicode_ci');
+
+        // Create the target database
+        $this->pdo->exec("CREATE DATABASE `$ndb` CHARACTER SET `$charset` COLLATE `$coll`");
+
+        // Move every base table (MySQL has no single-step RENAME DATABASE)
+        $stmt = $this->pdo->prepare(
+            "SELECT TABLE_NAME FROM information_schema.TABLES " .
+            "WHERE TABLE_SCHEMA = :db AND TABLE_TYPE = 'BASE TABLE'"
+        );
+        $stmt->execute([':db' => $db]);
+        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($tables as $table) {
+            $t = $this->validateIdent($table);
+            $this->pdo->exec("RENAME TABLE `$db`.`$t` TO `$ndb`.`$t`");
+        }
+
+        // Drop the (now-empty) source database
+        $this->pdo->exec("DROP DATABASE `$db`");
+    }
+
+    public function alterDatabaseCollation(string $database, string $collation): void
+    {
+        $this->ensureConnected();
+        $db   = $this->validateIdent($database);
+        $coll = $this->sanitizeCollationName($collation);
+
+        // Resolve the character set for this collation
+        $stmt = $this->pdo->prepare(
+            'SELECT CHARACTER_SET_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME = :coll'
+        );
+        $stmt->execute([':coll' => $coll]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException("Unknown collation: $coll");
+        }
+        $charset = $this->validateIdent($row['CHARACTER_SET_NAME']);
+        $this->pdo->exec("ALTER DATABASE `$db` CHARACTER SET `$charset` COLLATE `$coll`");
+    }
+
+    public function dropDatabase(string $database): void
+    {
+        $this->ensureConnected();
+        $db = $this->validateIdent($database);
+        $this->pdo->exec("DROP DATABASE `$db`");
+    }
+
+    public function listDatabaseCollations(string $database): array
+    {
+        $this->ensureConnected();
+
+        $all = $this->pdo->query('SELECT COLLATION_NAME FROM information_schema.COLLATIONS ORDER BY COLLATION_NAME');
+        return array_map(static fn($r) => $r['COLLATION_NAME'], $all->fetchAll());
+    }
+
     /*
      * Private helpers
      */
@@ -827,6 +911,15 @@ class MySQLDriver implements DriverInterface
     {
         if (!preg_match('/^[A-Za-z0-9_$]+$/', $name)) {
             throw new RuntimeException("Invalid identifier: $name");
+        }
+        return $name;
+    }
+
+    /** Allow only characters valid in a MySQL collation name. */
+    private function sanitizeCollationName(string $name): string
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+            throw new RuntimeException("Invalid collation name: $name");
         }
         return $name;
     }

@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { api } from "../lib/api.js";
     import Btn from "../components/ui/Btn.svelte";
+    import Input from "../components/ui/Input.svelte";
 
     // -------------------------------------------------------------------------
     // Props
@@ -238,13 +239,12 @@
     >
         <!-- Search input + button -->
         <div class="flex gap-2">
-            <input
+            <Input
                 bind:this={searchInput}
                 bind:value={searchTerm}
                 on:keydown={handleKeydown}
                 type="text"
                 placeholder="Search term… (% and _ are LIKE wildcards)"
-                class="flex-1 bg-(--bg-input) border border-(--line) rounded-(--radius) px-3 py-2.25 text-(--ink-0) mono text-[13px] transition-[border-color,box-shadow] duration-120 placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_3px_var(--acc-glow)]"
             />
             {#if searching}
                 <Btn variant="danger" on:click={stopSearch}>Stop</Btn>
@@ -300,12 +300,11 @@
                         class="text-[10px] uppercase tracking-widest text-(--ink-3) font-bold"
                         >Include databases</label
                     >
-                    <input
+                    <Input
                         id="search-include"
                         bind:value={includeFilter}
                         type="text"
                         placeholder="db1, db2 — empty means all"
-                        class="w-full bg-(--bg-input) border border-(--line) rounded-(--radius) px-3 py-1.75 text-(--ink-0) mono text-[12px] placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_3px_var(--acc-glow)] transition-[border-color,box-shadow] duration-120"
                     />
                 </div>
                 <div class="flex-1 flex flex-col gap-1">
@@ -314,12 +313,11 @@
                         class="text-[10px] uppercase tracking-widest text-(--ink-3) font-bold"
                         >Exclude databases</label
                     >
-                    <input
+                    <Input
                         id="search-exclude"
                         bind:value={excludeFilter}
                         type="text"
                         placeholder="db3, db4"
-                        class="w-full bg-(--bg-input) border border-(--line) rounded-(--radius) px-3 py-1.75 text-(--ink-0) mono text-[12px] placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_3px_var(--acc-glow)] transition-[border-color,box-shadow] duration-120"
                     />
                 </div>
             </div>

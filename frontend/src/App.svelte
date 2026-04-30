@@ -18,6 +18,7 @@
     import Btn from "./components/ui/Btn.svelte";
     import Kbd from "./components/ui/Kbd.svelte";
     import SearchView from "./views/SearchView.svelte";
+    import DatabaseEditView from "./views/DatabaseEditView.svelte";
 
     let bootstrapping = true;
     let criticalSystemError = null;
@@ -97,6 +98,8 @@
     // Modals
     let showExportModal = false;
     let showSearchModal = false;
+    let showDbEditModal = false;
+    let editingDb = null;
 
     onMount(async () => {
         const systemCheck = await api.checkSystem();
@@ -354,6 +357,33 @@
     function handleRightResize({ detail }) {
         rightWidth = Math.max(150, Math.min(500, rightWidth - detail.delta));
     }
+
+    function handleEditDatabase(e) {
+        editingDb = e.detail.db;
+        showDbEditModal = true;
+    }
+
+    function handleDbRenamed(e) {
+        const { oldName, newName } = e.detail;
+        if (tableContext?.db === oldName) {
+            tableContext = null;
+            result = null;
+        }
+        loadDatabases();
+        showDbEditModal = false;
+        editingDb = null;
+    }
+
+    function handleDbDropped(e) {
+        const { db } = e.detail;
+        if (tableContext?.db === db) {
+            tableContext = null;
+            result = null;
+        }
+        loadDatabases();
+        showDbEditModal = false;
+        editingDb = null;
+    }
 </script>
 
 <svelte:window on:keydown={onGlobalKeydown} />
@@ -471,6 +501,7 @@
                     on:runSql={handleRunSql}
                     on:toggleDb={handleToggleDb}
                     on:openTable={handleOpenTable}
+                    on:editDatabase={handleEditDatabase}
                 />
             </aside>
             <ResizeHandle orientation="vertical" on:resize={handleLeftResize} />
@@ -664,6 +695,23 @@
             maxWidth="max-w-xl"
         >
             <ExportView on:done={() => (showExportModal = false)} />
+        </Modal>
+
+        <Modal
+            open={showDbEditModal}
+            title="Database"
+            on:close={() => (showDbEditModal = false)}
+            maxWidth="max-w-lg"
+        >
+            {#if showDbEditModal}
+                <DatabaseEditView
+                    db={editingDb}
+                    capabilities={$capabilities}
+                    on:renamed={handleDbRenamed}
+                    on:dropped={handleDbDropped}
+                    on:close={() => (showDbEditModal = false)}
+                />
+            {/if}
         </Modal>
 
         <Modal

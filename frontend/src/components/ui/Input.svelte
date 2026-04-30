@@ -5,9 +5,14 @@
     export let required = false;
     let extraClass = "";
     export { extraClass as class };
+
+    let inputEl;
+    export const focus = () => inputEl.focus();
+    export const select = () => inputEl.select();
 </script>
 
 <input
+    bind:this={inputEl}
     {type}
     {placeholder}
     {required}

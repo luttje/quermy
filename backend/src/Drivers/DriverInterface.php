@@ -134,6 +134,9 @@ interface DriverInterface
      * - supportsIndexManagement:  createIndex()/dropIndex() for non-PK indexes
      * - supportsPrimaryKeyManagement: createIndex(primary)/dropIndex(isPrimary) supported
      * - supportsForeignKeyManagement: createForeignKey()/dropForeignKey() supported
+     * - supportsRenameDatabase:   renameDatabase() is implemented
+     * - supportsAlterDatabaseCollation: alterDatabaseCollation() is implemented
+     * - supportsDropDatabase:     dropDatabase() is implemented
      * - welcomeQuery:             default SQL shown when the user opens a new connection
      * - structureQueryTemplate:   default SQL for the "structure" view; use {db}/{table} tokens
      * - identifierOpen/Close:     quoting characters for identifiers (e.g. ` or ")
@@ -151,6 +154,9 @@ interface DriverInterface
      *   supportsIndexManagement: bool,
      *   supportsPrimaryKeyManagement: bool,
      *   supportsForeignKeyManagement: bool,
+     *   supportsRenameDatabase: bool,
+     *   supportsAlterDatabaseCollation: bool,
+     *   supportsDropDatabase: bool,
      *   welcomeQuery: string,
      *   structureQueryTemplate: string,
      *   identifierOpen: string,
@@ -261,4 +267,44 @@ interface DriverInterface
      * @return list<array<string,mixed>>
      */
     public function explainQuery(string $database, string $sql): array;
+
+    // -------------------------------------------------------------------------
+    // Database-level management
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return metadata about a database: name, charset, collation.
+     *
+     * @return array{name:string, charset:string|null, collation:string|null}
+     */
+    public function getDatabaseInfo(string $database): array;
+
+    /**
+     * Rename a database.
+     *
+     * @throws \RuntimeException when not supported or on failure.
+     */
+    public function renameDatabase(string $database, string $newName): void;
+
+    /**
+     * Change the default collation (and character set) of a database.
+     *
+     * @throws \RuntimeException when not supported or on failure.
+     */
+    public function alterDatabaseCollation(string $database, string $collation): void;
+
+    /**
+     * Drop a database entirely.
+     *
+     * @throws \RuntimeException when not supported or on failure.
+     */
+    public function dropDatabase(string $database): void;
+
+    /**
+     * List valid database-level collations for this engine (optionally filtered
+     * by the given database's current/default character set when applicable).
+     *
+     * @return list<string>
+     */
+    public function listDatabaseCollations(string $database): array;
 }

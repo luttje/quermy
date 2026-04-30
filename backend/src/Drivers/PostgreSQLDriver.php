@@ -68,6 +68,9 @@ class PostgreSQLDriver implements DriverInterface
             'supportsIndexManagement'       => true,
             'supportsPrimaryKeyManagement'  => true,
             'supportsForeignKeyManagement'  => true,
+            'supportsRenameDatabase'         => true,
+            'supportsAlterDatabaseCollation' => false,
+            'supportsDropDatabase'           => true,
             'welcomeQuery'           => 'SELECT NOW() AS now, version() AS version;',
             'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = '{table}'\nORDER BY ordinal_position;",
             'identifierOpen'         => '"',
@@ -694,6 +697,52 @@ class PostgreSQLDriver implements DriverInterface
         $qTbl  = $this->quoteIdent($table);
         $qCons = $this->quoteIdent($constraintName);
         $this->pdo->exec("ALTER TABLE public.$qTbl DROP CONSTRAINT $qCons");
+    }
+
+    public function getDatabaseInfo(string $database): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            'SELECT datname, pg_encoding_to_char(encoding) AS charset, datcollate AS collation ' .
+            'FROM pg_database WHERE datname = :db'
+        );
+        $stmt->execute([':db' => $database]);
+        $row = $stmt->fetch();
+        return [
+            'name'      => $row['datname']   ?? $database,
+            'charset'   => $row['charset']   ?? null,
+            'collation' => $row['collation'] ?? null,
+        ];
+    }
+
+    public function renameDatabase(string $database, string $newName): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qNew = $this->quoteIdent($newName);
+        // Note: ALTER DATABASE RENAME TO cannot rename the currently connected database.
+        // The calling user must be connected to a different database for this to succeed.
+        $this->pdo->exec("ALTER DATABASE $qDb RENAME TO $qNew");
+    }
+
+    public function alterDatabaseCollation(string $database, string $collation): void
+    {
+        throw new RuntimeException(
+            'PostgreSQL does not support changing a database\'s collation after creation.'
+        );
+    }
+
+    public function dropDatabase(string $database): void
+    {
+        $this->ensureConnected();
+        $qDb = $this->quoteIdent($database);
+        // Note: DROP DATABASE cannot target the currently connected database.
+        $this->pdo->exec("DROP DATABASE $qDb");
+    }
+
+    public function listDatabaseCollations(string $database): array
+    {
+        throw new RuntimeException('Listing database collations is not supported for PostgreSQL');
     }
 
     /*

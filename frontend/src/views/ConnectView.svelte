@@ -320,12 +320,12 @@
                                     >Remove master password</button
                                 >
                             {:else}
-                                <button
+                                <Btn
                                     type="button"
                                     on:click={() => startVaultAction("add")}
-                                    class="text-left px-3 py-2.5 rounded-(--radius) border border-(--line) text-(--ink-1) text-sm hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
-                                    >Add master password</button
                                 >
+                                    Add master password
+                                </Btn>
                             {/if}
                         </div>
                     {:else}
@@ -334,21 +334,21 @@
                             <p class="muted text-sm leading-relaxed">
                                 Your saved credentials will be re-saved without
                                 encryption. You won't need a password to access
-                                them.
+                                them, however any app on localhost will be able
+                                to read them. Make sure you trust all localhost
+                                apps before proceeding.
                             </p>
                         {:else}
                             <div class="flex flex-col gap-2">
-                                <input
+                                <Input
                                     type="password"
                                     bind:value={vaultNewPassword}
                                     placeholder="New master password"
-                                    class="w-full bg-(--bg-2) border border-(--line) rounded-(--radius) px-3 py-2 text-sm text-(--ink-0) placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc)"
                                 />
-                                <input
+                                <Input
                                     type="password"
                                     bind:value={vaultConfirmPassword}
                                     placeholder="Confirm new password"
-                                    class="w-full bg-(--bg-2) border border-(--line) rounded-(--radius) px-3 py-2 text-sm text-(--ink-0) placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc)"
                                 />
                             </div>
                         {/if}

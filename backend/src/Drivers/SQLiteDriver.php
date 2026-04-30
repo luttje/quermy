@@ -69,6 +69,9 @@ class SQLiteDriver implements DriverInterface
             'supportsIndexManagement'       => true,
             'supportsPrimaryKeyManagement'  => false,
             'supportsForeignKeyManagement'  => false,
+            'supportsRenameDatabase'         => false,
+            'supportsAlterDatabaseCollation' => false,
+            'supportsDropDatabase'           => false,
             'welcomeQuery'           => 'SELECT sqlite_version() AS version;',
             'structureQueryTemplate' => 'PRAGMA table_info("{table}");',
             'identifierOpen'         => '"',
@@ -459,6 +462,35 @@ class SQLiteDriver implements DriverInterface
         throw new RuntimeException(
             'SQLite does not support dropping foreign key constraints without recreating the table.'
         );
+    }
+
+    public function getDatabaseInfo(string $database): array
+    {
+        return [
+            'name'      => $database,
+            'charset'   => null,
+            'collation' => null,
+        ];
+    }
+
+    public function renameDatabase(string $database, string $newName): void
+    {
+        throw new RuntimeException('Renaming databases is not supported for SQLite.');
+    }
+
+    public function alterDatabaseCollation(string $database, string $collation): void
+    {
+        throw new RuntimeException('Changing database collation is not supported for SQLite.');
+    }
+
+    public function dropDatabase(string $database): void
+    {
+        throw new RuntimeException('Dropping databases is not supported for SQLite. Please delete the file manually.');
+    }
+
+    public function listDatabaseCollations(string $database): array
+    {
+        throw new RuntimeException('Listing database collations is not supported for SQLite');
     }
 
     /*

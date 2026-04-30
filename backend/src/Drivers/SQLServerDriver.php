@@ -69,6 +69,9 @@ class SQLServerDriver implements DriverInterface
             'supportsIndexManagement'       => true,
             'supportsPrimaryKeyManagement'  => true,
             'supportsForeignKeyManagement'  => true,
+            'supportsRenameDatabase'         => true,
+            'supportsAlterDatabaseCollation' => true,
+            'supportsDropDatabase'           => true,
             'welcomeQuery'           => 'SELECT GETDATE() AS now, @@VERSION AS version;',
             'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default, ordinal_position\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = '{table}'\nORDER BY ordinal_position;",
             'identifierOpen'         => '[',
@@ -738,6 +741,54 @@ class SQLServerDriver implements DriverInterface
         $qTbl  = $this->quoteIdent($table);
         $qCons = $this->quoteIdent($constraintName);
         $this->pdo->exec("ALTER TABLE {$qDb}dbo.$qTbl DROP CONSTRAINT $qCons");
+    }
+
+    public function listDatabaseCollations(string $database): array
+    {
+        $this->ensureConnected();
+        // All supported collations available on the server
+        $stmt = $this->pdo->query('SELECT name FROM sys.fn_helpcollations() ORDER BY name');
+        return array_map(static fn($r) => $r['name'], $stmt->fetchAll());
+    }
+
+    public function getDatabaseInfo(string $database): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            'SELECT name, collation_name FROM sys.databases WHERE name = ?'
+        );
+        $stmt->execute([$database]);
+        $row = $stmt->fetch();
+        return [
+            'name'      => $row['name']           ?? $database,
+            'charset'   => null,
+            'collation' => $row['collation_name'] ?? null,
+        ];
+    }
+
+    public function renameDatabase(string $database, string $newName): void
+    {
+        $this->ensureConnected();
+        $this->validateIdent($database);
+        $this->validateIdent($newName);
+        $this->pdo->exec("ALTER DATABASE [$database] MODIFY NAME = [$newName]");
+    }
+
+    public function alterDatabaseCollation(string $database, string $collation): void
+    {
+        $this->ensureConnected();
+        $this->validateIdent($database);
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $collation)) {
+            throw new RuntimeException("Invalid collation name: $collation");
+        }
+        $this->pdo->exec("ALTER DATABASE [$database] COLLATE $collation");
+    }
+
+    public function dropDatabase(string $database): void
+    {
+        $this->ensureConnected();
+        $this->validateIdent($database);
+        $this->pdo->exec("DROP DATABASE [$database]");
     }
 
     /*

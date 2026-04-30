@@ -177,15 +177,15 @@
                         class="border-b border-(--line) text-(--ink-3) text-left"
                     >
                         <th
-                            class="px-3 py-2 font-medium text-[11px] tracking-[0.05em] uppercase"
+                            class="px-3 py-2 font-medium text-[11px] tracking-wider uppercase"
                             >Type</th
                         >
                         <th
-                            class="px-3 py-2 font-medium text-[11px] tracking-[0.05em] uppercase"
+                            class="px-3 py-2 font-medium text-[11px] tracking-wider uppercase"
                             >Name</th
                         >
                         <th
-                            class="px-3 py-2 font-medium text-[11px] tracking-[0.05em] uppercase"
+                            class="px-3 py-2 font-medium text-[11px] tracking-wider uppercase"
                             >Columns</th
                         >
                         {#if canManage}
@@ -201,7 +201,7 @@
                         >
                             <td class="px-3 py-2">
                                 <span
-                                    class="mono text-[10px] font-bold tracking-[0.05em] px-1.5 py-0.5 rounded {badge.cls}"
+                                    class="mono text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded {badge.cls}"
                                 >
                                     {badge.label}
                                 </span>
