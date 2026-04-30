@@ -185,6 +185,10 @@
             e.preventDefault();
             if ($session) showSearchModal = true;
         }
+        if ((e.metaKey || e.ctrlKey) && e.key === "e") {
+            e.preventDefault();
+            if ($session) showExportModal = true;
+        }
     }
 
     function handleRunSql(e) {
@@ -377,19 +381,19 @@
                 <Btn
                     variant="ghost"
                     on:click={() => (showSearchModal = true)}
-                    class="text-xs!"
+                    class="text-xs! py-0.5!"
                 >
                     Search
-                    <span
-                        class="mono text-[10px] text-(--ink-3) bg-(--bg-3) border border-(--line) px-1.25 py-px rounded"
-                        >⌘K</span
-                    >
+                    <Kbd>⌘K</Kbd>
                 </Btn>
                 <Btn
                     variant="ghost"
                     on:click={() => (showExportModal = true)}
-                    class="text-xs!">Export</Btn
+                    class="text-xs! py-0.5!"
                 >
+                    Export
+                    <Kbd>⌘E</Kbd>
+                </Btn>
             </nav>
 
             <!-- Right: actions -->
