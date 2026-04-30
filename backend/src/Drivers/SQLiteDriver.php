@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
@@ -42,7 +43,8 @@ class SQLiteDriver implements
     SupportsViewManagement,
     ProvidesColumnTypes,
     ProvidesWelcomeQuery,
-    ProvidesStructureQueryTemplate
+    ProvidesStructureQueryTemplate,
+    ProvidesListTablesQuery
 {
     private ?PDO $pdo = null;
 
@@ -87,6 +89,11 @@ class SQLiteDriver implements
     public function structureQueryTemplate(): string
     {
         return 'PRAGMA table_info("{table}");';
+    }
+
+    public function listTablesQuery(): string
+    {
+        return "SELECT name\nFROM sqlite_master\nWHERE type = 'table' AND name NOT LIKE 'sqlite_%'\nORDER BY name;";
     }
 
     public function connect(array $config): void

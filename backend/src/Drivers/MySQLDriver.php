@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
@@ -49,7 +50,8 @@ class MySQLDriver implements
     SupportsEventManagement,
     ProvidesColumnTypes,
     ProvidesWelcomeQuery,
-    ProvidesStructureQueryTemplate
+    ProvidesStructureQueryTemplate,
+    ProvidesListTablesQuery
 {
     private ?PDO $pdo = null;
     private ?string $pinnedDatabaseName = null;
@@ -101,6 +103,11 @@ class MySQLDriver implements
     public function structureQueryTemplate(): string
     {
         return 'SHOW COLUMNS FROM `{db}`.`{table}`;';
+    }
+
+    public function listTablesQuery(): string
+    {
+        return 'SHOW TABLES IN `{db}`;';
     }
 
     public function connect(array $config): void

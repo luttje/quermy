@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
@@ -53,7 +54,8 @@ class SQLServerDriver implements
     SupportsFunctionManagement,
     ProvidesColumnTypes,
     ProvidesWelcomeQuery,
-    ProvidesStructureQueryTemplate
+    ProvidesStructureQueryTemplate,
+    ProvidesListTablesQuery
 {
     private ?PDO $pdo = null;
 
@@ -104,6 +106,11 @@ class SQLServerDriver implements
     public function structureQueryTemplate(): string
     {
         return "SELECT column_name, data_type, is_nullable, column_default, ordinal_position\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = '{table}'\nORDER BY ordinal_position;";
+    }
+
+    public function listTablesQuery(): string
+    {
+        return "SELECT name\nFROM sys.tables\nORDER BY name;";
     }
 
     public function connect(array $config): void

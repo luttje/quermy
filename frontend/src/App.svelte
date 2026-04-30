@@ -160,6 +160,11 @@
         try {
             const data = await api.getCapabilities();
             capabilities.set(data);
+
+            const ctx = parseHash();
+
+            if (ctx) loadOpenStateFromUrl(ctx);
+
             // Set the welcome query for the SQL editor if it hasn't been manually changed
             if (!sql.trim()) {
                 sql = data.welcomeQuery ?? "";
@@ -238,6 +243,7 @@
     async function handleToggleDb(e) {
         const { db } = e.detail;
         history.pushState(null, "", buildHash({ db }));
+        await loadOpenStateFromUrl({ db });
     }
 
     async function loadOpenStateFromUrl(ctx) {
@@ -274,12 +280,11 @@
                 sql = `-- Foreign key constraints on ${qDb}.${qTbl}`;
             } else {
                 const tmpl = $capabilities?.structureQueryTemplate;
-                sql = tmpl
-                    ? tmpl.replace("{db}", tDb).replace("{table}", tTbl)
-                    : `SELECT * FROM ${qDb}.${qTbl};`;
+                sql = tmpl?.replace("{db}", tDb).replace("{table}", tTbl) ?? "";
             }
         } else {
-            sql = `SHOW TABLES IN ${qDb};`;
+            const listTmpl = $capabilities?.listTablesQuery;
+            sql = listTmpl?.replace("{db}", tDb) ?? "";
         }
 
         // Push the new value into CodeMirror's internal state
@@ -296,7 +301,12 @@
             return;
         }
 
-        if ((tMode === "stored-procedures" || tMode === "stored-functions" || tMode === "events") && !tTbl) {
+        if (
+            (tMode === "stored-procedures" ||
+                tMode === "stored-functions" ||
+                tMode === "events") &&
+            !tTbl
+        ) {
             defaultDb = tDb;
             tableContext = { db: tDb, table: null, mode: tMode };
             busy = false;

@@ -3,6 +3,7 @@
 namespace Quermy\Drivers;
 
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
@@ -68,6 +69,9 @@ final class CapabilitySerializer
             : '';
         $caps['structureQueryTemplate'] = $driver instanceof ProvidesStructureQueryTemplate
             ? $driver->structureQueryTemplate()
+            : '';
+        $caps['listTablesQuery'] = $driver instanceof ProvidesListTablesQuery
+            ? $driver->listTablesQuery()
             : '';
 
         // Identifier quoting characters — always available from static engine metadata.
