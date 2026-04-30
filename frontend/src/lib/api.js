@@ -34,9 +34,6 @@ export const api = {
     getCapabilities: () => request('GET', '/capabilities'),
     getServerConfig: () => request('GET', '/server-config'),
 
-    // saved connections
-    // listConnections, saveConnection, deleteConnection, connectSaved — removed.
-
     // connect
     connect: (c) => request('POST', '/connect', c),
 
@@ -63,12 +60,8 @@ export const api = {
     deleteColumn: (db, t, colName) =>
         request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`),
 
-    // User settings are now handled client-side by settings.js — removed.
-
     // AI providers (static, no auth)
     getAiProviders: () => request('GET', '/ai/providers'),
-
-    // AI key management is now handled client-side by vault.js — removed.
 
     /**
      * Stream an AI chat response as an async generator of typed event objects.
