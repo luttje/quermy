@@ -73,6 +73,9 @@ class SQLiteDriver implements DriverInterface
             'supportsAlterDatabaseCollation' => false,
             'supportsDropDatabase'           => false,
             'supportsViewManagement'         => true,
+            'supportsProcedureManagement'    => false,
+            'supportsFunctionManagement'     => false,
+            'supportsEventManagement'        => false,
             'welcomeQuery'           => 'SELECT sqlite_version() AS version;',
             'structureQueryTemplate' => 'PRAGMA table_info("{table}");',
             'identifierOpen'         => '"',
@@ -184,6 +187,66 @@ class SQLiteDriver implements DriverInterface
         $name  = $this->validateIdent($view);
         $qView = $this->quoteIdent($name);
         $this->pdo->exec("DROP VIEW IF EXISTS $qView");
+    }
+
+    public function listProcedures(string $database): array
+    {
+        throw new RuntimeException('SQLite does not support stored procedures.');
+    }
+
+    public function getProcedureDefinition(string $database, string $procedure): string
+    {
+        throw new RuntimeException('SQLite does not support stored procedures.');
+    }
+
+    public function upsertProcedure(string $database, string $procedure, string $definition): void
+    {
+        throw new RuntimeException('SQLite does not support stored procedures.');
+    }
+
+    public function dropProcedure(string $database, string $procedure): void
+    {
+        throw new RuntimeException('SQLite does not support stored procedures.');
+    }
+
+    public function listFunctions(string $database): array
+    {
+        throw new RuntimeException('SQLite does not support stored functions.');
+    }
+
+    public function getFunctionDefinition(string $database, string $function): string
+    {
+        throw new RuntimeException('SQLite does not support stored functions.');
+    }
+
+    public function upsertFunction(string $database, string $function, string $definition): void
+    {
+        throw new RuntimeException('SQLite does not support stored functions.');
+    }
+
+    public function dropFunction(string $database, string $function): void
+    {
+        throw new RuntimeException('SQLite does not support stored functions.');
+    }
+
+    public function listEvents(string $database): array
+    {
+        throw new RuntimeException('SQLite does not support scheduled events.');
+    }
+
+    public function getEventDefinition(string $database, string $event): string
+    {
+        throw new RuntimeException('SQLite does not support scheduled events.');
+    }
+
+    public function upsertEvent(string $database, string $event, string $definition): void
+    {
+        throw new RuntimeException('SQLite does not support scheduled events.');
+    }
+
+    public function dropEvent(string $database, string $event): void
+    {
+        throw new RuntimeException('SQLite does not support scheduled events.');
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array

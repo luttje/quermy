@@ -20,6 +20,9 @@
     import SearchView from "./views/SearchView.svelte";
     import DatabaseEditView from "./views/DatabaseEditView.svelte";
     import ViewEditorView from "./views/ViewEditorView.svelte";
+    import StoredProcedureEditorView from "./views/StoredProcedureEditorView.svelte";
+    import StoredFunctionEditorView from "./views/StoredFunctionEditorView.svelte";
+    import EventEditorView from "./views/EventEditorView.svelte";
     import Select from "./components/ui/Select.svelte";
 
     let bootstrapping = true;
@@ -255,6 +258,12 @@
 
         if (tMode === "views" && !tTbl) {
             sql = `-- View editor for ${qDb}\n-- Use the panel below to manage views across engines.`;
+        } else if (tMode === "stored-procedures" && !tTbl) {
+            sql = `-- Stored procedure editor for ${qDb}\n-- Use the panel below to manage stored procedures.`;
+        } else if (tMode === "stored-functions" && !tTbl) {
+            sql = `-- Stored function editor for ${qDb}\n-- Use the panel below to manage stored functions.`;
+        } else if (tMode === "events" && !tTbl) {
+            sql = `-- Event editor for ${qDb}\n-- Use the panel below to manage scheduled events.`;
         } else if (tTbl) {
             const qTbl = quoteIdent(tTbl);
             if (tMode === "data") {
@@ -283,6 +292,13 @@
         if (tMode === "views" && !tTbl) {
             defaultDb = tDb;
             tableContext = { db: tDb, table: null, mode: "views" };
+            busy = false;
+            return;
+        }
+
+        if ((tMode === "stored-procedures" || tMode === "stored-functions" || tMode === "events") && !tTbl) {
+            defaultDb = tDb;
+            tableContext = { db: tDb, table: null, mode: tMode };
             busy = false;
             return;
         }
@@ -581,6 +597,21 @@
                 >
                     {#if tableContext?.mode === "views"}
                         <ViewEditorView
+                            db={tableContext.db}
+                            capabilities={$capabilities}
+                        />
+                    {:else if tableContext?.mode === "stored-procedures"}
+                        <StoredProcedureEditorView
+                            db={tableContext.db}
+                            capabilities={$capabilities}
+                        />
+                    {:else if tableContext?.mode === "stored-functions"}
+                        <StoredFunctionEditorView
+                            db={tableContext.db}
+                            capabilities={$capabilities}
+                        />
+                    {:else if tableContext?.mode === "events"}
+                        <EventEditorView
                             db={tableContext.db}
                             capabilities={$capabilities}
                         />

@@ -73,6 +73,9 @@ class SQLServerDriver implements DriverInterface
             'supportsAlterDatabaseCollation' => true,
             'supportsDropDatabase'           => true,
             'supportsViewManagement'         => true,
+            'supportsProcedureManagement'    => true,
+            'supportsFunctionManagement'     => true,
+            'supportsEventManagement'        => false,
             'welcomeQuery'           => 'SELECT GETDATE() AS now, @@VERSION AS version;',
             'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default, ordinal_position\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = '{table}'\nORDER BY ordinal_position;",
             'identifierOpen'         => '[',
@@ -233,6 +236,170 @@ class SQLServerDriver implements DriverInterface
         $viewName  = 'dbo.' . $name;
         $viewLit   = $this->pdo->quote($viewName);
         $this->pdo->exec("IF OBJECT_ID($viewLit, 'V') IS NOT NULL DROP VIEW dbo.$qView");
+    }
+
+    public function listProcedures(string $database): array
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $stmt = $this->pdo->query(
+            "SELECT p.name
+             FROM sys.procedures p
+             JOIN sys.schemas s ON s.schema_id = p.schema_id
+             WHERE s.name = 'dbo'
+             ORDER BY p.name"
+        );
+        return array_map(static fn($r) => $r['name'], $stmt->fetchAll());
+    }
+
+    public function getProcedureDefinition(string $database, string $procedure): string
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $stmt = $this->pdo->prepare(
+            "SELECT m.definition
+             FROM sys.procedures p
+             JOIN sys.schemas s ON s.schema_id = p.schema_id
+             JOIN sys.sql_modules m ON m.object_id = p.object_id
+             WHERE s.name = 'dbo' AND p.name = :name"
+        );
+        $stmt->execute([':name' => $procedure]);
+        $row = $stmt->fetch();
+        if (!$row || !isset($row['definition'])) {
+            throw new RuntimeException("Procedure not found: $procedure");
+        }
+        return trim((string)$row['definition']);
+    }
+
+    public function upsertProcedure(string $database, string $procedure, string $definition): void
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $name    = $this->validateIdent($procedure);
+        $body    = trim($definition);
+        if ($body === '') {
+            throw new RuntimeException('Procedure definition is empty');
+        }
+        if (!preg_match('/^\s*CREATE\b/i', $body)) {
+            throw new RuntimeException('Procedure definition must start with CREATE PROCEDURE.');
+        }
+        $qProc   = $this->quoteIdent($name);
+        $procLit = $this->pdo->quote('dbo.' . $name);
+        // CREATE PROCEDURE must be the only statement in a batch.
+        $this->pdo->exec("IF OBJECT_ID($procLit, 'P') IS NOT NULL DROP PROCEDURE dbo.$qProc");
+        $this->pdo->exec($body);
+    }
+
+    public function dropProcedure(string $database, string $procedure): void
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $name    = $this->validateIdent($procedure);
+        $qProc   = $this->quoteIdent($name);
+        $procLit = $this->pdo->quote('dbo.' . $name);
+        $this->pdo->exec("IF OBJECT_ID($procLit, 'P') IS NOT NULL DROP PROCEDURE dbo.$qProc");
+    }
+
+    public function listFunctions(string $database): array
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $stmt = $this->pdo->query(
+            "SELECT o.name
+             FROM sys.objects o
+             JOIN sys.schemas s ON s.schema_id = o.schema_id
+             WHERE s.name = 'dbo' AND o.type IN ('FN', 'IF', 'TF')
+             ORDER BY o.name"
+        );
+        return array_map(static fn($r) => $r['name'], $stmt->fetchAll());
+    }
+
+    public function getFunctionDefinition(string $database, string $function): string
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $stmt = $this->pdo->prepare(
+            "SELECT m.definition
+             FROM sys.objects o
+             JOIN sys.schemas s ON s.schema_id = o.schema_id
+             JOIN sys.sql_modules m ON m.object_id = o.object_id
+             WHERE s.name = 'dbo' AND o.name = :name AND o.type IN ('FN', 'IF', 'TF')"
+        );
+        $stmt->execute([':name' => $function]);
+        $row = $stmt->fetch();
+        if (!$row || !isset($row['definition'])) {
+            throw new RuntimeException("Function not found: $function");
+        }
+        return trim((string)$row['definition']);
+    }
+
+    public function upsertFunction(string $database, string $function, string $definition): void
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $name    = $this->validateIdent($function);
+        $body    = trim($definition);
+        if ($body === '') {
+            throw new RuntimeException('Function definition is empty');
+        }
+        if (!preg_match('/^\s*CREATE\b/i', $body)) {
+            throw new RuntimeException('Function definition must start with CREATE FUNCTION.');
+        }
+        $qFunc   = $this->quoteIdent($name);
+        $funcLit = $this->pdo->quote('dbo.' . $name);
+        // Drop scalar, inline-TVF, and multi-statement TVF types.
+        $this->pdo->exec(
+            "IF OBJECT_ID($funcLit, 'FN') IS NOT NULL OR OBJECT_ID($funcLit, 'IF') IS NOT NULL OR OBJECT_ID($funcLit, 'TF') IS NOT NULL DROP FUNCTION dbo.$qFunc"
+        );
+        $this->pdo->exec($body);
+    }
+
+    public function dropFunction(string $database, string $function): void
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec("USE " . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $name    = $this->validateIdent($function);
+        $qFunc   = $this->quoteIdent($name);
+        $funcLit = $this->pdo->quote('dbo.' . $name);
+        $this->pdo->exec(
+            "IF OBJECT_ID($funcLit, 'FN') IS NOT NULL OR OBJECT_ID($funcLit, 'IF') IS NOT NULL OR OBJECT_ID($funcLit, 'TF') IS NOT NULL DROP FUNCTION dbo.$qFunc"
+        );
+    }
+
+    public function listEvents(string $database): array
+    {
+        throw new RuntimeException('SQL Server does not support scheduled events.');
+    }
+
+    public function getEventDefinition(string $database, string $event): string
+    {
+        throw new RuntimeException('SQL Server does not support scheduled events.');
+    }
+
+    public function upsertEvent(string $database, string $event, string $definition): void
+    {
+        throw new RuntimeException('SQL Server does not support scheduled events.');
+    }
+
+    public function dropEvent(string $database, string $event): void
+    {
+        throw new RuntimeException('SQL Server does not support scheduled events.');
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array

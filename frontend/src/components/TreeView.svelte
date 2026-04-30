@@ -27,18 +27,23 @@
             icon: "◫",
             enabled: capabilities?.supportsViewManagement !== false,
         },
-        { mode: "events", label: "Events", icon: "◷", enabled: false },
+        {
+            mode: "events",
+            label: "Events",
+            icon: "◷",
+            enabled: capabilities?.supportsEventManagement !== false,
+        },
         {
             mode: "stored-procedures",
             label: "Stored Procedures",
             icon: "λ",
-            enabled: false,
+            enabled: capabilities?.supportsProcedureManagement !== false,
         },
         {
             mode: "stored-functions",
             label: "Stored Functions",
             icon: "ƒ",
-            enabled: false,
+            enabled: capabilities?.supportsFunctionManagement !== false,
         },
     ];
 

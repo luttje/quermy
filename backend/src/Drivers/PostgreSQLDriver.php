@@ -72,6 +72,9 @@ class PostgreSQLDriver implements DriverInterface
             'supportsAlterDatabaseCollation' => false,
             'supportsDropDatabase'           => true,
             'supportsViewManagement'         => true,
+            'supportsProcedureManagement'    => true,
+            'supportsFunctionManagement'     => true,
+            'supportsEventManagement'        => false,
             'welcomeQuery'           => 'SELECT NOW() AS now, version() AS version;',
             'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = '{table}'\nORDER BY ordinal_position;",
             'identifierOpen'         => '"',
@@ -195,6 +198,170 @@ class PostgreSQLDriver implements DriverInterface
         $name  = $this->validateIdent($view);
         $qView = $this->quoteIdent($name);
         $this->pdo->exec("DROP VIEW IF EXISTS public.$qView");
+    }
+
+    public function listProcedures(string $database): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->query(
+            "SELECT p.proname AS name
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.prokind = 'p'
+             ORDER BY p.proname"
+        );
+        return array_map(static fn($r) => $r['name'], $stmt->fetchAll());
+    }
+
+    public function getProcedureDefinition(string $database, string $procedure): string
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            "SELECT pg_get_proceduredef(p.oid) AS def
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.proname = :name AND p.prokind = 'p'
+             LIMIT 1"
+        );
+        $stmt->execute([':name' => $procedure]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException("Procedure not found: $procedure");
+        }
+        return trim((string)($row['def'] ?? ''));
+    }
+
+    public function upsertProcedure(string $database, string $procedure, string $definition): void
+    {
+        $this->ensureConnected();
+        $body = trim($definition);
+        if ($body === '') {
+            throw new RuntimeException('Procedure definition is empty');
+        }
+        if (!preg_match('/^\s*CREATE\b/i', $body)) {
+            throw new RuntimeException('Procedure definition must start with CREATE PROCEDURE.');
+        }
+        // Drop all overloads of this procedure name before re-creating.
+        $stmt = $this->pdo->prepare(
+            "SELECT p.oid::regprocedure AS sig
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.proname = :name AND p.prokind = 'p'"
+        );
+        $stmt->execute([':name' => $procedure]);
+        foreach ($stmt->fetchAll() as $row) {
+            $sig = $row['sig'];
+            $this->pdo->exec("DROP PROCEDURE IF EXISTS $sig CASCADE");
+        }
+        $this->pdo->exec($body);
+    }
+
+    public function dropProcedure(string $database, string $procedure): void
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            "SELECT p.oid::regprocedure AS sig
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.proname = :name AND p.prokind = 'p'"
+        );
+        $stmt->execute([':name' => $procedure]);
+        foreach ($stmt->fetchAll() as $row) {
+            $sig = $row['sig'];
+            $this->pdo->exec("DROP PROCEDURE IF EXISTS $sig CASCADE");
+        }
+    }
+
+    public function listFunctions(string $database): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->query(
+            "SELECT p.proname AS name
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.prokind = 'f'
+             ORDER BY p.proname"
+        );
+        return array_map(static fn($r) => $r['name'], $stmt->fetchAll());
+    }
+
+    public function getFunctionDefinition(string $database, string $function): string
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            "SELECT pg_get_functiondef(p.oid) AS def
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.proname = :name AND p.prokind = 'f'
+             LIMIT 1"
+        );
+        $stmt->execute([':name' => $function]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException("Function not found: $function");
+        }
+        return trim((string)($row['def'] ?? ''));
+    }
+
+    public function upsertFunction(string $database, string $function, string $definition): void
+    {
+        $this->ensureConnected();
+        $body = trim($definition);
+        if ($body === '') {
+            throw new RuntimeException('Function definition is empty');
+        }
+        if (!preg_match('/^\s*CREATE\b/i', $body)) {
+            throw new RuntimeException('Function definition must start with CREATE FUNCTION.');
+        }
+        // Drop all overloads first to avoid conflicts when return type changes.
+        $stmt = $this->pdo->prepare(
+            "SELECT p.oid::regprocedure AS sig
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.proname = :name AND p.prokind = 'f'"
+        );
+        $stmt->execute([':name' => $function]);
+        foreach ($stmt->fetchAll() as $row) {
+            $sig = $row['sig'];
+            $this->pdo->exec("DROP FUNCTION IF EXISTS $sig CASCADE");
+        }
+        $this->pdo->exec($body);
+    }
+
+    public function dropFunction(string $database, string $function): void
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->prepare(
+            "SELECT p.oid::regprocedure AS sig
+             FROM pg_proc p
+             JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.proname = :name AND p.prokind = 'f'"
+        );
+        $stmt->execute([':name' => $function]);
+        foreach ($stmt->fetchAll() as $row) {
+            $sig = $row['sig'];
+            $this->pdo->exec("DROP FUNCTION IF EXISTS $sig CASCADE");
+        }
+    }
+
+    public function listEvents(string $database): array
+    {
+        throw new RuntimeException('PostgreSQL does not support scheduled events.');
+    }
+
+    public function getEventDefinition(string $database, string $event): string
+    {
+        throw new RuntimeException('PostgreSQL does not support scheduled events.');
+    }
+
+    public function upsertEvent(string $database, string $event, string $definition): void
+    {
+        throw new RuntimeException('PostgreSQL does not support scheduled events.');
+    }
+
+    public function dropEvent(string $database, string $event): void
+    {
+        throw new RuntimeException('PostgreSQL does not support scheduled events.');
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array

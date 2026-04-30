@@ -1,6 +1,6 @@
 # Quermy
 
-A drop-in MySQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdmin with a modern Svelte UI and BYOK (Bring Your Own Key) AI assistance for query writing and schema exploration.
+A drop-in SQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdmin with a modern Svelte UI and BYOK (Bring Your Own Key) AI assistance for query writing and schema exploration.
 
 > [!WARNING]
 > This is a prototype, not production-ready software. Use at your own risk.

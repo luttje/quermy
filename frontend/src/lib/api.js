@@ -76,6 +76,30 @@ export const api = {
     request('PUT', `/databases/${encodeURIComponent(db)}/views/${encodeURIComponent(view)}`, { definition }),
   dropView: (db, view) =>
     request('DELETE', `/databases/${encodeURIComponent(db)}/views/${encodeURIComponent(view)}`),
+
+  listProcedures: (db) => request('GET', `/databases/${encodeURIComponent(db)}/procedures`),
+  getProcedureDefinition: (db, procedure) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/procedures/${encodeURIComponent(procedure)}`),
+  saveProcedureDefinition: (db, procedure, definition) =>
+    request('PUT', `/databases/${encodeURIComponent(db)}/procedures/${encodeURIComponent(procedure)}`, { definition }),
+  dropProcedure: (db, procedure) =>
+    request('DELETE', `/databases/${encodeURIComponent(db)}/procedures/${encodeURIComponent(procedure)}`),
+
+  listFunctions: (db) => request('GET', `/databases/${encodeURIComponent(db)}/functions`),
+  getFunctionDefinition: (db, fn) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/functions/${encodeURIComponent(fn)}`),
+  saveFunctionDefinition: (db, fn, definition) =>
+    request('PUT', `/databases/${encodeURIComponent(db)}/functions/${encodeURIComponent(fn)}`, { definition }),
+  dropFunction: (db, fn) =>
+    request('DELETE', `/databases/${encodeURIComponent(db)}/functions/${encodeURIComponent(fn)}`),
+
+  listEvents: (db) => request('GET', `/databases/${encodeURIComponent(db)}/events`),
+  getEventDefinition: (db, event) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/events/${encodeURIComponent(event)}`),
+  saveEventDefinition: (db, event, definition) =>
+    request('PUT', `/databases/${encodeURIComponent(db)}/events/${encodeURIComponent(event)}`, { definition }),
+  dropEvent: (db, event) =>
+    request('DELETE', `/databases/${encodeURIComponent(db)}/events/${encodeURIComponent(event)}`),
   browseTable: (db, t, limit = 100, offset = 0) =>
     request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}?limit=${limit}&offset=${offset}`),
   runQuery: (db, sql) => request('POST', '/query', { database: db, sql }),

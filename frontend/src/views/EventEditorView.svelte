@@ -10,16 +10,16 @@
     export let db = "";
     export let capabilities = {};
 
-    let loadingViews = true;
+    let loadingItems = true;
     let savingCreate = false;
     let loadingEdit = false;
     let savingEdit = false;
     let dropping = false;
 
-    let views = [];
-    let viewDefinitions = {};
+    let items = [];
+    let definitions = {};
     let lastLoadedDb = null;
-    let loadViewsToken = 0;
+    let loadToken = 0;
 
     let showCreateModal = false;
     let createName = "";
@@ -27,46 +27,43 @@
     let createEditor;
 
     let showEditModal = false;
-    let editViewName = "";
+    let editName = "";
     let editDefinition = "";
     let editEditor;
 
     let showDeleteModal = false;
-    let deleteViewName = "";
+    let deleteName = "";
     let deleteConfirm = "";
 
     $: if (db && db !== lastLoadedDb) {
         lastLoadedDb = db;
         resetState();
-        loadViews();
+        loadItems();
     }
 
     function quoteIdent(name) {
         const ioOpen = capabilities?.identifierOpen ?? "`";
-
         if (ioOpen === '"') return '"' + name.replace(/"/g, '""') + '"';
         if (ioOpen === "[") return "[" + name.replace(/]/g, "]]") + "]";
         return "`" + name.replace(/`/g, "``") + "`";
     }
 
-    function buildTemplateSql() {
-        return `SELECT *\nFROM ${quoteIdent("your_table")};`;
+    function buildTemplateSql(name) {
+        const n = name || "event_name";
+        return `CREATE EVENT ${quoteIdent(n)}\nON SCHEDULE EVERY 1 HOUR\nSTARTS NOW()\nDO BEGIN\n  -- event body\nEND`;
     }
 
     function resetState() {
-        views = [];
-        viewDefinitions = {};
-
+        items = [];
+        definitions = {};
         showCreateModal = false;
         createName = "";
         createDefinition = "";
-
         showEditModal = false;
-        editViewName = "";
+        editName = "";
         editDefinition = "";
-
         showDeleteModal = false;
-        deleteViewName = "";
+        deleteName = "";
         deleteConfirm = "";
     }
 
@@ -77,48 +74,48 @@
         return normalized.slice(0, maxLen - 1) + "…";
     }
 
-    async function loadViews() {
+    async function loadItems() {
         if (!db) return;
 
-        const token = ++loadViewsToken;
+        const token = ++loadToken;
         const sourceDb = db;
-        loadingViews = true;
+        loadingItems = true;
 
         try {
-            const r = await api.listViews(sourceDb);
-            const list = r.views || [];
-            const definitions = await Promise.all(
+            const r = await api.listEvents(sourceDb);
+            const list = r.events || [];
+            const defs = await Promise.all(
                 list.map(async (name) => {
                     try {
-                        const defRes = await api.getViewDefinition(
+                        const res = await api.getEventDefinition(
                             sourceDb,
                             name,
                         );
-                        return [name, defRes.definition ?? ""];
+                        return [name, res.definition ?? ""];
                     } catch (_) {
                         return [name, ""];
                     }
                 }),
             );
 
-            if (token !== loadViewsToken) return;
-            views = list;
-            viewDefinitions = Object.fromEntries(definitions);
+            if (token !== loadToken) return;
+            items = list;
+            definitions = Object.fromEntries(defs);
         } catch (e) {
-            if (token !== loadViewsToken) return;
+            if (token !== loadToken) return;
             toast(e.message, "error");
-            views = [];
-            viewDefinitions = {};
+            items = [];
+            definitions = {};
         } finally {
-            if (token === loadViewsToken) {
-                loadingViews = false;
+            if (token === loadToken) {
+                loadingItems = false;
             }
         }
     }
 
     async function openCreateModal() {
         createName = "";
-        createDefinition = buildTemplateSql();
+        createDefinition = buildTemplateSql("");
         showCreateModal = true;
         await tick();
         createEditor?.setValue(createDefinition);
@@ -129,33 +126,33 @@
         showCreateModal = false;
     }
 
-    async function createView() {
+    async function createItem() {
         if (!db) return;
 
-        const targetView = createName.trim();
+        const targetName = createName.trim();
         const sql = createDefinition.trim();
 
-        if (!targetView) {
-            toast("View name is required", "error");
+        if (!targetName) {
+            toast("Event name is required", "error");
             return;
         }
         if (!sql) {
-            toast("View SQL is required", "error");
+            toast("Event SQL is required", "error");
             return;
         }
 
-        const existed = views.includes(targetView);
+        const existed = items.includes(targetName);
         savingCreate = true;
         try {
-            await api.saveViewDefinition(db, targetView, createDefinition);
+            await api.saveEventDefinition(db, targetName, createDefinition);
             toast(
                 existed
-                    ? `View "${targetView}" updated`
-                    : `View "${targetView}" created`,
+                    ? `Event "${targetName}" updated`
+                    : `Event "${targetName}" created`,
                 "success",
             );
             showCreateModal = false;
-            await loadViews();
+            await loadItems();
         } catch (e) {
             toast(e.message, "error");
         } finally {
@@ -163,11 +160,11 @@
         }
     }
 
-    async function openEditModal(viewName) {
-        if (!db || !viewName) return;
+    async function openEditModal(name) {
+        if (!db || !name) return;
 
-        editViewName = viewName;
-        editDefinition = viewDefinitions[viewName] ?? "";
+        editName = name;
+        editDefinition = definitions[name] ?? "";
         showEditModal = true;
         loadingEdit = true;
 
@@ -175,12 +172,9 @@
         editEditor?.setValue(editDefinition);
 
         try {
-            const r = await api.getViewDefinition(db, viewName);
+            const r = await api.getEventDefinition(db, name);
             editDefinition = r.definition ?? "";
-            viewDefinitions = {
-                ...viewDefinitions,
-                [viewName]: editDefinition,
-            };
+            definitions = { ...definitions, [name]: editDefinition };
 
             await tick();
             editEditor?.setValue(editDefinition);
@@ -196,23 +190,20 @@
         showEditModal = false;
     }
 
-    async function saveEditedView() {
-        if (!db || !editViewName) return;
+    async function saveEdited() {
+        if (!db || !editName) return;
         if (!editDefinition.trim()) {
-            toast("View SQL is required", "error");
+            toast("Event SQL is required", "error");
             return;
         }
 
         savingEdit = true;
         try {
-            await api.saveViewDefinition(db, editViewName, editDefinition);
-            viewDefinitions = {
-                ...viewDefinitions,
-                [editViewName]: editDefinition,
-            };
-            toast(`View "${editViewName}" saved`, "success");
+            await api.saveEventDefinition(db, editName, editDefinition);
+            definitions = { ...definitions, [editName]: editDefinition };
+            toast(`Event "${editName}" saved`, "success");
             showEditModal = false;
-            await loadViews();
+            await loadItems();
         } catch (e) {
             toast(e.message, "error");
         } finally {
@@ -220,9 +211,9 @@
         }
     }
 
-    function openDeleteModal(viewName) {
-        if (!viewName) return;
-        deleteViewName = viewName;
+    function openDeleteModal(name) {
+        if (!name) return;
+        deleteName = name;
         deleteConfirm = "";
         showDeleteModal = true;
     }
@@ -232,21 +223,27 @@
         showDeleteModal = false;
     }
 
-    async function confirmDeleteView() {
-        if (!db || !deleteViewName) return;
-        if (deleteConfirm !== deleteViewName) return;
+    async function confirmDelete() {
+        if (!db || !deleteName) return;
+        if (deleteConfirm !== deleteName) return;
 
         dropping = true;
         try {
-            await api.dropView(db, deleteViewName);
-            toast(`Dropped view "${deleteViewName}"`, "success");
+            await api.dropEvent(db, deleteName);
+            toast(`Dropped event "${deleteName}"`, "success");
             showDeleteModal = false;
-            await loadViews();
+            await loadItems();
         } catch (e) {
             toast(e.message, "error");
         } finally {
             dropping = false;
         }
+    }
+
+    $: if (createName && showCreateModal) {
+        const newDef = buildTemplateSql(createName);
+        createDefinition = newDef;
+        createEditor?.setValue(newDef);
     }
 </script>
 
@@ -255,9 +252,9 @@
         class="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-(--line) bg-(--bg-2)"
     >
         <div class="flex flex-col">
-            <h2 class="mono text-(--ink-0) text-[12.5px]">Views · {db}</h2>
+            <h2 class="mono text-(--ink-0) text-[12.5px]">Events · {db}</h2>
             <p class="mono text-(--ink-3) text-[10.5px]">
-                Browse, edit, and delete SQL views.
+                Browse, edit, and delete scheduled events.
             </p>
         </div>
         <div class="flex items-center gap-1.5">
@@ -266,35 +263,35 @@
                 class="text-[11px] px-2.5 py-1!"
                 on:click={openCreateModal}
             >
-                Create View
+                Create Event
             </Btn>
             <Btn
                 variant="ghost"
                 class="text-[11px] px-2.5 py-1!"
-                disabled={loadingViews}
-                on:click={loadViews}
+                disabled={loadingItems}
+                on:click={loadItems}
             >
-                {loadingViews ? "Refreshing..." : "Refresh"}
+                {loadingItems ? "Refreshing..." : "Refresh"}
             </Btn>
         </div>
     </header>
 
     <div class="p-2.5">
-        {#if loadingViews}
+        {#if loadingItems}
             <div
                 class="px-2 py-4 text-center mono text-(--ink-3) text-[11.5px]"
             >
-                Loading views…
+                Loading events…
             </div>
-        {:else if views.length === 0}
+        {:else if items.length === 0}
             <div
                 class="px-2 py-4 text-center mono text-(--ink-3) text-[11.5px]"
             >
-                No views found in {db}.
+                No events found in {db}.
             </div>
         {:else}
             <ul class="divide-y divide-(--line)">
-                {#each views as name}
+                {#each items as name}
                     <li class="px-2.5 py-2.5">
                         <div class="flex items-start gap-3">
                             <div class="flex-1 min-w-0">
@@ -305,9 +302,9 @@
                                 </p>
                                 <p
                                     class="mono text-(--ink-3) text-[11px] truncate mt-0.5"
-                                    title={viewDefinitions[name] ?? ""}
+                                    title={definitions[name] ?? ""}
                                 >
-                                    {truncateSql(viewDefinitions[name])}
+                                    {truncateSql(definitions[name])}
                                 </p>
                             </div>
                             <div class="shrink-0 flex items-center gap-1.5">
@@ -336,7 +333,7 @@
 
 <Modal
     open={showCreateModal}
-    title={`Create View · ${db}`}
+    title={`Create Event · ${db}`}
     maxWidth="max-w-5xl"
     on:close={closeCreateModal}
 >
@@ -345,22 +342,19 @@
             <span
                 class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
             >
-                View Name
+                Event Name
             </span>
             <Input
-                placeholder="e.g. active_users"
+                placeholder="e.g. cleanup_old_records"
                 bind:value={createName}
                 class="text-[12px] py-2!"
-                on:keydown={(e) => {
-                    if (e.key === "Enter") createView();
-                }}
             />
         </label>
         <div class="flex flex-col gap-1">
             <span
                 class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
             >
-                View SQL
+                Event SQL
             </span>
             <div
                 class="h-[360px] bg-(--bg-input) border border-(--line) rounded-(--radius) overflow-hidden"
@@ -368,7 +362,7 @@
                 <CodeEditor
                     bind:value={createDefinition}
                     bind:this={createEditor}
-                    placeholder="SELECT ... FROM ..."
+                    placeholder="CREATE EVENT ..."
                     minHeight="320px"
                     mode="sql"
                 />
@@ -388,23 +382,23 @@
             disabled={savingCreate ||
                 !createName.trim() ||
                 !createDefinition.trim()}
-            on:click={createView}
+            on:click={createItem}
         >
-            {savingCreate ? "Creating…" : "Create View"}
+            {savingCreate ? "Creating…" : "Create Event"}
         </Btn>
     </div>
 </Modal>
 
 <Modal
     open={showEditModal}
-    title={`Edit View · ${editViewName}`}
+    title={`Edit Event · ${editName}`}
     maxWidth="max-w-5xl"
     on:close={closeEditModal}
 >
     <div class="p-5 flex flex-col gap-3.5">
         <div class="flex items-center justify-between gap-2">
             <div class="mono text-[11px] text-(--ink-2)">
-                Editing <span class="text-(--ink-0)">{editViewName}</span>
+                Editing <span class="text-(--ink-0)">{editName}</span>
             </div>
             {#if loadingEdit}
                 <div class="mono text-[10px] text-(--ink-3)">
@@ -418,7 +412,7 @@
             <CodeEditor
                 bind:value={editDefinition}
                 bind:this={editEditor}
-                placeholder="SELECT ... FROM ..."
+                placeholder="CREATE EVENT ..."
                 minHeight="360px"
                 mode="sql"
             />
@@ -431,32 +425,30 @@
         <Btn
             variant="primary"
             disabled={savingEdit || loadingEdit || !editDefinition.trim()}
-            on:click={saveEditedView}
+            on:click={saveEdited}
         >
-            {savingEdit ? "Saving…" : "Save View"}
+            {savingEdit ? "Saving…" : "Save Event"}
         </Btn>
     </div>
 </Modal>
 
 <Modal
     open={showDeleteModal}
-    title={`Delete View · ${deleteViewName}`}
+    title={`Delete Event · ${deleteName}`}
     maxWidth="max-w-md"
     on:close={closeDeleteModal}
 >
     <div class="p-5 flex flex-col gap-3.5">
         <p class="text-[12px] text-(--ink-2)">
             This action is permanent. Type
-            <span class="mono text-(--ink-0)">{deleteViewName}</span> to confirm.
+            <span class="mono text-(--ink-0)">{deleteName}</span> to confirm.
         </p>
         <Input
-            placeholder={deleteViewName
-                ? `Type ${deleteViewName}`
-                : "Type view name"}
+            placeholder={deleteName ? `Type ${deleteName}` : "Type event name"}
             bind:value={deleteConfirm}
             class="text-[12px] py-2!"
             on:keydown={(e) => {
-                if (e.key === "Enter") confirmDeleteView();
+                if (e.key === "Enter") confirmDelete();
             }}
         />
     </div>
@@ -466,10 +458,10 @@
         </Btn>
         <Btn
             variant="danger"
-            disabled={dropping || deleteConfirm !== deleteViewName}
-            on:click={confirmDeleteView}
+            disabled={dropping || deleteConfirm !== deleteName}
+            on:click={confirmDelete}
         >
-            {dropping ? "Deleting…" : "Delete View"}
+            {dropping ? "Deleting…" : "Delete Event"}
         </Btn>
     </div>
 </Modal>

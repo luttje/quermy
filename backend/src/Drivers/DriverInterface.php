@@ -138,6 +138,9 @@ interface DriverInterface
      * - supportsAlterDatabaseCollation: alterDatabaseCollation() is implemented
      * - supportsDropDatabase:     dropDatabase() is implemented
      * - supportsViewManagement:   list/get/create-or-replace/drop views are implemented
+     * - supportsProcedureManagement: list/get/upsert/drop stored procedures
+     * - supportsFunctionManagement:  list/get/upsert/drop stored functions
+     * - supportsEventManagement:     list/get/upsert/drop scheduled events
      * - welcomeQuery:             default SQL shown when the user opens a new connection
      * - structureQueryTemplate:   default SQL for the "structure" view; use {db}/{table} tokens
      * - identifierOpen/Close:     quoting characters for identifiers (e.g. ` or ")
@@ -159,6 +162,9 @@ interface DriverInterface
      *   supportsAlterDatabaseCollation: bool,
      *   supportsDropDatabase: bool,
      *   supportsViewManagement: bool,
+     *   supportsProcedureManagement: bool,
+     *   supportsFunctionManagement: bool,
+     *   supportsEventManagement: bool,
      *   welcomeQuery: string,
      *   structureQueryTemplate: string,
      *   identifierOpen: string,
@@ -338,4 +344,91 @@ interface DriverInterface
      * Drop a view if it exists.
      */
     public function dropView(string $database, string $view): void;
+
+    // -------------------------------------------------------------------------
+    // Stored procedure management
+    // -------------------------------------------------------------------------
+
+    /**
+     * List stored procedure names in a database/schema.
+     *
+     * @return list<string>
+     */
+    public function listProcedures(string $database): array;
+
+    /**
+     * Return the full CREATE PROCEDURE statement for the named procedure.
+     */
+    public function getProcedureDefinition(string $database, string $procedure): string;
+
+    /**
+     * Create or replace a stored procedure from its full CREATE PROCEDURE body.
+     *
+     * Implementations should drop the existing procedure (if any) and execute
+     * the provided definition statement.
+     */
+    public function upsertProcedure(string $database, string $procedure, string $definition): void;
+
+    /**
+     * Drop a stored procedure if it exists.
+     */
+    public function dropProcedure(string $database, string $procedure): void;
+
+    // -------------------------------------------------------------------------
+    // Stored function management
+    // -------------------------------------------------------------------------
+
+    /**
+     * List stored function names in a database/schema.
+     *
+     * @return list<string>
+     */
+    public function listFunctions(string $database): array;
+
+    /**
+     * Return the full CREATE FUNCTION statement for the named function.
+     */
+    public function getFunctionDefinition(string $database, string $function): string;
+
+    /**
+     * Create or replace a stored function from its full CREATE FUNCTION body.
+     *
+     * Implementations should drop the existing function (if any) and execute
+     * the provided definition statement.
+     */
+    public function upsertFunction(string $database, string $function, string $definition): void;
+
+    /**
+     * Drop a stored function if it exists.
+     */
+    public function dropFunction(string $database, string $function): void;
+
+    // -------------------------------------------------------------------------
+    // Event management
+    // -------------------------------------------------------------------------
+
+    /**
+     * List scheduled event names in a database/schema.
+     *
+     * @return list<string>
+     */
+    public function listEvents(string $database): array;
+
+    /**
+     * Return the full CREATE EVENT statement for the named event.
+     */
+    public function getEventDefinition(string $database, string $event): string;
+
+    /**
+     * Create or replace a scheduled event from its full CREATE EVENT body.
+     *
+     * Implementations should drop the existing event (if any) and execute
+     * the provided definition statement.
+     */
+    public function upsertEvent(string $database, string $event, string $definition): void;
+
+    /**
+     * Drop a scheduled event if it exists.
+     */
+    public function dropEvent(string $database, string $event): void;
 }

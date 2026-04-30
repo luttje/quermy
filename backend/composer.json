@@ -1,6 +1,6 @@
 {
     "name": "quermy/quermy",
-    "description": "A drop-in MySQL companion for W/LAMP stacks with a modern Svelte UI and BYOK (Bring Your Own Key) AI assistance for query writing and schema exploration.",
+    "description": "A drop-in SQL companion for W/LAMP stacks with a modern Svelte UI and BYOK (Bring Your Own Key) AI assistance for query writing and schema exploration.",
     "type": "project",
     "license": "MIT",
     "scripts": {
