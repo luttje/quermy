@@ -224,11 +224,6 @@
                     >// modern database administration</span
                 >
             </div>
-            <p class="text-(--ink-1) text-[16px] leading-[1.55] mt-4 max-w-130">
-                A keyboard-first relational client that lives in your stack.
-                Connect once, and your databases are a few keystrokes away — for
-                as long as you keep the project around.
-            </p>
         </div>
         <button
             type="button"
