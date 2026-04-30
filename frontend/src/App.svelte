@@ -147,6 +147,7 @@
             // Set the welcome query for the SQL editor if it hasn't been manually changed
             if (!sql.trim()) {
                 sql = data.welcomeQuery ?? "";
+                sqlEditor?.setValue(sql);
             }
         } catch (_) {}
     }
