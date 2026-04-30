@@ -195,7 +195,7 @@
                 <div class="flex flex-col">
                     <button
                         bind:this={dbRefs[db]}
-                        class="w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left text-(--ink-1) rounded min-w-0 transition-[background,color] duration-60 hover:bg-(--bg-2) hover:text-(--ink-0)"
+                        class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left text-(--ink-1) rounded min-w-0 transition-[background,color] duration-60 hover:bg-(--bg-2) hover:text-(--ink-0)"
                         on:click={() => toggleDb(db)}
                         title={db}
                     >
@@ -234,7 +234,7 @@
                                         {@const tk = tableKey(db, t.name)}
                                         <div class="flex flex-col">
                                             <button
-                                                class="w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left text-(--ink-1) rounded min-w-0 transition-[background,color] duration-60 hover:bg-(--bg-2) hover:text-(--ink-0)"
+                                                class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left text-(--ink-1) rounded min-w-0 transition-[background,color] duration-60 hover:bg-(--bg-2) hover:text-(--ink-0)"
                                                 on:click={() =>
                                                     toggleTable(db, t.name)}
                                                 title={t.name}
@@ -258,7 +258,7 @@
                                             {#if expandedTables.has(tk)}
                                                 <div class="pl-5.5">
                                                     <button
-                                                        class="w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
+                                                        class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
                                                         leafKey(
                                                             db,
                                                             t.name,
@@ -289,7 +289,7 @@
                                                         {/if}
                                                     </button>
                                                     <button
-                                                        class="w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
+                                                        class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
                                                         leafKey(
                                                             db,
                                                             t.name,

@@ -515,11 +515,13 @@
                         {/if}
                     {:else}
                         <div
-                            class="text-(--ink-3) text-center px-4 py-8 bg-(--bg-1) border border-dashed border-(--line-strong) rounded-lg text-[13px]"
+                            class="flex-1 text-(--ink-3) text-center px-4 py-8 bg-(--bg-1) border border-dashed border-(--line-strong) rounded-lg text-[13px]"
                         >
-                            Press <Kbd>⌘ Enter</Kbd> or click
-                            <strong>Run</strong> to execute, or pick a table from
-                            the explorer.
+                            <span>
+                                Press <Kbd>⌘ Enter</Kbd> or click
+                                <strong>Run</strong> to execute, or pick a table
+                                from the explorer.
+                            </span>
                         </div>
                     {/if}
 
