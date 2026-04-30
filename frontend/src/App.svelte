@@ -22,31 +22,43 @@
     // --- URL hash helpers ---
     function buildHash(ctx) {
         if (!ctx) return "";
-        const p = new URLSearchParams({
-            db: ctx.db,
-            table: ctx.table,
-            mode: ctx.mode,
-        });
+
+        const parameters = {};
+
+        if (ctx.db) parameters.db = ctx.db;
+        if (ctx.table) parameters.table = ctx.table;
+        if (ctx.mode) parameters.mode = ctx.mode;
+
+        const p = new URLSearchParams(parameters);
         return "#" + p.toString();
     }
 
     function parseHash() {
         const raw = location.hash.slice(1);
+
         if (!raw) return null;
+
         try {
             const p = new URLSearchParams(raw);
             const db = p.get("db");
             const table = p.get("table");
             const mode = p.get("mode") || "data";
-            if (db && table) return { db, table, mode };
+            const context = {};
+
+            if (db) context.db = db;
+            if (table) context.table = table;
+            if (mode) context.mode = mode;
+
+            return Object.keys(context).length > 0 ? context : null;
         } catch (_) {}
+
         return null;
     }
 
     function handlePopState() {
         const ctx = parseHash();
         if (ctx && $session) {
-            loadTableFromUrl(ctx);
+            loadOpenStateFromUrl(ctx);
         } else {
             tableContext = null;
             result = null;
@@ -61,6 +73,7 @@
     let result = null; // { columns, rows, total, durationMs, isSelect, affected }
     let errors = []; // [{ message, time }] — persistent SQL error log, newest first
     let tableContext = null; // { db, table, mode } — set when browsing via tree
+    let defaultDb = null;
     let sqlEditor;
 
     // Resizable panes
@@ -82,7 +95,7 @@
                 session.set(r.active);
                 // Restore state from URL after session is confirmed
                 const ctx = parseHash();
-                if (ctx) loadTableFromUrl(ctx);
+                if (ctx) loadOpenStateFromUrl(ctx);
             }
         } catch (_) {
             /* no session — show connect view */
@@ -174,10 +187,15 @@
         const { db: tDb, table: tTbl, mode: tMode } = e.detail;
         const newCtx = { db: tDb, table: tTbl, mode: tMode };
         history.pushState(newCtx, "", buildHash(newCtx));
-        await loadTableFromUrl(newCtx);
+        await loadOpenStateFromUrl(newCtx);
     }
 
-    async function loadTableFromUrl(ctx) {
+    async function handleToggleDb(e) {
+        const { db } = e.detail;
+        history.pushState(null, "", buildHash({ db }));
+    }
+
+    async function loadOpenStateFromUrl(ctx) {
         const { db: tDb, table: tTbl, mode: tMode } = ctx;
         queryDb = tDb;
 
@@ -190,14 +208,19 @@
             return "`" + name.replace(/`/g, "``") + "`";
         }
         const qDb = quoteIdent(tDb);
-        const qTbl = quoteIdent(tTbl);
-        if (tMode === "data") {
-            sql = `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`;
+
+        if (tTbl) {
+            const qTbl = quoteIdent(tTbl);
+            if (tMode === "data") {
+                sql = `SELECT *\nFROM ${qDb}.${qTbl}\nLIMIT 100;`;
+            } else {
+                const tmpl = $capabilities?.structureQueryTemplate;
+                sql = tmpl
+                    ? tmpl.replace("{db}", tDb).replace("{table}", tTbl)
+                    : `SELECT * FROM ${qDb}.${qTbl};`;
+            }
         } else {
-            const tmpl = $capabilities?.structureQueryTemplate;
-            sql = tmpl
-                ? tmpl.replace("{db}", tDb).replace("{table}", tTbl)
-                : `SELECT * FROM ${qDb}.${qTbl};`;
+            sql = `SHOW TABLES IN ${qDb};`;
         }
 
         // Push the new value into CodeMirror's internal state
@@ -207,22 +230,26 @@
         tableContext = null;
         result = null;
 
-        try {
-            const t0 = performance.now();
-            const r = await api.browseTable(tDb, tTbl);
-            const dt = performance.now() - t0;
-            result = {
-                columns: r.columns,
-                rows: r.rows,
-                affected: r.total,
-                isSelect: true,
-                durationMs: Math.round(dt * 100) / 100,
-            };
-            tableContext = { db: tDb, table: tTbl, mode: tMode };
-        } catch (e) {
-            errors = [{ message: e.message, time: new Date() }, ...errors];
-        } finally {
-            busy = false;
+        if (tTbl) {
+            try {
+                const t0 = performance.now();
+                const r = await api.browseTable(tDb, tTbl);
+                const dt = performance.now() - t0;
+                result = {
+                    columns: r.columns,
+                    rows: r.rows,
+                    affected: r.total,
+                    isSelect: true,
+                    durationMs: Math.round(dt * 100) / 100,
+                };
+                tableContext = { db: tDb, table: tTbl, mode: tMode };
+            } catch (e) {
+                errors = [{ message: e.message, time: new Date() }, ...errors];
+            } finally {
+                busy = false;
+            }
+        } else {
+            defaultDb = tDb;
         }
     }
 
@@ -350,7 +377,9 @@
                     {databases}
                     {busy}
                     activeContext={tableContext}
+                    bind:db={defaultDb}
                     on:runSql={handleRunSql}
+                    on:toggleDb={handleToggleDb}
                     on:openTable={handleOpenTable}
                 />
             </aside>

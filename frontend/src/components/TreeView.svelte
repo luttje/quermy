@@ -6,6 +6,7 @@
     export let databases = [];
     export let busy = false;
     export let activeContext = null; // { db, table, mode } — set when restoring from URL
+    export let db = null; // Optional: if set, auto-expand this DB on mount and when it appears in the list
 
     const dispatch = createEventDispatcher();
 
@@ -31,11 +32,14 @@
             expandedDbs = new Set(expandedDbs);
             return;
         }
+
         expandedDbs.add(db);
         expandedDbs = new Set(expandedDbs);
+
         if (!tableMap[db]) {
             loadingDbs.add(db);
             loadingDbs = new Set(loadingDbs);
+
             try {
                 const r = await api.listTables(db);
                 tableMap[db] = r.tables || [];
@@ -49,6 +53,8 @@
                 loadingDbs = new Set(loadingDbs);
             }
         }
+
+        dispatch("toggleDb", { db });
     }
 
     function toggleTable(db, table) {
@@ -137,6 +143,12 @@
 
         activeNode = leafKey(db, table, mode);
     }
+
+    onMount(async () => {
+        if (db) {
+            await syncFromContext({ db, table: null, mode: null });
+        }
+    });
 </script>
 
 <nav class="h-full flex flex-col overflow-hidden">
