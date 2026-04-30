@@ -15,8 +15,11 @@ use RuntimeException;
  * Credentials (including plaintext passwords) live ONLY in $_SESSION, which
  * PHP stores server-side. They are never sent to the client.
  */
-class ConnectionSession
+class ConnectionSession implements ConnectionSessionInterface
 {
+    /**
+     * @inheritdoc ConnectionSessionInterface::bindAdhoc
+     */
     public function bindAdhoc(array $creds): void
     {
         // Keep only what we need; null-safe for file-type connections
@@ -34,16 +37,25 @@ class ConnectionSession
         ];
     }
 
+    /**
+     * @inheritdoc ConnectionSessionInterface::clear
+     */
     public function clear(): void
     {
         unset($_SESSION['quermy_conn']);
     }
 
+    /**
+     * @inheritdoc ConnectionSessionInterface::isBound
+     */
     public function isBound(): bool
     {
         return isset($_SESSION['quermy_conn']);
     }
 
+    /**
+     * @inheritdoc ConnectionSessionInterface::describe
+     */
     public function describe(): ?array
     {
         if (!$this->isBound()) return null;
@@ -58,7 +70,9 @@ class ConnectionSession
         ];
     }
 
-    /** Open a fresh driver for this request using the bound credentials. */
+    /**
+     * @inheritdoc ConnectionSessionInterface::open
+     */
     public function open(): DriverInterface
     {
         if (!$this->isBound()) {

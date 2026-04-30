@@ -2,14 +2,14 @@
 
 namespace Quermy\Controllers;
 
-use Quermy\Http\ConnectionSession;
+use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
 
 final class RowController extends BaseController
 {
     public function __construct(
-        private ConnectionSession $session,
+        private ConnectionSessionInterface $session,
     ) {}
 
     #[Route('POST', '/api/databases/{db}/tables/{table}/rows')]

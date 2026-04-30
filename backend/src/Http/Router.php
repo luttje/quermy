@@ -2,6 +2,7 @@
 
 namespace Quermy\Http;
 
+use Quermy\Kernel\ContainerResolverInterface;
 use ReflectionClass;
 use ReflectionMethod;
 
@@ -58,24 +59,28 @@ final class Router
     }
 
     /**
-     * @param callable(string):object $resolve  Factory that builds a controller by class name.
+     * Dispatch a request to the appropriate controller action.
      */
-    public function dispatch(string $method, string $path, callable $resolve): void
+    public function dispatch(string $method, string $path, ContainerResolverInterface $resolver): void
     {
         $method = strtoupper($method);
+
         foreach ($this->routes as $r) {
             if ($r['method'] !== $method) continue;
             if (!preg_match($r['regex'], $path, $m)) continue;
 
             $args = [];
+
             foreach ($r['params'] as $i => $name) {
                 $args[$name] = rawurldecode($m[$i + 1]);
             }
 
-            $controller = $resolve($r['class']);
+            $controller = $resolver->resolve($r['class']);
             $controller->{$r['action']}(...$args);
+
             return;
         }
+
         Json::error("Not found: $method $path", 404);
     }
 }

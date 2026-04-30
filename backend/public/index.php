@@ -6,6 +6,8 @@ use Quermy\Http\Json;
 use Quermy\Http\Router;
 use Quermy\Http\ConnectionSession;
 use Quermy\Controllers\BaseController;
+use Quermy\Http\ConnectionSessionInterface;
+use Quermy\Kernel\Container;
 
 // Session cookies are HTTPOnly to prevent JavaScript access, mitigating XSS risks.
 // SameSite=Lax to prevent CSRF on state-changing endpoints while allowing normal navigation.
@@ -21,39 +23,14 @@ session_set_cookie_params([
 session_start();
 
 /*
- * Dependencies
- */
-$session = new ConnectionSession();
-
-/*
- * Controller resolver
+ * Container
  *
- * Hand-rolled mini-container. Each controller declares its dependencies via
- * its constructor; we map the two we have ($vault, $session) by parameter
- * type. Anything else throws — better to fail loudly than silently inject
- * nulls.
+ * Register every dependency the controllers can ask for. Adding a new
+ * service means one bind() call here — controllers themselves stay ignorant
+ * of how their dependencies are constructed.
  */
-$resolve = function (string $class) use ($session): object {
-    $rc = new ReflectionClass($class);
-    $ctor = $rc->getConstructor();
-    if ($ctor === null) {
-        return new $class();
-    }
-
-    $args = [];
-    foreach ($ctor->getParameters() as $p) {
-        $type = $p->getType();
-        $name = $type instanceof ReflectionNamedType ? $type->getName() : null;
-        $args[] = match ($name) {
-            ConnectionSession::class => $session,
-            default => throw new RuntimeException(
-                "Cannot resolve parameter \${$p->getName()} of type "
-                . ($name ?? 'mixed') . " for $class"
-            ),
-        };
-    }
-    return $rc->newInstanceArgs($args);
-};
+$container = new Container();
+$container->instance(ConnectionSessionInterface::class, new ConnectionSession());
 
 /*
  * Controller discovery
@@ -119,7 +96,7 @@ if ($method === 'OPTIONS') {
 }
 
 try {
-    $router->dispatch($method, $path, $resolve);
+    $router->dispatch($method, $path, $container);
 } catch (\Throwable $e) {
     Json::error($e->getMessage(), 500);
 }

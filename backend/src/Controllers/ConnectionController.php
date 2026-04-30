@@ -4,14 +4,14 @@ namespace Quermy\Controllers;
 
 use Quermy\Http\Route;
 use Quermy\Http\Json;
-use Quermy\Http\ConnectionSession;
+use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\ServerConfig;
 use Quermy\Drivers\DriverFactory;
 
 final class ConnectionController extends BaseController
 {
     public function __construct(
-        private ConnectionSession $session,
+        private ConnectionSessionInterface $session,
     ) {}
 
     #[Route('POST', '/api/connect')]

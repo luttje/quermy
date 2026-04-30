@@ -3,7 +3,7 @@
 namespace Quermy\Controllers;
 
 use Quermy\Drivers\DriverFactory;
-use Quermy\Http\ConnectionSession;
+use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
 use Quermy\Http\ServerConfig;
@@ -11,7 +11,7 @@ use Quermy\Http\ServerConfig;
 final class MetaController extends BaseController
 {
     public function __construct(
-        private ConnectionSession $session,
+        private ConnectionSessionInterface $session,
     ) {}
 
     #[Route('GET', '/api/engines')]

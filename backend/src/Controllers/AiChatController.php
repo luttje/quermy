@@ -12,14 +12,14 @@ use Quermy\Ai\Tools\ListTables;
 use Quermy\Ai\Tools\SampleTable;
 use Quermy\Ai\Tools\SearchSchema;
 use Quermy\Ai\Tools\SuggestQuery;
-use Quermy\Http\ConnectionSession;
+use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
 
 final class AiChatController extends BaseController
 {
     public function __construct(
-        private ConnectionSession $session,
+        private ConnectionSessionInterface $session,
     ) {}
 
     #[Route('POST', '/api/ai/chat/stream')]

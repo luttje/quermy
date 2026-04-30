@@ -2,7 +2,7 @@
 
 namespace Quermy\Ai\Tools;
 
-use Quermy\Http\ConnectionSession;
+use Quermy\Http\ConnectionSessionInterface;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 
 #[AsTool(
@@ -28,7 +28,7 @@ use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 final class SampleTable
 {
     public function __construct(
-        private ConnectionSession $session,
+        private ConnectionSessionInterface $session,
     ) {}
 
     /**
