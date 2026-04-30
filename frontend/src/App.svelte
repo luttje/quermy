@@ -84,8 +84,15 @@
 
     // Resizable panes
     let sqlPaneHeight = 220;
-    let leftWidth = 220;
-    let rightWidth = 260;
+    let leftWidth = 300;
+    let rightWidth = 300;
+
+    const screenWidth = window.innerWidth;
+    const maxSideWidth = screenWidth * 0.2;
+
+    // Ensure the initial widths respect the max
+    leftWidth = Math.max(leftWidth, maxSideWidth);
+    rightWidth = Math.max(rightWidth, maxSideWidth);
 
     // Modals
     let showExportModal = false;
