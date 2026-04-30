@@ -20,6 +20,7 @@
     import SearchView from "./views/SearchView.svelte";
 
     let bootstrapping = true;
+    let criticalSystemError = null;
 
     // Engines list (populated once on mount for defaultPort lookups etc.)
     let engines = [];
@@ -91,7 +92,16 @@
     let showSearchModal = false;
 
     onMount(async () => {
+        try {
+            await api.checkSystem();
+        } catch (e) {
+            toast("System check failed: " + e.message, "error");
+            criticalSystemError = e.message;
+            return;
+        }
+
         window.addEventListener("popstate", handlePopState);
+
         try {
             const engRes = await api.getEngines();
             engines = engRes.engines || [];
@@ -343,7 +353,11 @@
 
 <Toaster />
 
-{#if bootstrapping}
+{#if criticalSystemError}
+    <div class="flex-1 flex items-center justify-center text-(--ink-3) mono">
+        Critical system error: {criticalSystemError}
+    </div>
+{:else if bootstrapping}
     <div class="flex-1 flex items-center justify-center text-(--ink-3) mono">
         initializing…
     </div>

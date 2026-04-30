@@ -39,6 +39,9 @@ async function request(method, path, body) {
 }
 
 export const api = {
+    // system check
+    checkSystem: () => request('GET', '/system-check'),
+
     // session
     getSession: () => request('GET', '/session'),
     disconnect: () => request('POST', '/session/disconnect'),
