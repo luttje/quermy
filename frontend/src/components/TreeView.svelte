@@ -1,5 +1,5 @@
 <script>
-    import { createEventDispatcher, onMount } from "svelte";
+    import { createEventDispatcher, onMount, tick } from "svelte";
     import { api } from "../lib/api.js";
     import { toast } from "../lib/store.js";
 
@@ -10,15 +10,13 @@
 
     const dispatch = createEventDispatcher();
 
+    let dbRefs = {}; // db name → button element
     let expandedDbs = new Set();
     let expandedTables = new Set(); // "db\0table"
     let tableMap = {}; // db -> tables[]
     let loadingDbs = new Set();
     let activeNode = null; // "db\0table\0mode"
 
-    function dbKey(db) {
-        return db;
-    }
     function tableKey(db, table) {
         return `${db}\0${table}`;
     }
@@ -147,6 +145,15 @@
     onMount(async () => {
         if (db) {
             await syncFromContext({ db, table: null, mode: null });
+            await tick(); // wait for Svelte to render the expanded state
+            const dbButton = dbRefs[db];
+
+            if (dbButton) {
+                (dbButton.parentElement ?? dbButton).scrollIntoView({
+                    block: "nearest",
+                    behavior: "smooth",
+                });
+            }
         }
     });
 </script>
@@ -187,6 +194,7 @@
             {#each filteredDatabases as db}
                 <div class="flex flex-col">
                     <button
+                        bind:this={dbRefs[db]}
                         class="w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left text-(--ink-1) rounded min-w-0 transition-[background,color] duration-60 hover:bg-(--bg-2) hover:text-(--ink-0)"
                         on:click={() => toggleDb(db)}
                         title={db}

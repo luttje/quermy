@@ -265,6 +265,7 @@
             }
         } else {
             defaultDb = tDb;
+            busy = false;
         }
     }
 
