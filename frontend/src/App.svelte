@@ -13,13 +13,14 @@
     import ForeignKeysTable from "./components/ForeignKeysTable.svelte";
     import Toaster from "./components/Toaster.svelte";
     import ResizeHandle from "./components/ResizeHandle.svelte";
-    import SqlEditor from "./components/SqlEditor.svelte";
+    import CodeEditor from "./components/CodeEditor.svelte";
     import Modal from "./components/Modal.svelte";
     import Btn from "./components/ui/Btn.svelte";
     import Kbd from "./components/ui/Kbd.svelte";
     import SearchView from "./views/SearchView.svelte";
     import DatabaseEditView from "./views/DatabaseEditView.svelte";
     import ViewEditorView from "./views/ViewEditorView.svelte";
+    import Select from "./components/ui/Select.svelte";
 
     let bootstrapping = true;
     let criticalSystemError = null;
@@ -539,15 +540,12 @@
                                 class="text-[9px] uppercase tracking-widest text-(--ink-3) font-bold"
                                 >DB</span
                             >
-                            <select
-                                class="bg-transparent border-0 text-(--ink-1) font-(--font-mono) text-[11.5px] p-0 min-w-15 focus:outline-none"
-                                bind:value={queryDb}
-                            >
+                            <Select bind:value={queryDb}>
                                 <option value="">(none)</option>
                                 {#each databases as d}
                                     <option value={d}>{d}</option>
                                 {/each}
-                            </select>
+                            </Select>
                         </label>
                         <div class="flex items-center gap-2">
                             <span class="muted mono text-[10.5px]"
@@ -567,7 +565,11 @@
                             </Btn>
                         </div>
                     </div>
-                    <SqlEditor bind:value={sql} bind:this={sqlEditor} />
+                    <CodeEditor
+                        bind:value={sql}
+                        bind:this={sqlEditor}
+                        mode="sql"
+                    />
                 </div>
 
                 <!-- Resize handle -->

@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher, tick, onDestroy } from "svelte";
+    import Input from "./Input.svelte";
 
     /**
      * @typedef {string | { value: string, label?: string, disabled?: boolean }} Option
@@ -367,7 +368,7 @@
         class="bg-(--bg-input) border border-(--line) rounded-(--radius) shadow-lg overflow-hidden flex flex-col"
     >
         <div class="p-1.5 border-b border-(--line) shrink-0">
-            <input
+            <Input
                 bind:this={searchInputEl}
                 bind:value={query}
                 on:keydown={handleKeydown}
@@ -375,7 +376,7 @@
                 placeholder={searchPlaceholder}
                 autocomplete="off"
                 spellcheck="false"
-                class="w-full bg-(--bg-2,transparent) border border-(--line) rounded px-2 py-1 text-(--ink-0) mono text-[12px] outline-none focus:border-(--acc) transition-colors"
+                class="mono text-[11px]!"
             />
         </div>
 

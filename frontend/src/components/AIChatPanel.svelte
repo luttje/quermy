@@ -9,6 +9,9 @@
     import VaultGate from "./VaultGate.svelte";
     import { quermySystemPrompt } from "../lib/prompts";
     import "highlight.js/styles/atom-one-dark.css";
+    import Btn from "./ui/Btn.svelte";
+    import Select from "./ui/Select.svelte";
+    import CodeEditor from "./CodeEditor.svelte";
 
     // Provider metadata — fetched once for model-list lookups.
     let providers = [];
@@ -367,20 +370,17 @@
                     </span>
                 {/if}
             </div>
-            <button
+            <Btn
                 on:click={() => {
                     showOptions = !showOptions;
                     showKeyManager = false;
                     showPromptEditor = false;
                 }}
-                class="w-6 h-6 flex items-center justify-center rounded-(--radius) border transition-colors duration-80
-                       {showOptions
-                    ? 'border-(--acc) text-(--acc) bg-(--acc)/10'
-                    : 'border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc)'}"
+                class="px-2! py-0.5!"
                 title="AI options"
             >
                 ⚙
-            </button>
+            </Btn>
         </div>
 
         <!-- collapsible options tray -->
@@ -391,42 +391,31 @@
                 {#if $aiKeys.length > 0}
                     <!-- Key + model row -->
                     <div class="flex items-center gap-1.5">
-                        <span class="text-[10px] text-(--ink-3) shrink-0 w-10"
-                            >Key</span
-                        >
-                        <select
-                            class="flex-1 min-w-0 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
+                        <span class="text-xs text-(--ink-3) shrink-0 w-10">
+                            Key
+                        </span>
+                        <Select
                             value={$activeAiKey?.keyId ?? ""}
                             on:change={(e) => selectKey(e.target.value)}
                         >
                             {#each $aiKeys as k}
                                 <option value={k.id}>{k.label}</option>
                             {/each}
-                        </select>
-                        {#if activeKeyObj}
-                            <span
-                                class="inline-flex shrink-0 items-center px-1.5 py-px rounded text-[9px] font-medium border {providerColor(
-                                    activeKeyObj.provider,
-                                )}"
-                            >
-                                {activeKeyObj.provider}
-                            </span>
-                        {/if}
+                        </Select>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <span class="text-[10px] text-(--ink-3) shrink-0 w-10"
-                            >Model</span
-                        >
+                        <span class="text-xs text-(--ink-3) shrink-0 w-10">
+                            Model
+                        </span>
                         {#if availableModels.length > 0}
-                            <select
-                                class="flex-1 min-w-0 bg-(--bg-input) border border-(--line) rounded-(--radius) px-1.5 py-0.5 text-[11px] text-(--ink-0) focus:outline-none focus:border-(--acc) truncate"
+                            <Select
                                 value={$activeAiKey?.model ?? ""}
                                 on:change={onModelChange}
                             >
                                 {#each availableModels as m}
                                     <option value={m}>{m}</option>
                                 {/each}
-                            </select>
+                            </Select>
                         {:else if activeKeyObj}
                             <span class="text-[11px] text-(--ink-0) mono"
                                 >{activeKeyObj.model}</span
@@ -436,33 +425,23 @@
                 {/if}
                 <!-- Action buttons -->
                 <div class="flex gap-1.5 pt-0.5">
-                    <button
+                    <Btn
                         on:click={() => {
                             showOptions = false;
                             showKeyManager = true;
                         }}
-                        class="flex-1 text-[10.5px] py-1 rounded-(--radius) border transition-colors duration-80
-                               {$aiKeys.length === 0
-                            ? 'border-orange-600/50 text-orange-400 hover:border-orange-400'
-                            : 'border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc)'}"
                     >
                         ⚿ Manage keys
-                    </button>
-                    <button
-                        on:click={openPromptEditor}
-                        class="flex-1 text-[10.5px] py-1 rounded-(--radius) border border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
-                    >
-                        ✎ System prompt
-                    </button>
-                    <button
+                    </Btn>
+                    <Btn on:click={openPromptEditor}>✎ System prompt</Btn>
+                    <Btn
                         on:click={() => {
                             clearChat();
                             showOptions = false;
                         }}
-                        class="flex-1 text-[10.5px] py-1 rounded-(--radius) border border-(--line) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
                     >
                         ↺ Clear chat
-                    </button>
+                    </Btn>
                 </div>
             </div>
         {/if}
@@ -481,11 +460,7 @@
                 conversation. Changes are saved in your browser and persist
                 across sessions.
             </p>
-            <textarea
-                class="flex-1 resize-none bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-2 text-[11.5px] font-mono text-(--ink-0) leading-relaxed focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_2px_var(--acc-glow)]"
-                bind:value={promptDraft}
-                spellcheck="false"
-            ></textarea>
+            <CodeEditor bind:value={promptDraft} mode="markdown"></CodeEditor>
             {#if promptError}
                 <p class="text-[11px] text-red-400">{promptError}</p>
             {/if}

@@ -3,6 +3,9 @@
     import { api } from "../lib/api.js";
     import * as vault from "../lib/vault.js";
     import { aiKeys, activeAiKey } from "../lib/store.js";
+    import Select from "./ui/Select.svelte";
+    import Input from "./ui/Input.svelte";
+    import Btn from "./ui/Btn.svelte";
 
     export let onClose = () => {};
 
@@ -200,20 +203,11 @@
         </div>
         <div class="flex items-center gap-1.5">
             {#if !showAddForm}
-                <button
-                    on:click={() => (showAddForm = true)}
-                    class="mono text-[9px] px-1.5 py-0.5 bg-(--bg-3) border border-(--line-strong) text-(--ink-3) hover:border-(--acc) hover:text-(--acc) rounded-[3px] tracking-[0.08em] uppercase transition-colors duration-80"
-                >
+                <Btn on:click={() => (showAddForm = true)} variant="outline">
                     + Add Key
-                </button>
+                </Btn>
             {/if}
-            <button
-                on:click={onClose}
-                class="w-5 h-5 flex items-center justify-center text-(--ink-3) hover:text-(--ink-1) rounded transition-colors duration-80"
-                title="Back to chat"
-            >
-                ✕
-            </button>
+            <Btn on:click={onClose} variant="ghost" title="Back to chat">✕</Btn>
         </div>
     </div>
 
@@ -234,19 +228,18 @@
                         class="text-[10.5px] text-(--ink-3) uppercase tracking-wider"
                         >Provider</span
                     >
-                    <select
+                    <Select
                         bind:value={draftProvider}
                         on:change={() => {
                             draftModel =
                                 providers.find((p) => p.id === draftProvider)
                                     ?.defaultModel ?? "";
                         }}
-                        class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-1.5 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc)"
                     >
                         {#each providers as p}
                             <option value={p.id}>{p.label}</option>
                         {/each}
-                    </select>
+                    </Select>
                 </label>
 
                 <!-- Label -->
@@ -255,11 +248,10 @@
                         class="text-[10.5px] text-(--ink-3) uppercase tracking-wider"
                         >Label</span
                     >
-                    <input
+                    <Input
                         type="text"
                         placeholder="e.g. Work OpenAI"
                         bind:value={draftLabel}
-                        class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-1.5 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_2px_var(--acc-glow)] placeholder:text-(--ink-3)"
                     />
                 </label>
 
@@ -269,14 +261,13 @@
                         class="text-[10.5px] text-(--ink-3) uppercase tracking-wider"
                         >API Key</span
                     >
-                    <input
+                    <Input
                         type="password"
                         autocomplete="off"
                         placeholder={draftProvider === "anthropic"
                             ? "sk-ant-…"
                             : "sk-…"}
                         bind:value={draftKey}
-                        class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-1.5 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_2px_var(--acc-glow)] placeholder:text-(--ink-3)"
                     />
                 </label>
 
@@ -292,26 +283,22 @@
                             >(can be changed per chat)</span
                         >
                     </div>
-                    <select
-                        bind:value={draftModel}
-                        class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2.5 py-1.5 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc)"
-                    >
+                    <Select bind:value={draftModel}>
                         {#each addModels as m}
                             <option value={m}>{m}</option>
                         {/each}
-                    </select>
+                    </Select>
                 </label>
 
                 {#if saveError}
                     <p class="text-[11px] text-red-400">{saveError}</p>
                 {/if}
 
-                <div class="flex gap-2">
-                    <button
-                        on:click={addKey}
-                        disabled={saving}
-                        class="flex-1 py-1.5 rounded-(--radius) text-[12px] font-medium bg-(--acc) text-[#0a0c0a] border-0 disabled:opacity-40 enabled:hover:bg-(--acc-d) transition-colors duration-80 flex items-center justify-center gap-1.5"
-                    >
+                <div class="flex gap-2 justify-between">
+                    <Btn variant="secondary" on:click={resetAddForm}>
+                        Cancel
+                    </Btn>
+                    <Btn variant="primary" on:click={addKey} disabled={saving}>
                         {#if saving}
                             <span
                                 class="w-3 h-3 rounded-full border-2 border-[#0a0c0a]/30 border-t-[#0a0c0a] animate-spin"
@@ -320,13 +307,7 @@
                         {:else}
                             Save
                         {/if}
-                    </button>
-                    <button
-                        on:click={resetAddForm}
-                        class="px-3 py-1.5 rounded-(--radius) text-[12px] bg-(--bg-3) border border-(--line) muted hover:border-(--line-strong) transition-colors duration-80"
-                    >
-                        Cancel
-                    </button>
+                    </Btn>
                 </div>
             </div>
         {/if}
@@ -341,12 +322,9 @@
                     No API keys yet. Add one to start chatting with an AI
                     provider.
                 </p>
-                <button
-                    on:click={() => (showAddForm = true)}
-                    class="px-3 py-1.5 rounded-(--radius) text-[11.5px] bg-(--bg-3) border border-(--line-strong) muted hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
-                >
+                <Btn on:click={() => (showAddForm = true)} variant="primary">
                     Add your first key
-                </button>
+                </Btn>
             </div>
         {:else}
             <ul class="flex flex-col divide-y divide-(--line)">
@@ -371,44 +349,42 @@
                                         class="text-[10.5px] text-(--ink-3) uppercase tracking-wider"
                                         >Label</span
                                     >
-                                    <input
+                                    <Input
                                         type="text"
                                         bind:value={editLabel}
                                         placeholder="Label"
-                                        class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2 py-1 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc)"
                                     />
                                 </label>
                                 <label class="flex flex-col gap-1">
                                     <div class="flex items-baseline gap-1.5">
                                         <span
                                             class="text-[10.5px] text-(--ink-3) uppercase tracking-wider"
-                                            >Default Model</span
                                         >
+                                            Default Model
+                                        </span>
                                         <span
                                             class="text-[10px] text-(--ink-3) normal-case tracking-normal"
-                                            >(can be changed per chat)</span
                                         >
+                                            (can be changed per chat)
+                                        </span>
                                     </div>
-                                    <select
-                                        bind:value={editModel}
-                                        class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2 py-1 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc)"
-                                    >
+                                    <Select bind:value={editModel}>
                                         {#each editModels as m}
                                             <option value={m}>{m}</option>
                                         {/each}
-                                    </select>
+                                    </Select>
                                 </label>
                                 <label class="flex flex-col gap-1">
                                     <span
                                         class="text-[10.5px] text-(--ink-3) uppercase tracking-wider"
-                                        >API Key</span
                                     >
-                                    <input
+                                        API Key
+                                    </span>
+                                    <Input
                                         type="password"
                                         autocomplete="off"
                                         bind:value={editKey}
                                         placeholder="Leave blank to keep current"
-                                        class="bg-(--bg-input) border border-(--line) rounded-(--radius) px-2 py-1 text-[12px] text-(--ink-0) focus:outline-none focus:border-(--acc) placeholder:text-(--ink-3)"
                                     />
                                 </label>
                                 {#if editError}
@@ -416,20 +392,20 @@
                                         {editError}
                                     </p>
                                 {/if}
-                                <div class="flex gap-1.5">
-                                    <button
-                                        on:click={saveEdit}
-                                        disabled={editSaving}
-                                        class="flex-1 py-1 rounded-(--radius) text-[11px] font-medium bg-(--acc) text-[#0a0c0a] border-0 disabled:opacity-40 enabled:hover:bg-(--acc-d) transition-colors duration-80"
-                                    >
-                                        {editSaving ? "Saving…" : "Save"}
-                                    </button>
-                                    <button
+                                <div class="flex gap-2 justify-between">
+                                    <Btn
                                         on:click={() => (editingId = null)}
-                                        class="px-2.5 py-1 rounded-(--radius) text-[11px] bg-(--bg-3) border border-(--line) muted hover:border-(--line-strong) transition-colors duration-80"
+                                        variant="secondary"
                                     >
                                         Cancel
-                                    </button>
+                                    </Btn>
+                                    <Btn
+                                        on:click={saveEdit}
+                                        disabled={editSaving}
+                                        variant="primary"
+                                    >
+                                        {editSaving ? "Saving…" : "Save"}
+                                    </Btn>
                                 </div>
                             </div>
                         {:else}
@@ -457,20 +433,21 @@
                                     >
                                 </div>
                                 <div class="flex items-center gap-1 shrink-0">
-                                    <button
+                                    <Btn
                                         on:click={() => startEdit(key)}
-                                        class="px-1.5 py-0.5 text-[10px] text-(--ink-3) hover:text-(--ink-1) border border-transparent hover:border-(--line) rounded transition-colors duration-80"
+                                        class="py-0.5! text-[11px]!"
                                         title="Edit"
                                     >
                                         Edit
-                                    </button>
-                                    <button
+                                    </Btn>
+                                    <Btn
                                         on:click={() => deleteKey(key.id)}
-                                        class="px-1.5 py-0.5 text-[10px] text-red-500 hover:text-red-400 border border-transparent hover:border-red-900/50 rounded transition-colors duration-80"
+                                        class="py-0.5! text-[11px]!"
+                                        variant="danger"
                                         title="Delete"
                                     >
                                         Delete
-                                    </button>
+                                    </Btn>
                                 </div>
                             </div>
                         {/if}

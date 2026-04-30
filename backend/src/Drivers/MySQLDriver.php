@@ -193,6 +193,7 @@ class MySQLDriver implements DriverInterface
         }
 
         $this->ensureConnected();
+        $database = $this->validateIdent($database);
         $name = $this->validateIdent($view);
         $body = trim($definition);
         if ($body === '') {
@@ -204,8 +205,15 @@ class MySQLDriver implements DriverInterface
         if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
             throw new RuntimeException('View definition must be a single statement.');
         }
-        $qDb   = $this->quoteIdent($database);
+
+        $qDb = $this->quoteIdent($database);
         $qView = $this->quoteIdent($name);
+
+        // MySQL resolves unqualified identifiers in the view body against the
+        // active catalog. Set it explicitly so CREATE VIEW works even when the
+        // connection itself was opened without dbname.
+        $this->pdo->exec("USE $qDb");
+
         $this->pdo->exec("CREATE OR REPLACE VIEW $qDb.$qView AS\n$body");
     }
 

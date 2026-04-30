@@ -87,9 +87,13 @@ final class ForeignKeyController extends BaseController
             if (!isset($grouped[$key])) {
                 $grouped[$key] = [
                     'constraintName'    => $key,
+                    'referencedDatabase' => $row['referencedDatabase'] ?? '',
                     'columns'           => [],
                     'referencedTable'   => $row['referencedTable'] ?? $row['foreignTable'] ?? '',
                     'referencedColumns' => [],
+                    'referencingDatabase' => $row['referencingDatabase'] ?? '',
+                    'referencingTable'  => $row['referencingTable'] ?? '',
+                    'referencingColumns' => [],
                     'onUpdate'          => $row['onUpdate'] ?? '',
                     'onDelete'          => $row['onDelete'] ?? '',
                 ];
@@ -99,6 +103,9 @@ final class ForeignKeyController extends BaseController
             }
             if (isset($row['referencedColumn'])) {
                 $grouped[$key]['referencedColumns'][] = $row['referencedColumn'];
+            }
+            if (isset($row['referencingColumn'])) {
+                $grouped[$key]['referencingColumns'][] = $row['referencingColumn'];
             }
             // Support pre-grouped rows too (already arrays)
             if (isset($row['columns']) && is_array($row['columns'])) {
@@ -110,6 +117,23 @@ final class ForeignKeyController extends BaseController
                 $grouped[$key]['referencedColumns'] = array_values(array_unique(
                     array_merge($grouped[$key]['referencedColumns'], $row['referencedColumns'])
                 ));
+            }
+            if (isset($row['referencingColumns']) && is_array($row['referencingColumns'])) {
+                $grouped[$key]['referencingColumns'] = array_values(array_unique(
+                    array_merge($grouped[$key]['referencingColumns'], $row['referencingColumns'])
+                ));
+            }
+            if (empty($grouped[$key]['referencedTable']) && isset($row['referencedTable'])) {
+                $grouped[$key]['referencedTable'] = (string)$row['referencedTable'];
+            }
+            if (empty($grouped[$key]['referencingTable']) && isset($row['referencingTable'])) {
+                $grouped[$key]['referencingTable'] = (string)$row['referencingTable'];
+            }
+            if (empty($grouped[$key]['referencedDatabase']) && isset($row['referencedDatabase'])) {
+                $grouped[$key]['referencedDatabase'] = (string)$row['referencedDatabase'];
+            }
+            if (empty($grouped[$key]['referencingDatabase']) && isset($row['referencingDatabase'])) {
+                $grouped[$key]['referencingDatabase'] = (string)$row['referencingDatabase'];
             }
         }
         return array_values($grouped);

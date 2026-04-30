@@ -2,6 +2,7 @@
     import { createEventDispatcher, onMount, tick } from "svelte";
     import { api } from "../lib/api.js";
     import { toast } from "../lib/store.js";
+    import Input from "./ui/Input.svelte";
 
     export let databases = [];
     export let busy = false;
@@ -137,8 +138,8 @@
                     commonDbNodes.some((n) =>
                         n.label.toLowerCase().includes(q),
                     ) ||
-                    tables &&
-                    tables.some((t) => t.name.toLowerCase().includes(q))
+                    (tables &&
+                        tables.some((t) => t.name.toLowerCase().includes(q)))
                 );
             });
         }
@@ -243,8 +244,8 @@
         </div>
         {#if databases.length > 0}
             <div class="px-2 pb-2">
-                <input
-                    class="w-full bg-(--bg-2) border border-(--line) rounded text-(--ink-1) mono text-[11px] px-1.75 py-1 outline-none focus:border-(--acc) placeholder:text-(--ink-3)"
+                <Input
+                    class="mono text-[11px]!"
                     type="search"
                     placeholder="filter…"
                     bind:value={searchQuery}

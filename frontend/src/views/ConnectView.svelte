@@ -666,9 +666,9 @@
                             class="accent-(--acc) w-3.5 h-3.5"
                             bind:checked={form.save}
                         />
-                        <span
-                            >Save this connection (password encrypted at rest)</span
-                        >
+                        <span>
+                            Save this connection (password encrypted at rest)
+                        </span>
                     </label>
 
                     <Btn

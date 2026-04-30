@@ -13,6 +13,7 @@
         unlockVault,
     } from "../lib/vault.js";
     import Btn from "./ui/Btn.svelte";
+    import Input from "./ui/Input.svelte";
 
     // 'loading' | 'setup' | 'unlock' | 'ready'
     let state = "loading";
@@ -124,19 +125,17 @@
 
             {#if wantProtected}
                 <div class="flex flex-col gap-2">
-                    <input
+                    <Input
                         type="password"
                         bind:value={passwordInput}
                         on:keydown={handleKeydown}
                         placeholder="Master password"
-                        class="w-full bg-(--bg-2) border border-(--line) rounded-(--radius) px-3 py-2 text-sm text-(--ink-0) placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc)"
                     />
-                    <input
+                    <Input
                         type="password"
                         bind:value={confirmInput}
                         on:keydown={handleKeydown}
                         placeholder="Confirm master password"
-                        class="w-full bg-(--bg-2) border border-(--line) rounded-(--radius) px-3 py-2 text-sm text-(--ink-0) placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc)"
                     />
                 </div>
             {/if}
@@ -170,13 +169,12 @@
                 </p>
             </div>
 
-            <input
+            <Input
                 type="password"
                 bind:value={passwordInput}
                 on:keydown={handleKeydown}
                 placeholder="Master password"
                 autofocus
-                class="w-full bg-(--bg-2) border border-(--line) rounded-(--radius) px-3 py-2 text-sm text-(--ink-0) placeholder:text-(--ink-3) focus:outline-none focus:border-(--acc)"
             />
 
             {#if error}

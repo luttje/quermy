@@ -8,7 +8,7 @@
         highlightActiveLineGutter,
         placeholder as cmPlaceholder,
     } from "@codemirror/view";
-    import { EditorState } from "@codemirror/state";
+    import { EditorState, Compartment } from "@codemirror/state";
     import {
         defaultKeymap,
         indentWithTab,
@@ -16,6 +16,7 @@
         historyKeymap,
     } from "@codemirror/commands";
     import { sql } from "@codemirror/lang-sql";
+    import { markdown } from "@codemirror/lang-markdown";
     import { gruvboxDark } from "@uiw/codemirror-theme-gruvbox-dark";
     import { bracketMatching, indentOnInput } from "@codemirror/language";
     import {
@@ -24,12 +25,25 @@
     } from "@codemirror/autocomplete";
 
     export let value = "";
-    export let placeholder = "SELECT * FROM ...";
+    export let mode = "markdown"; // "markdown" | "sql"
+    export let placeholder = "";
+    export let minHeight = "180px";
+
+    const languageCompartment = new Compartment();
+
+    function getLanguageExtension(m) {
+        return m === "sql" ? sql() : markdown();
+    }
+
+    function getDefaultPlaceholder(m) {
+        return m === "sql" ? "SELECT * FROM ..." : "Write markdown here...";
+    }
 
     const dispatch = createEventDispatcher();
 
     let container;
     let view;
+    let suppressChangeDispatch = false;
 
     const appTheme = EditorView.theme(
         {
@@ -37,7 +51,7 @@
                 background: "var(--bg-1)",
                 color: "var(--ink-0)",
                 fontSize: "13.5px",
-                minHeight: "180px",
+                minHeight,
                 fontFamily: "var(--font-mono)",
             },
             ".cm-content": {
@@ -94,6 +108,10 @@
         const updateListener = EditorView.updateListener.of((update) => {
             if (update.docChanged) {
                 value = update.state.doc.toString();
+                if (suppressChangeDispatch) {
+                    suppressChangeDispatch = false;
+                    return;
+                }
                 dispatch("change", value);
             }
         });
@@ -108,7 +126,7 @@
                 indentOnInput(),
                 bracketMatching(),
                 closeBrackets(),
-                sql(),
+                languageCompartment.of(getLanguageExtension(mode)),
                 gruvboxDark,
                 appTheme,
                 keymap.of([
@@ -117,7 +135,7 @@
                     ...historyKeymap,
                     indentWithTab,
                 ]),
-                cmPlaceholder(placeholder),
+                cmPlaceholder(placeholder || getDefaultPlaceholder(mode)),
                 updateListener,
             ],
         });
@@ -134,13 +152,29 @@
         if (!view) return;
         const current = view.state.doc.toString();
         if (current === newVal) return;
+        suppressChangeDispatch = true;
         view.dispatch({
             changes: { from: 0, to: current.length, insert: newVal },
+        });
+    }
+
+    $: if (view) {
+        const current = view.state.doc.toString();
+        if (value !== current) {
+            setValue(value);
+        }
+    }
+
+    $: if (view && mode) {
+        view.dispatch({
+            effects: languageCompartment.reconfigure(
+                getLanguageExtension(mode),
+            ),
         });
     }
 </script>
 
 <div
     bind:this={container}
-    class="flex-1 min-h-0 overflow-hidden flex flex-col sql-editor"
+    class="flex-1 h-full min-h-0 overflow-hidden flex flex-col sql-editor"
 ></div>
