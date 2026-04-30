@@ -160,26 +160,24 @@
             const result = await api.runQuery(database, sql);
             suggestionStates = { ...suggestionStates, [suggestionId]: "done" };
 
-            // Append a result bubble so the user (and the AI on the next turn) can see it
-            messages = [
-                ...messages,
-                {
-                    role: "assistant",
-                    content: formatQueryResult(result),
-                    isQueryResult: true,
-                },
-            ];
+            // Attach the result to the suggestion message so it renders inline
+            messages = messages.map((m) =>
+                m.suggestionId === suggestionId
+                    ? {
+                          ...m,
+                          queryResult: formatQueryResult(result),
+                          queryError: null,
+                      }
+                    : m,
+            );
             setTimeout(scrollToBottom, 0);
         } catch (err) {
             suggestionStates = { ...suggestionStates, [suggestionId]: "error" };
-            messages = [
-                ...messages,
-                {
-                    role: "assistant",
-                    content: `Query failed: ${err.message}`,
-                    error: true,
-                },
-            ];
+            messages = messages.map((m) =>
+                m.suggestionId === suggestionId
+                    ? { ...m, queryError: err.message, queryResult: null }
+                    : m,
+            );
             setTimeout(scrollToBottom, 0);
         }
     }
@@ -625,6 +623,20 @@
                                     </button>
                                 </div>
                             </div>
+                            <!-- Inline query result -->
+                            {#if msg.queryResult}
+                                <div
+                                    class="prose-md max-h-100 px-2.75 py-2 border-t border-(--line) text-(--ink-1) overflow-x-auto text-[11.5px]"
+                                >
+                                    {@html parse(msg.queryResult)}
+                                </div>
+                            {:else if msg.queryError}
+                                <p
+                                    class="px-2.75 py-2 border-t border-(--line) text-[11px] text-red-400"
+                                >
+                                    Query failed: {msg.queryError}
+                                </p>
+                            {/if}
                         </div>
                     </div>
                 {:else if msg.role !== "system"}
