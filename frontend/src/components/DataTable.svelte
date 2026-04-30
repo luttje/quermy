@@ -216,6 +216,81 @@
     let structBusy = false;
     let selectedCol = null; // index of selected column row
 
+    // Drag-to-reorder state (structure mode)
+    let dragSrcIdx = null; // index of the row being dragged
+    let dragOverIdx = null; // index of the row currently hovered
+    let dragAbove = false; // true → drop indicator above dragOverIdx row
+
+    function handleColDragStart(i, e) {
+        dragSrcIdx = i;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(i));
+    }
+
+    function handleColDragOver(i, e) {
+        if (dragSrcIdx === null || dragSrcIdx === i) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        // Determine whether the pointer is in the top or bottom half of the row.
+        const rect = e.currentTarget.getBoundingClientRect();
+        dragAbove = e.clientY - rect.top < rect.height / 2;
+        dragOverIdx = i;
+    }
+
+    function handleColDragLeave(i) {
+        if (dragOverIdx === i) {
+            dragOverIdx = null;
+            dragAbove = false;
+        }
+    }
+
+    async function handleColDrop(i, e) {
+        e.preventDefault();
+        const src = dragSrcIdx;
+        dragSrcIdx = null;
+        dragOverIdx = null;
+        dragAbove = false;
+
+        if (src === null || src === i) return;
+
+        // Determine target position.
+        // dragAbove means drop before row i → afterColumn = columns[i-1]?.name ?? null (first).
+        // !dragAbove means drop after row i → afterColumn = columns[i].name.
+        let afterColumn;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const isAboveHalf = e.clientY - rect.top < rect.height / 2;
+
+        if (isAboveHalf) {
+            // Place before row i → after the column above it
+            afterColumn = i > 0 ? columns[i - 1].name : null;
+        } else {
+            // Place after row i
+            afterColumn = columns[i].name;
+        }
+
+        // Don't call the API if nothing would change.
+        const srcName = columns[src].name;
+        if (afterColumn === srcName) return;
+        const srcPrevName = src > 0 ? columns[src - 1].name : null;
+        if (afterColumn === srcPrevName) return;
+
+        structBusy = true;
+        try {
+            await api.reorderColumn(db, table, srcName, afterColumn);
+            dispatch("refresh");
+        } catch (err) {
+            toast(err.message, "error");
+        } finally {
+            structBusy = false;
+        }
+    }
+
+    function handleColDragEnd() {
+        dragSrcIdx = null;
+        dragOverIdx = null;
+        dragAbove = false;
+    }
+
     let _prevCols = null;
     $: if (columns !== _prevCols) {
         _prevCols = columns;
@@ -733,6 +808,16 @@
                             class:row-editing={editingColIdx === i}
                             class:row-selected={editingColIdx !== i &&
                                 selectedCol === i}
+                            class:drop-above={dragOverIdx === i &&
+                                dragAbove &&
+                                dragSrcIdx !== i}
+                            class:drop-below={dragOverIdx === i &&
+                                !dragAbove &&
+                                dragSrcIdx !== i}
+                            draggable={isEditable &&
+                                !!capabilities?.supportsReorderColumn &&
+                                editingColIdx === null &&
+                                !structBusy}
                             on:click={(e) => handleColClick(i, e)}
                             on:dblclick={(e) => {
                                 if (
@@ -742,11 +827,24 @@
                                 )
                                     startEditCol(i);
                             }}
+                            on:dragstart={(e) => handleColDragStart(i, e)}
+                            on:dragover={(e) => handleColDragOver(i, e)}
+                            on:dragleave={() => handleColDragLeave(i)}
+                            on:drop={(e) => handleColDrop(i, e)}
+                            on:dragend={handleColDragEnd}
                         >
                             <td
                                 class="rownum mono text-right text-[11px] select-none w-[1%]"
-                                >{i + 1}</td
                             >
+                                {#if isEditable && capabilities?.supportsReorderColumn && editingColIdx === null}
+                                    <span
+                                        class="drag-handle color-(--ink-3) cursor-grab text-[14px] leading-1 inline-block px-1"
+                                        title="Drag to reorder">⠿</span
+                                    >
+                                {:else}
+                                    {i + 1}
+                                {/if}
+                            </td>
                             {#if editingColIdx === i}
                                 <td
                                     class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
@@ -951,3 +1049,22 @@
         <option value={t}></option>
     {/each}
 </datalist>
+
+<style>
+    /* Drop indicators for column drag-to-reorder */
+    tr.drop-above td {
+        box-shadow: inset 0 2px 0 0 var(--acc);
+    }
+    tr.drop-below td {
+        box-shadow: inset 0 -2px 0 0 var(--acc);
+    }
+    tr[draggable="true"] {
+        cursor: grab;
+    }
+    tr[draggable="true"]:active {
+        cursor: grabbing;
+    }
+    tr[draggable="true"]:hover .drag-handle {
+        color: var(--ink-1);
+    }
+</style>

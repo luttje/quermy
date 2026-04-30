@@ -91,6 +91,14 @@ interface DriverInterface
     /** Drop a column from a table. */
     public function dropColumn(string $database, string $table, string $columnName): void;
 
+    /**
+     * Reorder a column by moving it immediately after $afterColumn,
+     * or to the first position when $afterColumn is null.
+     *
+     * @throws \RuntimeException when the engine does not support reordering.
+     */
+    public function reorderColumn(string $database, string $table, string $columnName, ?string $afterColumn): void;
+
     /** Identifier used when persisting connections (e.g. "mysql", "postgresql"). */
     public static function engineId(): string;
 
@@ -119,6 +127,7 @@ interface DriverInterface
      * - supportsColumnAfter:      ADD COLUMN … AFTER … is valid
      * - supportsModifyColumn:     column renames/retypes are supported
      * - supportsDropColumn:       DROP COLUMN is supported
+     * - supportsReorderColumn:    column position can be changed
      * - supportsGetCreateTable:   getCreateTable() returns meaningful DDL
      * - supportsExplain:          explainQuery() is supported
      * - supportsForeignKeys:      getForeignKeys() returns data
@@ -132,6 +141,7 @@ interface DriverInterface
      *   supportsColumnAfter: bool,
      *   supportsModifyColumn: bool,
      *   supportsDropColumn: bool,
+     *   supportsReorderColumn: bool,
      *   supportsGetCreateTable: bool,
      *   supportsExplain: bool,
      *   supportsForeignKeys: bool,

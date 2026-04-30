@@ -71,6 +71,8 @@ export const api = {
         request('PUT', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`, definition),
     deleteColumn: (db, t, colName) =>
         request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}`),
+    reorderColumn: (db, t, colName, afterColName) =>
+        request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}/position`, { after: afterColName ?? null }),
 
     // AI providers (static, no auth)
     getAiProviders: () => request('GET', '/ai/providers'),

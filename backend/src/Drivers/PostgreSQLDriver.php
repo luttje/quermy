@@ -61,6 +61,7 @@ class PostgreSQLDriver implements DriverInterface
             'supportsColumnAfter'    => false,
             'supportsModifyColumn'   => true,
             'supportsDropColumn'     => true,
+            'supportsReorderColumn'  => false,
             'supportsGetCreateTable' => true,
             'supportsExplain'        => true,
             'supportsForeignKeys'    => true,
@@ -346,6 +347,14 @@ class PostgreSQLDriver implements DriverInterface
         $qTbl = $this->quoteIdent($table);
         $qCol = $this->quoteIdent($columnName);
         $this->pdo->exec("ALTER TABLE public.$qTbl DROP COLUMN $qCol");
+    }
+
+    public function reorderColumn(string $database, string $table, string $columnName, ?string $afterColumn): void
+    {
+        throw new \RuntimeException(
+            'PostgreSQL does not support changing column positions. '
+            . 'To reorder columns, drop and recreate the table.'
+        );
     }
 
     public function describeTable(string $database, string $table): array

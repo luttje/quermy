@@ -53,4 +53,20 @@ final class ColumnController extends BaseController
             $driver->disconnect();
         }
     }
+
+    #[Route('PATCH', '/api/databases/{db}/tables/{table}/columns/{column}/position')]
+    public function reorder(string $db, string $table, string $column): void
+    {
+        $body = Json::readBody();
+        // 'after' is the column name to position after, or null to move first.
+        $after = array_key_exists('after', $body) ? ($body['after'] !== null ? (string)$body['after'] : null) : null;
+
+        $driver = $this->session->open();
+        try {
+            $driver->reorderColumn($db, $table, $column, $after);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
 }
