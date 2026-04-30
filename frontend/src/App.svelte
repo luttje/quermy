@@ -15,6 +15,7 @@
     import Modal from "./components/Modal.svelte";
     import Btn from "./components/ui/Btn.svelte";
     import Kbd from "./components/ui/Kbd.svelte";
+    import SearchView from "./views/SearchView.svelte";
 
     let bootstrapping = true;
 
@@ -85,6 +86,7 @@
 
     // Modals
     let showExportModal = false;
+    let showSearchModal = false;
 
     onMount(async () => {
         window.addEventListener("popstate", handlePopState);
@@ -178,6 +180,10 @@
         if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();
             run();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+            e.preventDefault();
+            if ($session) showSearchModal = true;
         }
     }
 
@@ -368,18 +374,28 @@
 
             <!-- Center: menu strip -->
             <nav class="flex items-center gap-0.5">
-                <button
-                    class="px-3 py-1 text-[12px] font-medium text-(--ink-1) hover:text-(--ink-0) hover:bg-(--bg-2) rounded-[var(--radius)] transition-colors cursor-pointer"
-                    on:click={() => (showExportModal = true)}>Export</button
+                <Btn
+                    variant="ghost"
+                    on:click={() => (showSearchModal = true)}
+                    class="text-xs!"
+                >
+                    Search
+                    <span
+                        class="mono text-[10px] text-(--ink-3) bg-(--bg-3) border border-(--line) px-1.25 py-px rounded"
+                        >⌘K</span
+                    >
+                </Btn>
+                <Btn
+                    variant="ghost"
+                    on:click={() => (showExportModal = true)}
+                    class="text-xs!">Export</Btn
                 >
             </nav>
 
             <!-- Right: actions -->
             <div class="flex-1 flex items-center justify-end">
-                <Btn
-                    variant="ghost"
-                    on:click={disconnect}
-                    class="text-[12px] px-2.5 py-1">Disconnect</Btn
+                <Btn variant="ghost" on:click={disconnect} class="text-xs!"
+                    >Disconnect</Btn
                 >
             </div>
         </header>
@@ -573,6 +589,22 @@
             maxWidth="max-w-xl"
         >
             <ExportView on:done={() => (showExportModal = false)} />
+        </Modal>
+
+        <Modal
+            open={showSearchModal}
+            title="Search"
+            on:close={() => (showSearchModal = false)}
+            maxWidth="max-w-5xl"
+        >
+            {#if showSearchModal}
+                <SearchView
+                    currentDb={queryDb}
+                    currentTable={tableContext?.table ?? ""}
+                    {databases}
+                    capabilities={$capabilities}
+                />
+            {/if}
         </Modal>
     </div>
 {/if}
