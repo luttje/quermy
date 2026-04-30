@@ -75,6 +75,13 @@ for packager in "${SCRIPT_DIR}/releases/"*/package.sh; do
 done
 
 # ---------------------------------------------------------------------------
+# Restore composer dev dependencies (since we ran composer install with --no-dev)
+# This way developers don't have to run this themselves to run tests.
+# ---------------------------------------------------------------------------
+echo "==> composer install (--dev)"
+(cd "${REPO_ROOT}/backend" && composer install --dev --optimize-autoloader --no-interaction --prefer-dist)
+
+# ---------------------------------------------------------------------------
 rm -rf "${STAGE_DIR}"
 echo ""
 echo "Done. Zips in: ${OUT_DIR}/"
