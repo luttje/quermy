@@ -12,17 +12,29 @@ async function request(method, path, body) {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
     };
-    if (body !== undefined) opts.body = JSON.stringify(body);
+
+    if (body !== undefined)
+        opts.body = JSON.stringify(body);
 
     const res = await fetch(`${BASE}${path}`, opts);
     const text = await res.text();
+
     let data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
+
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch {
+        console.error('Failed to parse JSON response:', text);
+        data = { error: `HTTP ${res.status}: See console for more details` };
+    }
+
     if (!res.ok) {
         const err = new Error(data.error || `HTTP ${res.status}`);
         err.status = res.status;
+
         throw err;
     }
+
     return data;
 }
 
