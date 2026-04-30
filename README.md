@@ -21,7 +21,7 @@ For your convenience there are [pre-built releases of Quermy](https://github.com
 2. Unzip it
 3. Drop the entire `laragon` folder from the zip over your Laragon installation (overwrite when prompted):
     So if you installed Laragon in `C:\laragon`, you drop the folder into `C:\`
-4. Restart Apache from the Laragon control panel. <sub>[(view Apache alias example)](tools/releases/laragon/quermy.conf)</sub>
+4. Restart Apache from the Laragon control panel.
 
 Quermy will be available at `http://localhost/quermy`.
 
@@ -37,7 +37,7 @@ The above steps place Quermy into `<LaragonDirectory>/etc/apps/quermy`, along wi
 
 1. Download the `quermy-<version>.zip` from the latest release
 2. Unzip the file
-3. Point your web server at the `public` directory.
+3. Point your web server at the `public` directory. <sub>[(view Apache alias example)](tools/releases/laragon/quermy.conf)</sub>
 
 ## 🌐 Hosting publicly
 
