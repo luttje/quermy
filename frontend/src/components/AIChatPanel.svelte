@@ -211,12 +211,14 @@
             const p = new URLSearchParams(location.hash.slice(1));
             const db = p.get("db");
             const table = p.get("table");
+            const context = [];
 
-            if (db && table) {
-                return `[Context] The user is currently browsing the table \`${table}\` in database \`${db}\`.`;
-            } else if (db) {
-                return `[Context] The user is currently working in database \`${db}\`.`;
-            }
+            if (db) context.push(`database: \`${db}\``);
+            else context.push("database: unknown");
+            if (table) context.push(`table: \`${table}\``);
+            else context.push("table: unknown");
+
+            return `CONTEXT:\n${context.join("\n")}`;
         } catch (_) {}
 
         return null;
