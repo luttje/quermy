@@ -12,6 +12,9 @@
     # API requests go through the PHP front controller
     RewriteRule ^api/.*$ index.php [L,QSA]
 
+    # Health check endpoint /health
+    RewriteRule ^health$ health.php [L,QSA]
+
     # Everything else is the SPA — serve index.html
     RewriteRule ^ index.html [L]
 </IfModule>

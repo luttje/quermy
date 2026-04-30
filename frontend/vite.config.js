@@ -20,9 +20,16 @@ export default defineConfig({
         proxy: {
             // During `npm run dev` proxy /api to a PHP dev server you start
             // with: `php -S localhost:8000 -t backend/public`
+            // This all is handled by .htaccess when you do a production build, so no
+            // need to worry about it then.
             '/api': {
                 target: 'http://localhost:8000',
                 changeOrigin: true,
+            },
+            '/health': {
+                target: 'http://localhost:8000',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/health/, '/health.php'),
             },
         },
     },

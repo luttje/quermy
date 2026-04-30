@@ -2,9 +2,8 @@
 // All requests are same-origin; we send cookies so the PHP session sticks.
 
 // Strip trailing slash from the Vite base so we can append /api cleanly.
-// Generic build: BASE_URL = '/'        → BASE = '/api'
-// Laragon build: BASE_URL = '/quermy/' → BASE = '/quermy/api'
-export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '') + '/api';
+export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+export const BASE_API = `${BASE}/api`;
 
 async function request(method, path, body) {
     const opts = {
@@ -16,7 +15,7 @@ async function request(method, path, body) {
     if (body !== undefined)
         opts.body = JSON.stringify(body);
 
-    const res = await fetch(`${BASE}${path}`, opts);
+    const res = await fetch(`${BASE_API}${path}`, opts);
     const text = await res.text();
 
     let data = {};
@@ -39,8 +38,16 @@ async function request(method, path, body) {
 }
 
 export const api = {
-    // system check
-    checkSystem: () => request('GET', '/system-check'),
+    checkSystem: async () => {
+        const result = await fetch(`${BASE}/health`, { method: 'GET' })
+            .catch(err => { throw new Error(`Failed to connect to backend: ${err.message}`); });
+        const content = await result.json().catch(() => null);
+
+        return {
+            ok: result.ok,
+            error: content?.error || (result.ok ? null : `HTTP ${result.status}`),
+        };
+    },
 
     // session
     getSession: () => request('GET', '/session'),
@@ -101,7 +108,7 @@ export const api = {
      * @param {boolean} includeData
      */
     exportData: async (databases, format, includeStructure, includeData) => {
-        const res = await fetch(`${BASE}/export`, {
+        const res = await fetch(`${BASE_API}/export`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -141,7 +148,7 @@ export const api = {
      * @returns {AsyncGenerator<object>}
      */
     async *aiChatStream(provider, apiKey, model, messages) {
-        const res = await fetch(`${BASE}/ai/chat/stream`, {
+        const res = await fetch(`${BASE_API}/ai/chat/stream`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },

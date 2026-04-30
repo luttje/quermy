@@ -92,11 +92,10 @@
     let showSearchModal = false;
 
     onMount(async () => {
-        try {
-            await api.checkSystem();
-        } catch (e) {
-            toast("System check failed: " + e.message, "error");
-            criticalSystemError = e.message;
+        const systemCheck = await api.checkSystem();
+        if (!systemCheck.ok) {
+            toast("System check failed: " + systemCheck.error, "error");
+            criticalSystemError = systemCheck.error;
             return;
         }
 
