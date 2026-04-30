@@ -74,6 +74,34 @@ export const api = {
     reorderColumn: (db, t, colName, afterColName) =>
         request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/columns/${encodeURIComponent(colName)}/position`, { after: afterColName ?? null }),
 
+    /**
+     * Export selected tables in the given format. Returns { blob, filename }.
+     * @param {Record<string, string[]>} databases  { dbName: [table, …] }
+     * @param {'csv'|'sql'|'xml'|'json'} format
+     * @param {boolean} includeStructure
+     * @param {boolean} includeData
+     */
+    exportData: async (databases, format, includeStructure, includeData) => {
+        const res = await fetch(`${BASE}/export`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ databases, format, includeStructure, includeData }),
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            let data = {};
+            try { data = JSON.parse(text); } catch { data = { error: text }; }
+            const err = new Error(data.error || `HTTP ${res.status}`);
+            err.status = res.status;
+            throw err;
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get('Content-Disposition') ?? '';
+        const filename = cd.match(/filename="([^"]+)"/)?.[1] ?? `export.${format}`;
+        return { blob, filename };
+    },
+
     // AI providers (static, no auth)
     getAiProviders: () => request('GET', '/ai/providers'),
 
