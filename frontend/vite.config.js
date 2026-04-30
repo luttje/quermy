@@ -3,8 +3,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-    // Override with VITE_BASE env var for sub-path deployments, e.g. VITE_BASE=/quermy/
-    base: process.env.VITE_BASE ?? '/',
+    base: './',
     plugins: [
         svelte(),
         tailwindcss(),
