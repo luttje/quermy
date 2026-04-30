@@ -4,6 +4,17 @@ namespace Quermy\Drivers;
 
 use PDO;
 use PDOException;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
+use Quermy\Drivers\Capabilities\SupportsAddColumn;
+use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
+use Quermy\Drivers\Capabilities\SupportsDropColumn;
+use Quermy\Drivers\Capabilities\SupportsExplain;
+use Quermy\Drivers\Capabilities\SupportsForeignKeys;
+use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
+use Quermy\Drivers\Capabilities\SupportsIndexManagement;
+use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use RuntimeException;
 
 /**
@@ -16,9 +27,22 @@ use RuntimeException;
  * - There is only one logical "database" (named "main").
  * - ALTER TABLE only supports ADD COLUMN; modifying or dropping columns
  *   requires SQLite 3.35+ for DROP COLUMN and is not supported for renames/
- *   retypes (the driver throws explicitly for unsupported operations).
+ *   retypes (the driver does not implement SupportsModifyColumn).
+ * - DROP COLUMN requires SQLite 3.35+; dropColumn() throws on older versions.
  */
-class SQLiteDriver implements DriverInterface
+class SQLiteDriver implements
+    DriverInterface,
+    SupportsAddColumn,
+    SupportsDropColumn,
+    SupportsAutoIncrement,
+    SupportsIndexManagement,
+    SupportsForeignKeys,
+    SupportsGetCreateTable,
+    SupportsExplain,
+    SupportsViewManagement,
+    ProvidesColumnTypes,
+    ProvidesWelcomeQuery,
+    ProvidesStructureQueryTemplate
 {
     private ?PDO $pdo = null;
 
@@ -40,47 +64,29 @@ class SQLiteDriver implements DriverInterface
         ];
     }
 
-    public function getCapabilities(): array
+    public function columnTypes(): array
     {
-        $dropColumnSupported = $this->pdo !== null
-            ? $this->sqliteVersionAtLeast('3.35.0')
-            : true; // assume yes if not connected yet
-
         return [
-            'columnTypes' => [
-                // Affinities & common types
-                'INTEGER', 'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
-                'UNSIGNED BIG INT', 'INT2', 'INT8',
-                'REAL', 'DOUBLE', 'DOUBLE PRECISION', 'FLOAT',
-                'NUMERIC', 'DECIMAL(10,2)',
-                'TEXT', 'CHARACTER(20)', 'VARCHAR(255)', 'VARYING CHARACTER(255)', 'NCHAR(55)', 'NATIVE CHARACTER(70)', 'NVARCHAR(100)', 'CLOB',
-                'BLOB',
-                'BOOLEAN',
-                'DATE', 'DATETIME',
-            ],
-            'supportsAutoIncrement'  => true,   // INTEGER PRIMARY KEY AUTOINCREMENT
-            'supportsColumnAfter'    => false,
-            'supportsModifyColumn'   => false,   // not supported; driver throws
-            'supportsDropColumn'     => $dropColumnSupported,
-            'supportsReorderColumn'  => false,
-            'supportsGetCreateTable' => true,
-            'supportsExplain'        => true,
-            'supportsForeignKeys'    => true,
-            'supportsIndexManagement'       => true,
-            'supportsPrimaryKeyManagement'  => false,
-            'supportsForeignKeyManagement'  => false,
-            'supportsRenameDatabase'         => false,
-            'supportsAlterDatabaseCollation' => false,
-            'supportsDropDatabase'           => false,
-            'supportsViewManagement'         => true,
-            'supportsProcedureManagement'    => false,
-            'supportsFunctionManagement'     => false,
-            'supportsEventManagement'        => false,
-            'welcomeQuery'           => 'SELECT sqlite_version() AS version;',
-            'structureQueryTemplate' => 'PRAGMA table_info("{table}");',
-            'identifierOpen'         => '"',
-            'identifierClose'        => '"',
+            // Affinities & common types
+            'INTEGER', 'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
+            'UNSIGNED BIG INT', 'INT2', 'INT8',
+            'REAL', 'DOUBLE', 'DOUBLE PRECISION', 'FLOAT',
+            'NUMERIC', 'DECIMAL(10,2)',
+            'TEXT', 'CHARACTER(20)', 'VARCHAR(255)', 'VARYING CHARACTER(255)', 'NCHAR(55)', 'NATIVE CHARACTER(70)', 'NVARCHAR(100)', 'CLOB',
+            'BLOB',
+            'BOOLEAN',
+            'DATE', 'DATETIME',
         ];
+    }
+
+    public function welcomeQuery(): string
+    {
+        return 'SELECT sqlite_version() AS version;';
+    }
+
+    public function structureQueryTemplate(): string
+    {
+        return 'PRAGMA table_info("{table}");';
     }
 
     public function connect(array $config): void
@@ -187,66 +193,6 @@ class SQLiteDriver implements DriverInterface
         $name  = $this->validateIdent($view);
         $qView = $this->quoteIdent($name);
         $this->pdo->exec("DROP VIEW IF EXISTS $qView");
-    }
-
-    public function listProcedures(string $database): array
-    {
-        throw new RuntimeException('SQLite does not support stored procedures.');
-    }
-
-    public function getProcedureDefinition(string $database, string $procedure): string
-    {
-        throw new RuntimeException('SQLite does not support stored procedures.');
-    }
-
-    public function upsertProcedure(string $database, string $procedure, string $definition): void
-    {
-        throw new RuntimeException('SQLite does not support stored procedures.');
-    }
-
-    public function dropProcedure(string $database, string $procedure): void
-    {
-        throw new RuntimeException('SQLite does not support stored procedures.');
-    }
-
-    public function listFunctions(string $database): array
-    {
-        throw new RuntimeException('SQLite does not support stored functions.');
-    }
-
-    public function getFunctionDefinition(string $database, string $function): string
-    {
-        throw new RuntimeException('SQLite does not support stored functions.');
-    }
-
-    public function upsertFunction(string $database, string $function, string $definition): void
-    {
-        throw new RuntimeException('SQLite does not support stored functions.');
-    }
-
-    public function dropFunction(string $database, string $function): void
-    {
-        throw new RuntimeException('SQLite does not support stored functions.');
-    }
-
-    public function listEvents(string $database): array
-    {
-        throw new RuntimeException('SQLite does not support scheduled events.');
-    }
-
-    public function getEventDefinition(string $database, string $event): string
-    {
-        throw new RuntimeException('SQLite does not support scheduled events.');
-    }
-
-    public function upsertEvent(string $database, string $event, string $definition): void
-    {
-        throw new RuntimeException('SQLite does not support scheduled events.');
-    }
-
-    public function dropEvent(string $database, string $event): void
-    {
-        throw new RuntimeException('SQLite does not support scheduled events.');
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array
@@ -375,14 +321,6 @@ class SQLiteDriver implements DriverInterface
         $this->pdo->exec("ALTER TABLE $qTbl ADD COLUMN $qCol $type$null$def");
     }
 
-    public function modifyColumn(string $database, string $table, string $columnName, array $definition): void
-    {
-        throw new RuntimeException(
-            'SQLite does not support column modification (rename/retype). '
-            . 'To restructure a table, drop and recreate it.'
-        );
-    }
-
     public function dropColumn(string $database, string $table, string $columnName): void
     {
         $this->ensureConnected();
@@ -395,14 +333,6 @@ class SQLiteDriver implements DriverInterface
         $qTbl = $this->quoteIdent($table);
         $qCol = $this->quoteIdent($columnName);
         $this->pdo->exec("ALTER TABLE $qTbl DROP COLUMN $qCol");
-    }
-
-    public function reorderColumn(string $database, string $table, string $columnName, ?string $afterColumn): void
-    {
-        throw new RuntimeException(
-            'SQLite does not support changing column positions. '
-            . 'To reorder columns, drop and recreate the table.'
-        );
     }
 
     public function describeTable(string $database, string $table): array
@@ -574,21 +504,6 @@ class SQLiteDriver implements DriverInterface
         $this->pdo->exec("DROP INDEX $qIdx");
     }
 
-    public function createForeignKey(string $database, string $table, array $definition): void
-    {
-        throw new RuntimeException(
-            'SQLite does not support adding foreign key constraints after table creation. '
-            . 'Foreign key constraints must be declared when creating the table.'
-        );
-    }
-
-    public function dropForeignKey(string $database, string $table, string $constraintName): void
-    {
-        throw new RuntimeException(
-            'SQLite does not support dropping foreign key constraints without recreating the table.'
-        );
-    }
-
     public function getDatabaseInfo(string $database): array
     {
         return [
@@ -596,26 +511,6 @@ class SQLiteDriver implements DriverInterface
             'charset'   => null,
             'collation' => null,
         ];
-    }
-
-    public function renameDatabase(string $database, string $newName): void
-    {
-        throw new RuntimeException('Renaming databases is not supported for SQLite.');
-    }
-
-    public function alterDatabaseCollation(string $database, string $collation): void
-    {
-        throw new RuntimeException('Changing database collation is not supported for SQLite.');
-    }
-
-    public function dropDatabase(string $database): void
-    {
-        throw new RuntimeException('Dropping databases is not supported for SQLite. Please delete the file manually.');
-    }
-
-    public function listDatabaseCollations(string $database): array
-    {
-        throw new RuntimeException('Listing database collations is not supported for SQLite');
     }
 
     /*

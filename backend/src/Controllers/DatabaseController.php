@@ -2,9 +2,17 @@
 
 namespace Quermy\Controllers;
 
+use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsEventManagement;
+use Quermy\Drivers\Capabilities\SupportsFunctionManagement;
+use Quermy\Drivers\Capabilities\SupportsProcedureManagement;
+use Quermy\Drivers\Capabilities\SupportsRenameDatabase;
+use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
+use RuntimeException;
 
 final class DatabaseController extends BaseController
 {
@@ -53,6 +61,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsViewManagement) {
+                throw new RuntimeException('This engine does not support view management.');
+            }
             Json::send(['views' => $driver->listViews($db)]);
         } finally {
             $driver->disconnect();
@@ -64,6 +75,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsViewManagement) {
+                throw new RuntimeException('This engine does not support view management.');
+            }
             Json::send([
                 'name'       => $view,
                 'definition' => $driver->getViewDefinition($db, $view),
@@ -82,6 +96,9 @@ final class DatabaseController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsViewManagement) {
+                throw new RuntimeException('This engine does not support view management.');
+            }
             $driver->upsertView($db, $view, $definition);
             Json::send(['ok' => true]);
         } finally {
@@ -94,6 +111,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsViewManagement) {
+                throw new RuntimeException('This engine does not support view management.');
+            }
             $driver->dropView($db, $view);
             Json::send(['ok' => true]);
         } finally {
@@ -106,6 +126,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsProcedureManagement) {
+                throw new RuntimeException('This engine does not support procedure management.');
+            }
             Json::send(['procedures' => $driver->listProcedures($db)]);
         } finally {
             $driver->disconnect();
@@ -117,6 +140,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsProcedureManagement) {
+                throw new RuntimeException('This engine does not support procedure management.');
+            }
             Json::send([
                 'name'       => $procedure,
                 'definition' => $driver->getProcedureDefinition($db, $procedure),
@@ -135,6 +161,9 @@ final class DatabaseController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsProcedureManagement) {
+                throw new RuntimeException('This engine does not support procedure management.');
+            }
             $driver->upsertProcedure($db, $procedure, $definition);
             Json::send(['ok' => true]);
         } finally {
@@ -147,6 +176,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsProcedureManagement) {
+                throw new RuntimeException('This engine does not support procedure management.');
+            }
             $driver->dropProcedure($db, $procedure);
             Json::send(['ok' => true]);
         } finally {
@@ -159,6 +191,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsFunctionManagement) {
+                throw new RuntimeException('This engine does not support function management.');
+            }
             Json::send(['functions' => $driver->listFunctions($db)]);
         } finally {
             $driver->disconnect();
@@ -170,6 +205,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsFunctionManagement) {
+                throw new RuntimeException('This engine does not support function management.');
+            }
             Json::send([
                 'name'       => $function,
                 'definition' => $driver->getFunctionDefinition($db, $function),
@@ -188,6 +226,9 @@ final class DatabaseController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsFunctionManagement) {
+                throw new RuntimeException('This engine does not support function management.');
+            }
             $driver->upsertFunction($db, $function, $definition);
             Json::send(['ok' => true]);
         } finally {
@@ -200,6 +241,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsFunctionManagement) {
+                throw new RuntimeException('This engine does not support function management.');
+            }
             $driver->dropFunction($db, $function);
             Json::send(['ok' => true]);
         } finally {
@@ -212,6 +256,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsEventManagement) {
+                throw new RuntimeException('This engine does not support event management.');
+            }
             Json::send(['events' => $driver->listEvents($db)]);
         } finally {
             $driver->disconnect();
@@ -223,6 +270,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsEventManagement) {
+                throw new RuntimeException('This engine does not support event management.');
+            }
             Json::send([
                 'name'       => $event,
                 'definition' => $driver->getEventDefinition($db, $event),
@@ -241,6 +291,9 @@ final class DatabaseController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsEventManagement) {
+                throw new RuntimeException('This engine does not support event management.');
+            }
             $driver->upsertEvent($db, $event, $definition);
             Json::send(['ok' => true]);
         } finally {
@@ -253,6 +306,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsEventManagement) {
+                throw new RuntimeException('This engine does not support event management.');
+            }
             $driver->dropEvent($db, $event);
             Json::send(['ok' => true]);
         } finally {
@@ -265,6 +321,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsAlterDatabaseCollation) {
+                throw new RuntimeException('This engine does not support database collation management.');
+            }
             Json::send(['collations' => $driver->listDatabaseCollations($db)]);
         } finally {
             $driver->disconnect();
@@ -291,6 +350,9 @@ final class DatabaseController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsRenameDatabase) {
+                throw new RuntimeException('This engine does not support renaming databases.');
+            }
             $driver->renameDatabase($db, $newName);
             Json::send(['ok' => true]);
         } finally {
@@ -307,6 +369,9 @@ final class DatabaseController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsAlterDatabaseCollation) {
+                throw new RuntimeException('This engine does not support altering database collation.');
+            }
             $driver->alterDatabaseCollation($db, $collation);
             Json::send(['ok' => true]);
         } finally {
@@ -319,6 +384,9 @@ final class DatabaseController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsDropDatabase) {
+                throw new RuntimeException('This engine does not support dropping databases.');
+            }
             $driver->dropDatabase($db);
             Json::send(['ok' => true]);
         } finally {

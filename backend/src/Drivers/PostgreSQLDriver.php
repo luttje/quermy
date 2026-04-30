@@ -4,6 +4,22 @@ namespace Quermy\Drivers;
 
 use PDO;
 use PDOException;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
+use Quermy\Drivers\Capabilities\SupportsAddColumn;
+use Quermy\Drivers\Capabilities\SupportsDropColumn;
+use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsExplain;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
+use Quermy\Drivers\Capabilities\SupportsForeignKeys;
+use Quermy\Drivers\Capabilities\SupportsFunctionManagement;
+use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
+use Quermy\Drivers\Capabilities\SupportsIndexManagement;
+use Quermy\Drivers\Capabilities\SupportsModifyColumn;
+use Quermy\Drivers\Capabilities\SupportsProcedureManagement;
+use Quermy\Drivers\Capabilities\SupportsRenameDatabase;
+use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use RuntimeException;
 
 /**
@@ -13,7 +29,24 @@ use RuntimeException;
  * Schemas: the driver targets the `public` schema by default; the
  * "database" field maps to a PostgreSQL database (not a schema).
  */
-class PostgreSQLDriver implements DriverInterface
+class PostgreSQLDriver implements
+    DriverInterface,
+    SupportsAddColumn,
+    SupportsModifyColumn,
+    SupportsDropColumn,
+    SupportsIndexManagement,
+    SupportsForeignKeys,
+    SupportsForeignKeyManagement,
+    SupportsGetCreateTable,
+    SupportsExplain,
+    SupportsRenameDatabase,
+    SupportsDropDatabase,
+    SupportsViewManagement,
+    SupportsProcedureManagement,
+    SupportsFunctionManagement,
+    ProvidesColumnTypes,
+    ProvidesWelcomeQuery,
+    ProvidesStructureQueryTemplate
 {
     private ?PDO $pdo = null;
 
@@ -35,51 +68,37 @@ class PostgreSQLDriver implements DriverInterface
         ];
     }
 
-    public function getCapabilities(): array
+    public function columnTypes(): array
     {
         return [
-            'columnTypes' => [
-                // Numeric
-                'SMALLINT', 'INTEGER', 'BIGINT',
-                'DECIMAL', 'NUMERIC(10,2)', 'REAL', 'DOUBLE PRECISION',
-                'SMALLSERIAL', 'SERIAL', 'BIGSERIAL',
-                // String
-                'CHAR(1)', 'VARCHAR(255)', 'TEXT',
-                // Binary
-                'BYTEA',
-                // Date/Time
-                'DATE', 'TIME', 'TIMESTAMP', 'TIMESTAMPTZ', 'INTERVAL',
-                // Boolean
-                'BOOLEAN',
-                // Network
-                'INET', 'CIDR', 'MACADDR',
-                // Other
-                'JSON', 'JSONB', 'UUID', 'XML',
-                'INTEGER[]', 'TEXT[]',
-            ],
-            'supportsAutoIncrement'  => false,  // uses SERIAL / GENERATED AS IDENTITY
-            'supportsColumnAfter'    => false,
-            'supportsModifyColumn'   => true,
-            'supportsDropColumn'     => true,
-            'supportsReorderColumn'  => false,
-            'supportsGetCreateTable' => true,
-            'supportsExplain'        => true,
-            'supportsForeignKeys'    => true,
-            'supportsIndexManagement'       => true,
-            'supportsPrimaryKeyManagement'  => true,
-            'supportsForeignKeyManagement'  => true,
-            'supportsRenameDatabase'         => true,
-            'supportsAlterDatabaseCollation' => false,
-            'supportsDropDatabase'           => true,
-            'supportsViewManagement'         => true,
-            'supportsProcedureManagement'    => true,
-            'supportsFunctionManagement'     => true,
-            'supportsEventManagement'        => false,
-            'welcomeQuery'           => 'SELECT NOW() AS now, version() AS version;',
-            'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = '{table}'\nORDER BY ordinal_position;",
-            'identifierOpen'         => '"',
-            'identifierClose'        => '"',
+            // Numeric
+            'SMALLINT', 'INTEGER', 'BIGINT',
+            'DECIMAL', 'NUMERIC(10,2)', 'REAL', 'DOUBLE PRECISION',
+            'SMALLSERIAL', 'SERIAL', 'BIGSERIAL',
+            // String
+            'CHAR(1)', 'VARCHAR(255)', 'TEXT',
+            // Binary
+            'BYTEA',
+            // Date/Time
+            'DATE', 'TIME', 'TIMESTAMP', 'TIMESTAMPTZ', 'INTERVAL',
+            // Boolean
+            'BOOLEAN',
+            // Network
+            'INET', 'CIDR', 'MACADDR',
+            // Other
+            'JSON', 'JSONB', 'UUID', 'XML',
+            'INTEGER[]', 'TEXT[]',
         ];
+    }
+
+    public function welcomeQuery(): string
+    {
+        return 'SELECT NOW() AS now, version() AS version;';
+    }
+
+    public function structureQueryTemplate(): string
+    {
+        return "SELECT column_name, data_type, is_nullable, column_default\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = '{table}'\nORDER BY ordinal_position;";
     }
 
     public function connect(array $config): void
@@ -344,26 +363,6 @@ class PostgreSQLDriver implements DriverInterface
         }
     }
 
-    public function listEvents(string $database): array
-    {
-        throw new RuntimeException('PostgreSQL does not support scheduled events.');
-    }
-
-    public function getEventDefinition(string $database, string $event): string
-    {
-        throw new RuntimeException('PostgreSQL does not support scheduled events.');
-    }
-
-    public function upsertEvent(string $database, string $event, string $definition): void
-    {
-        throw new RuntimeException('PostgreSQL does not support scheduled events.');
-    }
-
-    public function dropEvent(string $database, string $event): void
-    {
-        throw new RuntimeException('PostgreSQL does not support scheduled events.');
-    }
-
     public function browseTable(string $database, string $table, int $limit, int $offset): array
     {
         $this->ensureConnected();
@@ -575,14 +574,6 @@ class PostgreSQLDriver implements DriverInterface
         $qTbl = $this->quoteIdent($table);
         $qCol = $this->quoteIdent($columnName);
         $this->pdo->exec("ALTER TABLE public.$qTbl DROP COLUMN $qCol");
-    }
-
-    public function reorderColumn(string $database, string $table, string $columnName, ?string $afterColumn): void
-    {
-        throw new \RuntimeException(
-            'PostgreSQL does not support changing column positions. '
-            . 'To reorder columns, drop and recreate the table.'
-        );
     }
 
     public function describeTable(string $database, string $table): array
@@ -947,24 +938,12 @@ class PostgreSQLDriver implements DriverInterface
         $this->pdo->exec("ALTER DATABASE $qDb RENAME TO $qNew");
     }
 
-    public function alterDatabaseCollation(string $database, string $collation): void
-    {
-        throw new RuntimeException(
-            'PostgreSQL does not support changing a database\'s collation after creation.'
-        );
-    }
-
     public function dropDatabase(string $database): void
     {
         $this->ensureConnected();
         $qDb = $this->quoteIdent($database);
         // Note: DROP DATABASE cannot target the currently connected database.
         $this->pdo->exec("DROP DATABASE $qDb");
-    }
-
-    public function listDatabaseCollations(string $database): array
-    {
-        throw new RuntimeException('Listing database collations is not supported for PostgreSQL');
     }
 
     /*

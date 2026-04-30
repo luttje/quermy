@@ -2,9 +2,11 @@
 
 namespace Quermy\Controllers;
 
+use Quermy\Drivers\Capabilities\SupportsIndexManagement;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
+use RuntimeException;
 
 final class IndexController extends BaseController
 {
@@ -67,6 +69,9 @@ final class IndexController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsIndexManagement) {
+                throw new RuntimeException('This engine does not support index management.');
+            }
             $driver->createIndex($db, $table, $definition);
             Json::send(['ok' => true]);
         } finally {
@@ -82,6 +87,9 @@ final class IndexController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsIndexManagement) {
+                throw new RuntimeException('This engine does not support index management.');
+            }
             $driver->dropIndex($db, $table, $index, $isPrimary);
             Json::send(['ok' => true]);
         } finally {

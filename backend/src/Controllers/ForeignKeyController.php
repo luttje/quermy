@@ -2,9 +2,12 @@
 
 namespace Quermy\Controllers;
 
+use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
+use Quermy\Drivers\Capabilities\SupportsForeignKeys;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
+use RuntimeException;
 
 final class ForeignKeyController extends BaseController
 {
@@ -17,6 +20,9 @@ final class ForeignKeyController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsForeignKeys) {
+                throw new RuntimeException('This engine does not support foreign key introspection.');
+            }
             $raw     = $driver->getForeignKeys($db, $table);
             $outgoing = $this->groupForeignKeyRows($raw['outgoing'] ?? []);
             $incoming = $this->groupForeignKeyRows($raw['incoming'] ?? []);
@@ -53,6 +59,9 @@ final class ForeignKeyController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsForeignKeyManagement) {
+                throw new RuntimeException('This engine does not support foreign key management.');
+            }
             $driver->createForeignKey($db, $table, $definition);
             Json::send(['ok' => true]);
         } finally {
@@ -65,6 +74,9 @@ final class ForeignKeyController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsForeignKeyManagement) {
+                throw new RuntimeException('This engine does not support foreign key management.');
+            }
             $driver->dropForeignKey($db, $table, $constraint);
             Json::send(['ok' => true]);
         } finally {

@@ -2,7 +2,9 @@
 
 namespace Quermy\Ai\Tools;
 
+use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
 use Quermy\Http\ConnectionSessionInterface;
+use RuntimeException;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 
 #[AsTool(
@@ -39,6 +41,9 @@ final class GetCreateTable
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsGetCreateTable) {
+                throw new RuntimeException('This engine does not support CREATE TABLE introspection.');
+            }
             return ['ddl' => $driver->getCreateTable($database, $table)];
         } finally {
             $driver->disconnect();

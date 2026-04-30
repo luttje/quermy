@@ -1,5 +1,6 @@
 <?php declare(strict_types=1);
 
+use Quermy\Drivers\CapabilitySerializer;
 use Quermy\Drivers\DriverFactory;
 use Quermy\Drivers\MariaDBDriver;
 use Tests\Support\BootedEngine;
@@ -78,15 +79,16 @@ it('reports its engine id and metadata', function () {
 });
 
 it('capabilities include MariaDB-specific types', function () {
-    $caps = $this->driver->getCapabilities();
+    $columnTypes = $this->driver->columnTypes();
 
-    expect($caps['columnTypes'])->toContain('UUID')
-        ->and($caps['columnTypes'])->toContain('INET4')
-        ->and($caps['columnTypes'])->toContain('INET6');
+    expect($columnTypes)->toContain('UUID')
+        ->and($columnTypes)->toContain('INET4')
+        ->and($columnTypes)->toContain('INET6');
 });
 
 it('capabilities report MariaDB-appropriate flags', function () {
-    $caps = $this->driver->getCapabilities();
+    $caps = CapabilitySerializer::serialize($this->driver);
+    $engineMeta = $this->driver->engineMeta();
 
     expect($caps['supportsAutoIncrement'])->toBeTrue()
         ->and($caps['supportsColumnAfter'])->toBeTrue()
@@ -97,10 +99,9 @@ it('capabilities report MariaDB-appropriate flags', function () {
         ->and($caps['supportsExplain'])->toBeTrue()
         ->and($caps['supportsForeignKeys'])->toBeTrue()
         ->and($caps['supportsIndexManagement'])->toBeTrue()
-        ->and($caps['supportsPrimaryKeyManagement'])->toBeTrue()
         ->and($caps['supportsForeignKeyManagement'])->toBeTrue()
-        ->and($caps['identifierOpen'])->toBe('`')
-        ->and($caps['identifierClose'])->toBe('`');
+        ->and($engineMeta['identifierOpen'])->toBe('`')
+        ->and($engineMeta['identifierClose'])->toBe('`');
 });
 
 /*

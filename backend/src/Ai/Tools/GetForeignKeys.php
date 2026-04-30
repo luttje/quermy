@@ -2,7 +2,9 @@
 
 namespace Quermy\Ai\Tools;
 
+use Quermy\Drivers\Capabilities\SupportsForeignKeys;
 use Quermy\Http\ConnectionSessionInterface;
+use RuntimeException;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 
 #[AsTool(
@@ -45,6 +47,9 @@ final class GetForeignKeys
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsForeignKeys) {
+                throw new RuntimeException('This engine does not support foreign key introspection.');
+            }
             return $driver->getForeignKeys($database, $table);
         } finally {
             $driver->disconnect();

@@ -4,9 +4,52 @@ namespace Quermy\Drivers;
 
 use PDO;
 use PDOException;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
+use Quermy\Drivers\Capabilities\SupportsAddColumn;
+use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
+use Quermy\Drivers\Capabilities\SupportsColumnAfter;
+use Quermy\Drivers\Capabilities\SupportsDropColumn;
+use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsEventManagement;
+use Quermy\Drivers\Capabilities\SupportsExplain;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
+use Quermy\Drivers\Capabilities\SupportsForeignKeys;
+use Quermy\Drivers\Capabilities\SupportsFunctionManagement;
+use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
+use Quermy\Drivers\Capabilities\SupportsIndexManagement;
+use Quermy\Drivers\Capabilities\SupportsModifyColumn;
+use Quermy\Drivers\Capabilities\SupportsProcedureManagement;
+use Quermy\Drivers\Capabilities\SupportsRenameDatabase;
+use Quermy\Drivers\Capabilities\SupportsReorderColumn;
+use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use RuntimeException;
 
-class MySQLDriver implements DriverInterface
+class MySQLDriver implements
+    DriverInterface,
+    SupportsAddColumn,
+    SupportsModifyColumn,
+    SupportsDropColumn,
+    SupportsColumnAfter,
+    SupportsAutoIncrement,
+    SupportsReorderColumn,
+    SupportsIndexManagement,
+    SupportsForeignKeys,
+    SupportsForeignKeyManagement,
+    SupportsGetCreateTable,
+    SupportsExplain,
+    SupportsRenameDatabase,
+    SupportsDropDatabase,
+    SupportsAlterDatabaseCollation,
+    SupportsViewManagement,
+    SupportsProcedureManagement,
+    SupportsFunctionManagement,
+    SupportsEventManagement,
+    ProvidesColumnTypes,
+    ProvidesWelcomeQuery,
+    ProvidesStructureQueryTemplate
 {
     private ?PDO $pdo = null;
     private ?string $pinnedDatabaseName = null;
@@ -29,49 +72,35 @@ class MySQLDriver implements DriverInterface
         ];
     }
 
-    public function getCapabilities(): array
+    public function columnTypes(): array
     {
         return [
-            'columnTypes' => [
-                // Numeric
-                'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
-                'INT UNSIGNED', 'TINYINT UNSIGNED', 'SMALLINT UNSIGNED',
-                'MEDIUMINT UNSIGNED', 'BIGINT UNSIGNED',
-                'DECIMAL(10,2)', 'FLOAT', 'DOUBLE', 'BIT(1)',
-                // String
-                'CHAR(1)', 'VARCHAR(255)', 'TINYTEXT', 'TEXT',
-                'MEDIUMTEXT', 'LONGTEXT',
-                'BINARY(1)', 'VARBINARY(255)',
-                'TINYBLOB', 'BLOB', 'MEDIUMBLOB', 'LONGBLOB',
-                "ENUM('a','b')", "SET('a','b')",
-                // Date/Time
-                'DATE', 'TIME', 'DATETIME', 'TIMESTAMP', 'YEAR',
-                // Other
-                'JSON',
-            ],
-            'supportsAutoIncrement'   => true,
-            'supportsColumnAfter'     => true,
-            'supportsModifyColumn'    => true,
-            'supportsDropColumn'      => true,
-            'supportsReorderColumn'   => true,
-            'supportsGetCreateTable'  => true,
-            'supportsExplain'         => true,
-            'supportsForeignKeys'     => true,
-            'supportsIndexManagement'        => true,
-            'supportsPrimaryKeyManagement'   => true,
-            'supportsForeignKeyManagement'   => true,
-            'supportsRenameDatabase'         => true,
-            'supportsAlterDatabaseCollation' => true,
-            'supportsDropDatabase'           => true,
-            'supportsViewManagement'         => true,
-            'supportsProcedureManagement'    => true,
-            'supportsFunctionManagement'     => true,
-            'supportsEventManagement'        => true,
-            'welcomeQuery'            => 'SELECT NOW() AS now, VERSION() AS version;',
-            'structureQueryTemplate'  => 'SHOW COLUMNS FROM `{db}`.`{table}`;',
-            'identifierOpen'          => '`',
-            'identifierClose'         => '`',
+            // Numeric
+            'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
+            'INT UNSIGNED', 'TINYINT UNSIGNED', 'SMALLINT UNSIGNED',
+            'MEDIUMINT UNSIGNED', 'BIGINT UNSIGNED',
+            'DECIMAL(10,2)', 'FLOAT', 'DOUBLE', 'BIT(1)',
+            // String
+            'CHAR(1)', 'VARCHAR(255)', 'TINYTEXT', 'TEXT',
+            'MEDIUMTEXT', 'LONGTEXT',
+            'BINARY(1)', 'VARBINARY(255)',
+            'TINYBLOB', 'BLOB', 'MEDIUMBLOB', 'LONGBLOB',
+            "ENUM('a','b')", "SET('a','b')",
+            // Date/Time
+            'DATE', 'TIME', 'DATETIME', 'TIMESTAMP', 'YEAR',
+            // Other
+            'JSON',
         ];
+    }
+
+    public function welcomeQuery(): string
+    {
+        return 'SELECT NOW() AS now, VERSION() AS version;';
+    }
+
+    public function structureQueryTemplate(): string
+    {
+        return 'SHOW COLUMNS FROM `{db}`.`{table}`;';
     }
 
     public function connect(array $config): void

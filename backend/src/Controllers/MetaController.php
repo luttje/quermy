@@ -2,6 +2,7 @@
 
 namespace Quermy\Controllers;
 
+use Quermy\Drivers\CapabilitySerializer;
 use Quermy\Drivers\DriverFactory;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
@@ -35,7 +36,7 @@ final class MetaController extends BaseController
     {
         $driver = $this->session->open();
         try {
-            Json::send($driver->getCapabilities());
+            Json::send(CapabilitySerializer::serialize($driver));
         } finally {
             $driver->disconnect();
         }

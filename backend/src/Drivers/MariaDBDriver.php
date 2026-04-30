@@ -30,20 +30,12 @@ class MariaDBDriver extends MySQLDriver
         ];
     }
 
-    public function getCapabilities(): array
+    public function columnTypes(): array
     {
-        $parent = parent::getCapabilities();
-
-        // MariaDB adds UUID and a few other types not available in MySQL.
-        $parent['columnTypes'] = array_merge($parent['columnTypes'], [
+        return array_merge(parent::columnTypes(), [
             'UUID',
             'INET4',
             'INET6',
         ]);
-
-        $parent['welcomeQuery'] = 'SELECT NOW() AS now, VERSION() AS version;';
-        $parent['structureQueryTemplate'] = 'SHOW COLUMNS FROM `{db}`.`{table}`;';
-
-        return $parent;
     }
 }

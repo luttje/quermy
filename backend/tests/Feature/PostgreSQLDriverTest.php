@@ -1,5 +1,6 @@
 <?php declare(strict_types=1);
 
+use Quermy\Drivers\CapabilitySerializer;
 use Quermy\Drivers\DriverFactory;
 use Quermy\Drivers\PostgreSQLDriver;
 use Testcontainers\Modules\PostgresContainer;
@@ -84,7 +85,8 @@ it('reports its engine id and metadata', function () {
 it('exposes capabilities of the expected shape', fn() => $this->contract->capabilitiesShape());
 
 it('capabilities report PostgreSQL-appropriate flags', function () {
-    $caps = $this->driver->getCapabilities();
+    $caps = CapabilitySerializer::serialize($this->driver);
+    $engineMeta = $this->driver->engineMeta();
 
     // PostgreSQL uses SERIAL/IDENTITY instead of AUTO_INCREMENT.
     expect($caps['supportsAutoIncrement'])->toBeFalse()
@@ -96,10 +98,9 @@ it('capabilities report PostgreSQL-appropriate flags', function () {
         ->and($caps['supportsExplain'])->toBeTrue()
         ->and($caps['supportsForeignKeys'])->toBeTrue()
         ->and($caps['supportsIndexManagement'])->toBeTrue()
-        ->and($caps['supportsPrimaryKeyManagement'])->toBeTrue()
         ->and($caps['supportsForeignKeyManagement'])->toBeTrue()
-        ->and($caps['identifierOpen'])->toBe('"')
-        ->and($caps['identifierClose'])->toBe('"');
+        ->and($engineMeta['identifierOpen'])->toBe('"')
+        ->and($engineMeta['identifierClose'])->toBe('"');
 });
 
 /*
@@ -170,11 +171,6 @@ it('creates a composite index on multiple columns', fn() => $this->contract->cre
  * Shared contract — foreign key management
  */
 it('creates and drops a foreign key constraint', fn() => $this->contract->createAndDropForeignKeyConstraint());
-
-/*
- * Shared contract — reorderColumn unsupported
- */
-it('reorderColumn throws because PostgreSQL does not support it', fn() => $this->contract->reorderColumnThrowsWhenUnsupported());
 
 /*
  * PostgreSQL-specific: incoming foreign keys

@@ -1,5 +1,6 @@
 <?php declare(strict_types=1);
 
+use Quermy\Drivers\CapabilitySerializer;
 use Quermy\Drivers\DriverFactory;
 use Quermy\Drivers\MySQLDriver;
 use Tests\Support\BootedEngine;
@@ -83,7 +84,8 @@ it('reports its engine id and metadata', function () {
 it('exposes capabilities of the expected shape', fn() => $this->contract->capabilitiesShape());
 
 it('capabilities report MySQL-appropriate flags', function () {
-    $caps = $this->driver->getCapabilities();
+    $caps = CapabilitySerializer::serialize($this->driver);
+    $engineMeta = $this->driver->engineMeta();
 
     expect($caps['supportsAutoIncrement'])->toBeTrue()
         ->and($caps['supportsColumnAfter'])->toBeTrue()
@@ -94,10 +96,9 @@ it('capabilities report MySQL-appropriate flags', function () {
         ->and($caps['supportsExplain'])->toBeTrue()
         ->and($caps['supportsForeignKeys'])->toBeTrue()
         ->and($caps['supportsIndexManagement'])->toBeTrue()
-        ->and($caps['supportsPrimaryKeyManagement'])->toBeTrue()
         ->and($caps['supportsForeignKeyManagement'])->toBeTrue()
-        ->and($caps['identifierOpen'])->toBe('`')
-        ->and($caps['identifierClose'])->toBe('`');
+        ->and($engineMeta['identifierOpen'])->toBe('`')
+        ->and($engineMeta['identifierClose'])->toBe('`');
 });
 
 /*

@@ -1,5 +1,6 @@
 <?php declare(strict_types=1);
 
+use Quermy\Drivers\CapabilitySerializer;
 use Quermy\Drivers\DriverFactory;
 use Quermy\Drivers\SQLiteDriver;
 use Tests\Support\BootedEngine;
@@ -93,7 +94,8 @@ it('connects to the seed database file and reads it', function () use ($seedPath
 it('exposes capabilities of the expected shape', fn() => $this->contract->capabilitiesShape());
 
 it('capabilities report SQLite-appropriate flags', function () {
-    $caps = $this->driver->getCapabilities();
+    $caps = CapabilitySerializer::serialize($this->driver);
+    $engineMeta = $this->driver->engineMeta();
 
     expect($caps['supportsAutoIncrement'])->toBeTrue()  // INTEGER PRIMARY KEY acts as ROWID alias
         ->and($caps['supportsColumnAfter'])->toBeFalse()
@@ -103,10 +105,9 @@ it('capabilities report SQLite-appropriate flags', function () {
         ->and($caps['supportsExplain'])->toBeTrue()
         ->and($caps['supportsForeignKeys'])->toBeTrue()
         ->and($caps['supportsIndexManagement'])->toBeTrue()
-        ->and($caps['supportsPrimaryKeyManagement'])->toBeFalse()
         ->and($caps['supportsForeignKeyManagement'])->toBeFalse()
-        ->and($caps['identifierOpen'])->toBe('"')
-        ->and($caps['identifierClose'])->toBe('"');
+        ->and($engineMeta['identifierOpen'])->toBe('"')
+        ->and($engineMeta['identifierClose'])->toBe('"');
 });
 
 /*
@@ -174,11 +175,6 @@ it('creates and drops a unique index', fn() => $this->contract->createAndDropUni
 it('creates a composite index on multiple columns', fn() => $this->contract->createCompositeIndex());
 
 /*
- * Shared contract — unsupported operations throw
- */
-it('reorderColumn throws because SQLite does not support it', fn() => $this->contract->reorderColumnThrowsWhenUnsupported());
-
-/*
  * SQLite-specific: INTEGER PRIMARY KEY auto-increment
  */
 it('INTEGER PRIMARY KEY acts as an auto-increment alias and reports the insert id', function () {
@@ -211,24 +207,6 @@ it('EXPLAIN QUERY PLAN returns rows with id/parent/detail columns', function () 
     // SQLite EXPLAIN QUERY PLAN rows always contain these three columns.
     $first = $plan[0];
     expect($first)->toHaveKeys(['id', 'parent', 'detail']);
-});
-
-/*
- * SQLite-specific: modifyColumn unsupported
- */
-it('modifyColumn always throws because SQLite does not support it', function () {
-    $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "nomodify_probe"');
-    $this->driver->runQuery(
-        $this->database,
-        'CREATE TABLE "nomodify_probe" (id INTEGER PRIMARY KEY, name TEXT)'
-    );
-
-    expect(fn() => $this->driver->modifyColumn($this->database, 'nomodify_probe', 'name', [
-        'name'     => 'renamed',
-        'type'     => 'TEXT',
-        'nullable' => true,
-        'default'  => null,
-    ]))->toThrow(RuntimeException::class);
 });
 
 /*
@@ -280,39 +258,16 @@ it('dropIndex throws when trying to drop a primary key (unsupported)', function 
 });
 
 /*
- * SQLite-specific: FK management throws
- */
-it('createForeignKey throws because SQLite does not support post-creation FK constraints', function () {
-    $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "fk_add_child"');
-    $this->driver->runQuery($this->database, 'DROP TABLE IF EXISTS "fk_add_parent"');
-    $this->driver->runQuery($this->database, 'CREATE TABLE "fk_add_parent" (id INTEGER PRIMARY KEY)');
-    $this->driver->runQuery($this->database, 'CREATE TABLE "fk_add_child" (id INTEGER PRIMARY KEY, parent_id INTEGER)');
-
-    expect(fn() => $this->driver->createForeignKey($this->database, 'fk_add_child', [
-        'name'              => 'fk_add_con',
-        'columns'           => ['parent_id'],
-        'referencedTable'   => 'fk_add_parent',
-        'referencedColumns' => ['id'],
-        'onUpdate'          => 'RESTRICT',
-        'onDelete'          => 'RESTRICT',
-    ]))->toThrow(RuntimeException::class);
-});
-
-it('dropForeignKey throws because SQLite does not support it', function () {
-    expect(fn() => $this->driver->dropForeignKey($this->database, 'any_table', 'any_constraint'))
-        ->toThrow(RuntimeException::class);
-});
-
-/*
  * SQLite-specific: stable database list
  */
 it('listDatabases always returns exactly ["main"]', function () {
     expect($this->driver->listDatabases())->toBe(['main']);
 });
 
-it('getCapabilities reports connectionType as file', function () {
-    $caps = $this->driver->getCapabilities();
-    expect($caps['identifierOpen'])->toBe('"')
-        ->and($caps['supportsColumnAfter'])->toBeFalse()
-        ->and($caps['supportsModifyColumn'])->toBeFalse();
+it('engineMeta reports connectionType as file', function () {
+    $engineMeta = $this->driver->engineMeta();
+
+    expect($engineMeta['identifierOpen'])->toBe('"')
+        ->and($engineMeta['identifierClose'])->toBe('"')
+        ->and($engineMeta['connectionType'])->toBe('file');
 });

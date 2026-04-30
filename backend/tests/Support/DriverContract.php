@@ -2,6 +2,16 @@
 
 namespace Tests\Support;
 
+use Quermy\Drivers\CapabilitySerializer;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
+use Quermy\Drivers\Capabilities\SupportsForeignKeys;
+use Quermy\Drivers\Capabilities\SupportsExplain;
+use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
+use Quermy\Drivers\Capabilities\SupportsIndexManagement;
+use Quermy\Drivers\Capabilities\SupportsReorderColumn;
+use Quermy\Drivers\Capabilities\SupportsViewManagement;
+use Quermy\Drivers\Capabilities\SupportsAddColumn;
+use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\DriverInterface;
 use RuntimeException;
 
@@ -235,6 +245,7 @@ final class DriverContract
 
     public function viewManagementRoundTrip(): void
     {
+        assert($this->driver instanceof SupportsViewManagement);
         $table = 'view_source_probe';
         $view  = 'view_probe';
 
@@ -378,6 +389,8 @@ final class DriverContract
 
     public function addAndDropColumn(): void
     {
+        assert($this->driver instanceof SupportsAddColumn);
+        assert($this->driver instanceof SupportsDropColumn);
         $table = 'addcol_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -403,6 +416,7 @@ final class DriverContract
 
     public function addNullableColumnWithDefault(): void
     {
+        assert($this->driver instanceof SupportsAddColumn);
         $table = 'addcol_default_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -510,6 +524,7 @@ final class DriverContract
 
     public function getCreateTableReturnsDdl(): void
     {
+        assert($this->driver instanceof SupportsGetCreateTable);
         $table = 'ddl_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -529,6 +544,7 @@ final class DriverContract
 
     public function explainAcceptsSelectAndRejectsOther(): void
     {
+        assert($this->driver instanceof SupportsExplain);
         $explain = $this->driver->explainQuery($this->database, 'SELECT 1');
         expect($explain)->toBeArray()->not->toBeEmpty();
 
@@ -549,11 +565,12 @@ final class DriverContract
 
     public function capabilitiesShape(): void
     {
-        $caps = $this->driver->getCapabilities();
+        $caps = CapabilitySerializer::serialize($this->driver);
         expect($caps)->toHaveKeys([
             'columnTypes',
             'supportsAutoIncrement',
             'supportsColumnAfter',
+            'supportsAddColumn',
             'supportsModifyColumn',
             'supportsDropColumn',
             'supportsReorderColumn',
@@ -561,7 +578,6 @@ final class DriverContract
             'supportsExplain',
             'supportsForeignKeys',
             'supportsIndexManagement',
-            'supportsPrimaryKeyManagement',
             'supportsForeignKeyManagement',
             'supportsViewManagement',
             'welcomeQuery',
@@ -574,6 +590,7 @@ final class DriverContract
         foreach ([
             'supportsAutoIncrement',
             'supportsColumnAfter',
+            'supportsAddColumn',
             'supportsModifyColumn',
             'supportsDropColumn',
             'supportsReorderColumn',
@@ -581,7 +598,6 @@ final class DriverContract
             'supportsExplain',
             'supportsForeignKeys',
             'supportsIndexManagement',
-            'supportsPrimaryKeyManagement',
             'supportsForeignKeyManagement',
             'supportsViewManagement',
         ] as $flag) {
@@ -600,6 +616,7 @@ final class DriverContract
 
     public function foreignKeysIntrospection(): void
     {
+        assert($this->driver instanceof SupportsForeignKeys);
         $parent = 'fk_parent';
         $child  = 'fk_child';
 
@@ -633,6 +650,7 @@ final class DriverContract
 
     public function foreignKeysOutgoingShape(): void
     {
+        assert($this->driver instanceof SupportsForeignKeys);
         $parent = 'fk_shape_parent';
         $child  = 'fk_shape_child';
 
@@ -675,6 +693,7 @@ final class DriverContract
 
     public function createAndDropRegularIndex(): void
     {
+        assert($this->driver instanceof SupportsIndexManagement);
         $table = 'idx_regular_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -705,6 +724,7 @@ final class DriverContract
 
     public function createAndDropUniqueIndex(): void
     {
+        assert($this->driver instanceof SupportsIndexManagement);
         $table = 'idx_unique_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -735,6 +755,7 @@ final class DriverContract
 
     public function createCompositeIndex(): void
     {
+        assert($this->driver instanceof SupportsIndexManagement);
         $table = 'idx_composite_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -765,6 +786,8 @@ final class DriverContract
 
     public function createAndDropForeignKeyConstraint(): void
     {
+        assert($this->driver instanceof SupportsForeignKeyManagement);
+        assert($this->driver instanceof SupportsForeignKeys);
         $parent = 'fkm_parent';
         $child  = 'fkm_child';
 
@@ -809,6 +832,7 @@ final class DriverContract
 
     public function reorderColumnMovesToFirst(): void
     {
+        assert($this->driver instanceof SupportsReorderColumn);
         $table = 'reorder_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -829,6 +853,7 @@ final class DriverContract
 
     public function reorderColumnMovesAfterTarget(): void
     {
+        assert($this->driver instanceof SupportsReorderColumn);
         $table = 'reorder_after_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
         $this->driver->runQuery(
@@ -849,23 +874,4 @@ final class DriverContract
             ->and($pos['id'])->toBeLessThan($pos['beta']);
     }
 
-    // -------------------------------------------------------------------------
-    // reorderColumn unsupported engines — must throw
-    // -------------------------------------------------------------------------
-
-    public function reorderColumnThrowsWhenUnsupported(): void
-    {
-        $table = 'reorder_unsupported_probe';
-        $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
-        $this->driver->runQuery(
-            $this->database,
-            "CREATE TABLE {$this->q($table)} (
-                id   {$this->int()} PRIMARY KEY,
-                name {$this->varchar(20)}
-            )"
-        );
-
-        expect(fn() => $this->driver->reorderColumn($this->database, $table, 'name', null))
-            ->toThrow(RuntimeException::class);
-    }
 }

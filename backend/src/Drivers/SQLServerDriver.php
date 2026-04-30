@@ -4,6 +4,24 @@ namespace Quermy\Drivers;
 
 use PDO;
 use PDOException;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
+use Quermy\Drivers\Capabilities\SupportsAddColumn;
+use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
+use Quermy\Drivers\Capabilities\SupportsDropColumn;
+use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsExplain;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
+use Quermy\Drivers\Capabilities\SupportsForeignKeys;
+use Quermy\Drivers\Capabilities\SupportsFunctionManagement;
+use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
+use Quermy\Drivers\Capabilities\SupportsIndexManagement;
+use Quermy\Drivers\Capabilities\SupportsModifyColumn;
+use Quermy\Drivers\Capabilities\SupportsProcedureManagement;
+use Quermy\Drivers\Capabilities\SupportsRenameDatabase;
+use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use RuntimeException;
 
 /**
@@ -16,7 +34,26 @@ use RuntimeException;
  * Identifiers are quoted with square brackets [name].
  * The "database" config field maps to the SQL Server database (catalog).
  */
-class SQLServerDriver implements DriverInterface
+class SQLServerDriver implements
+    DriverInterface,
+    SupportsAddColumn,
+    SupportsModifyColumn,
+    SupportsDropColumn,
+    SupportsAutoIncrement,
+    SupportsIndexManagement,
+    SupportsForeignKeys,
+    SupportsForeignKeyManagement,
+    SupportsGetCreateTable,
+    SupportsExplain,
+    SupportsRenameDatabase,
+    SupportsDropDatabase,
+    SupportsAlterDatabaseCollation,
+    SupportsViewManagement,
+    SupportsProcedureManagement,
+    SupportsFunctionManagement,
+    ProvidesColumnTypes,
+    ProvidesWelcomeQuery,
+    ProvidesStructureQueryTemplate
 {
     private ?PDO $pdo = null;
 
@@ -38,49 +75,35 @@ class SQLServerDriver implements DriverInterface
         ];
     }
 
-    public function getCapabilities(): array
+    public function columnTypes(): array
     {
         return [
-            'columnTypes' => [
-                // Exact numerics
-                'TINYINT', 'SMALLINT', 'INT', 'BIGINT',
-                'DECIMAL(10,2)', 'NUMERIC(10,2)', 'MONEY', 'SMALLMONEY',
-                // Approximate numerics
-                'REAL', 'FLOAT',
-                // Date and time
-                'DATE', 'TIME', 'DATETIME', 'DATETIME2', 'SMALLDATETIME', 'DATETIMEOFFSET',
-                // Character strings
-                'CHAR(1)', 'VARCHAR(255)', 'VARCHAR(MAX)', 'TEXT',
-                'NCHAR(1)', 'NVARCHAR(255)', 'NVARCHAR(MAX)', 'NTEXT',
-                // Binary
-                'BINARY(1)', 'VARBINARY(255)', 'VARBINARY(MAX)', 'IMAGE',
-                // Other
-                'BIT', 'UNIQUEIDENTIFIER', 'XML', 'JSON',
-                'GEOMETRY', 'GEOGRAPHY',
-            ],
-            'supportsAutoIncrement'  => true,   // IDENTITY(1,1)
-            'supportsColumnAfter'    => false,
-            'supportsModifyColumn'   => true,
-            'supportsDropColumn'     => true,
-            'supportsReorderColumn'  => false,
-            'supportsGetCreateTable' => true,
-            'supportsExplain'        => true,
-            'supportsForeignKeys'    => true,
-            'supportsIndexManagement'       => true,
-            'supportsPrimaryKeyManagement'  => true,
-            'supportsForeignKeyManagement'  => true,
-            'supportsRenameDatabase'         => true,
-            'supportsAlterDatabaseCollation' => true,
-            'supportsDropDatabase'           => true,
-            'supportsViewManagement'         => true,
-            'supportsProcedureManagement'    => true,
-            'supportsFunctionManagement'     => true,
-            'supportsEventManagement'        => false,
-            'welcomeQuery'           => 'SELECT GETDATE() AS now, @@VERSION AS version;',
-            'structureQueryTemplate' => "SELECT column_name, data_type, is_nullable, column_default, ordinal_position\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = '{table}'\nORDER BY ordinal_position;",
-            'identifierOpen'         => '[',
-            'identifierClose'        => ']',
+            // Exact numerics
+            'TINYINT', 'SMALLINT', 'INT', 'BIGINT',
+            'DECIMAL(10,2)', 'NUMERIC(10,2)', 'MONEY', 'SMALLMONEY',
+            // Approximate numerics
+            'REAL', 'FLOAT',
+            // Date and time
+            'DATE', 'TIME', 'DATETIME', 'DATETIME2', 'SMALLDATETIME', 'DATETIMEOFFSET',
+            // Character strings
+            'CHAR(1)', 'VARCHAR(255)', 'VARCHAR(MAX)', 'TEXT',
+            'NCHAR(1)', 'NVARCHAR(255)', 'NVARCHAR(MAX)', 'NTEXT',
+            // Binary
+            'BINARY(1)', 'VARBINARY(255)', 'VARBINARY(MAX)', 'IMAGE',
+            // Other
+            'BIT', 'UNIQUEIDENTIFIER', 'XML', 'JSON',
+            'GEOMETRY', 'GEOGRAPHY',
         ];
+    }
+
+    public function welcomeQuery(): string
+    {
+        return 'SELECT GETDATE() AS now, @@VERSION AS version;';
+    }
+
+    public function structureQueryTemplate(): string
+    {
+        return "SELECT column_name, data_type, is_nullable, column_default, ordinal_position\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = '{table}'\nORDER BY ordinal_position;";
     }
 
     public function connect(array $config): void
@@ -382,26 +405,6 @@ class SQLServerDriver implements DriverInterface
         );
     }
 
-    public function listEvents(string $database): array
-    {
-        throw new RuntimeException('SQL Server does not support scheduled events.');
-    }
-
-    public function getEventDefinition(string $database, string $event): string
-    {
-        throw new RuntimeException('SQL Server does not support scheduled events.');
-    }
-
-    public function upsertEvent(string $database, string $event, string $definition): void
-    {
-        throw new RuntimeException('SQL Server does not support scheduled events.');
-    }
-
-    public function dropEvent(string $database, string $event): void
-    {
-        throw new RuntimeException('SQL Server does not support scheduled events.');
-    }
-
     public function browseTable(string $database, string $table, int $limit, int $offset): array
     {
         $this->ensureConnected();
@@ -621,14 +624,6 @@ class SQLServerDriver implements DriverInterface
         $qTbl = $this->quoteIdent($table);
         $qCol = $this->quoteIdent($columnName);
         $this->pdo->exec("ALTER TABLE dbo.$qTbl DROP COLUMN $qCol");
-    }
-
-    public function reorderColumn(string $database, string $table, string $columnName, ?string $afterColumn): void
-    {
-        throw new \RuntimeException(
-            'SQL Server does not support changing column positions. '
-            . 'To reorder columns, drop and recreate the table.'
-        );
     }
 
     public function describeTable(string $database, string $table): array

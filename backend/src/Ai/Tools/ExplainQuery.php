@@ -2,7 +2,9 @@
 
 namespace Quermy\Ai\Tools;
 
+use Quermy\Drivers\Capabilities\SupportsExplain;
 use Quermy\Http\ConnectionSessionInterface;
+use RuntimeException;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 
 #[AsTool(
@@ -54,6 +56,9 @@ final class ExplainQuery
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsExplain) {
+                throw new RuntimeException('This engine does not support EXPLAIN.');
+            }
             return ['plan' => $driver->explainQuery($database, $sql)];
         } finally {
             $driver->disconnect();

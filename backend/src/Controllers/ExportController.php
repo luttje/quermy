@@ -2,6 +2,7 @@
 
 namespace Quermy\Controllers;
 
+use Quermy\Drivers\CapabilitySerializer;
 use Quermy\Exporters\ExporterFactory;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
@@ -34,7 +35,7 @@ final class ExportController extends BaseController
 
         $driver = $this->session->open();
         try {
-            $caps = $driver->getCapabilities();
+            $caps = CapabilitySerializer::serialize($driver);
             $export = $this->collect($driver, $caps, $selection, $includeStructure, $includeData);
 
             $exporter = ExporterFactory::make($format, [
@@ -61,7 +62,7 @@ final class ExportController extends BaseController
      * every ExporterInterface implementation.
      *
      * @param mixed                              $driver
-     * @param array<string,mixed>                $caps              result of $driver->getCapabilities()
+     * @param array<string,mixed>                $caps              result of CapabilitySerializer::serialize($driver)
      * @param array<string,array<int,string>>    $selection         database → list of tables
      * @return list<array{database:string,tables:list<array{table:string,ddl:string|null,columns:list<array<string,mixed>>,rows:list<array<string,mixed>>}>}>
      */

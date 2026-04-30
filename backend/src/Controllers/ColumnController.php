@@ -2,9 +2,14 @@
 
 namespace Quermy\Controllers;
 
+use Quermy\Drivers\Capabilities\SupportsAddColumn;
+use Quermy\Drivers\Capabilities\SupportsDropColumn;
+use Quermy\Drivers\Capabilities\SupportsModifyColumn;
+use Quermy\Drivers\Capabilities\SupportsReorderColumn;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
+use RuntimeException;
 
 final class ColumnController extends BaseController
 {
@@ -20,6 +25,9 @@ final class ColumnController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsAddColumn) {
+                throw new RuntimeException('This engine does not support adding columns.');
+            }
             $driver->addColumn($db, $table, $body);
             Json::send(['ok' => true]);
         } finally {
@@ -35,6 +43,9 @@ final class ColumnController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsModifyColumn) {
+                throw new RuntimeException('This engine does not support modifying columns.');
+            }
             $driver->modifyColumn($db, $table, $column, $body);
             Json::send(['ok' => true]);
         } finally {
@@ -47,6 +58,9 @@ final class ColumnController extends BaseController
     {
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsDropColumn) {
+                throw new RuntimeException('This engine does not support dropping columns.');
+            }
             $driver->dropColumn($db, $table, $column);
             Json::send(['ok' => true]);
         } finally {
@@ -63,6 +77,9 @@ final class ColumnController extends BaseController
 
         $driver = $this->session->open();
         try {
+            if (!$driver instanceof SupportsReorderColumn) {
+                throw new RuntimeException('This engine does not support reordering columns.');
+            }
             $driver->reorderColumn($db, $table, $column, $after);
             Json::send(['ok' => true]);
         } finally {
