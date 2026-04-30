@@ -163,7 +163,7 @@
                 <h2 class="text-(--ink-0) text-base font-semibold mb-1">
                     Unlock vault
                 </h2>
-                <p class="text-(--ink-2) text-sm">
+                <p class="muted text-sm">
                     Enter your master password to access saved connections and
                     API keys.
                 </p>

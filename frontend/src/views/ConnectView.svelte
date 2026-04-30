@@ -18,6 +18,7 @@
     let vaultAction = ""; // '' | 'change' | 'add' | 'remove'
     let vaultNewPassword = "";
     let vaultConfirmPassword = "";
+    let vaultCurrentPassword = "";
     let vaultBusy = false;
     let vaultError = "";
     let vaultSuccess = "";
@@ -168,11 +169,22 @@
         vaultSuccess = "";
         vaultNewPassword = "";
         vaultConfirmPassword = "";
+        vaultCurrentPassword = "";
     }
 
     async function applyVaultChange() {
         vaultError = "";
-        if (vaultAction !== "remove") {
+        if (vaultAction === "remove") {
+            if (!vaultCurrentPassword) {
+                vaultError = "Enter your current master password to confirm.";
+                return;
+            }
+            const ok = await vault.unlockVault(vaultCurrentPassword);
+            if (!ok) {
+                vaultError = "Incorrect master password.";
+                return;
+            }
+        } else {
             if (!vaultNewPassword) {
                 vaultError = "Enter a new password.";
                 return;
@@ -201,6 +213,7 @@
             vaultAction = "";
             vaultNewPassword = "";
             vaultConfirmPassword = "";
+            vaultCurrentPassword = "";
         } catch (e) {
             vaultError = e.message;
         } finally {
@@ -209,8 +222,7 @@
     }
 
     function handleVaultKeydown(e) {
-        if (e.key === "Enter" && vaultAction && vaultAction !== "remove")
-            applyVaultChange();
+        if (e.key === "Enter" && vaultAction) applyVaultChange();
         if (e.key === "Escape") closeVaultSettings();
     }
 </script>
@@ -287,13 +299,15 @@
                         {#if vaultMode === "protected"}
                             <span
                                 class="mono text-[10px] uppercase tracking-[0.08em] text-(--acc) bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] px-2 py-0.5 rounded-sm font-semibold"
-                                >Encrypted</span
                             >
+                                Encrypted
+                            </span>
                         {:else}
                             <span
                                 class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3) bg-(--bg-2) border border-(--line) px-2 py-0.5 rounded-sm"
-                                >Unencrypted</span
                             >
+                                Unencrypted
+                            </span>
                         {/if}
                     </div>
 
@@ -311,14 +325,16 @@
                                     type="button"
                                     on:click={() => startVaultAction("change")}
                                     class="text-left px-3 py-2.5 rounded-(--radius) border border-(--line) text-(--ink-1) text-sm hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
-                                    >Change master password</button
                                 >
+                                    Change master password
+                                </button>
                                 <button
                                     type="button"
                                     on:click={() => startVaultAction("remove")}
                                     class="text-left px-3 py-2.5 rounded-(--radius) border border-(--line) text-(--ink-1) text-sm hover:border-(--danger) hover:text-(--danger) transition-colors duration-80"
-                                    >Remove master password</button
                                 >
+                                    Remove master password
+                                </button>
                             {:else}
                                 <Btn
                                     type="button"
@@ -328,6 +344,15 @@
                                 </Btn>
                             {/if}
                         </div>
+
+                        <p class="muted text-xs leading-relaxed">
+                            Your saved credentials are stored in your browser's
+                            local storage. By enabling encryption, they will be
+                            protected with a master password. That way, even if
+                            someone gains access to your local storage, they
+                            won't be able to read your saved credentials without
+                            the master password.
+                        </p>
                     {:else}
                         <!-- action form -->
                         {#if vaultAction === "remove"}
@@ -338,6 +363,12 @@
                                 to read them. Make sure you trust all localhost
                                 apps before proceeding.
                             </p>
+                            <Input
+                                type="password"
+                                bind:value={vaultCurrentPassword}
+                                placeholder="Current master password"
+                                autofocus
+                            />
                         {:else}
                             <div class="flex flex-col gap-2">
                                 <Input
