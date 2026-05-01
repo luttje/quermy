@@ -30,6 +30,9 @@
     /** Max height of the dropdown list (px). Will be clamped to available viewport space. */
     export let maxListHeight = 240;
 
+    /** Extra classes applied to the trigger button (for compact table cell usage). */
+    export let triggerClass = "";
+
     /** Optional id for label association. */
     export let id = "";
 
@@ -318,7 +321,7 @@
         aria-expanded={open}
         on:click={toggle}
         on:keydown={handleKeydown}
-        class="w-full flex items-center gap-2 bg-(--bg-input) border border-(--line) rounded-(--radius) px-3 py-2.25 text-(--ink-0) mono text-[13px] text-left transition-[border-color,box-shadow] duration-120 ease-in-out focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_3px_var(--acc-glow)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        class="w-full flex items-center gap-2 bg-(--bg-input) border border-(--line) rounded-(--radius) px-3 py-2.25 text-(--ink-0) mono text-[13px] text-left transition-[border-color,box-shadow] duration-120 ease-in-out focus:outline-none focus:border-(--acc) focus:shadow-[0_0_0_3px_var(--acc-glow)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {triggerClass}"
         class:border-acc={open}
     >
         <span class="flex-1 truncate {displayLabel ? '' : 'text-(--ink-3)'}">

@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
@@ -61,7 +62,8 @@ class SQLServerDriver implements
     ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
-    ProvidesListTablesQuery
+    ProvidesListTablesQuery,
+    ProvidesColumnTypesWithLength
 {
     private ?PDO $pdo = null;
 
@@ -88,20 +90,26 @@ class SQLServerDriver implements
         return [
             // Exact numerics
             'TINYINT', 'SMALLINT', 'INT', 'BIGINT',
-            'DECIMAL(10,2)', 'NUMERIC(10,2)', 'MONEY', 'SMALLMONEY',
+            'DECIMAL', 'NUMERIC', 'MONEY', 'SMALLMONEY',
             // Approximate numerics
             'REAL', 'FLOAT',
             // Date and time
             'DATE', 'TIME', 'DATETIME', 'DATETIME2', 'SMALLDATETIME', 'DATETIMEOFFSET',
             // Character strings
-            'CHAR(1)', 'VARCHAR(255)', 'VARCHAR(MAX)', 'TEXT',
-            'NCHAR(1)', 'NVARCHAR(255)', 'NVARCHAR(MAX)', 'NTEXT',
+            'CHAR', 'VARCHAR', 'TEXT',
+            'NCHAR', 'NVARCHAR', 'NTEXT',
             // Binary
-            'BINARY(1)', 'VARBINARY(255)', 'VARBINARY(MAX)', 'IMAGE',
+            'BINARY', 'VARBINARY', 'IMAGE',
             // Other
             'BIT', 'UNIQUEIDENTIFIER', 'XML', 'JSON',
             'GEOMETRY', 'GEOGRAPHY',
         ];
+    }
+
+    public function columnTypesWithLength(): array
+    {
+        // VARCHAR/NVARCHAR accept MAX as a special keyword in addition to numeric sizes.
+        return ['CHAR', 'VARCHAR', 'NCHAR', 'NVARCHAR', 'BINARY', 'VARBINARY', 'DECIMAL', 'NUMERIC'];
     }
 
     public function defaultColumnType(): string

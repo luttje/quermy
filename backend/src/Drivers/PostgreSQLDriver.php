@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
@@ -54,7 +55,8 @@ class PostgreSQLDriver implements
     ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
-    ProvidesListTablesQuery
+    ProvidesListTablesQuery,
+    ProvidesColumnTypesWithLength
 {
     private ?PDO $pdo = null;
 
@@ -81,10 +83,10 @@ class PostgreSQLDriver implements
         return [
             // Numeric
             'SMALLINT', 'INTEGER', 'BIGINT',
-            'DECIMAL', 'NUMERIC(10,2)', 'REAL', 'DOUBLE PRECISION',
+            'DECIMAL', 'NUMERIC', 'REAL', 'DOUBLE PRECISION',
             'SMALLSERIAL', 'SERIAL', 'BIGSERIAL',
             // String
-            'CHAR(1)', 'VARCHAR(255)', 'TEXT',
+            'CHAR', 'VARCHAR', 'TEXT',
             // Binary
             'BYTEA',
             // Date/Time
@@ -97,6 +99,11 @@ class PostgreSQLDriver implements
             'JSON', 'JSONB', 'UUID', 'XML',
             'INTEGER[]', 'TEXT[]',
         ];
+    }
+
+    public function columnTypesWithLength(): array
+    {
+        return ['CHAR', 'VARCHAR', 'DECIMAL', 'NUMERIC'];
     }
 
     public function defaultColumnType(): string

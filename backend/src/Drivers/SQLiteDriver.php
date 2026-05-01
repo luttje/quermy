@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
@@ -48,7 +49,8 @@ class SQLiteDriver implements
     ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
-    ProvidesListTablesQuery
+    ProvidesListTablesQuery,
+    ProvidesColumnTypesWithLength
 {
     private ?PDO $pdo = null;
 
@@ -77,12 +79,17 @@ class SQLiteDriver implements
             'INTEGER', 'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
             'UNSIGNED BIG INT', 'INT2', 'INT8',
             'REAL', 'DOUBLE', 'DOUBLE PRECISION', 'FLOAT',
-            'NUMERIC', 'DECIMAL(10,2)',
-            'TEXT', 'CHARACTER(20)', 'VARCHAR(255)', 'VARYING CHARACTER(255)', 'NCHAR(55)', 'NATIVE CHARACTER(70)', 'NVARCHAR(100)', 'CLOB',
+            'NUMERIC', 'DECIMAL',
+            'TEXT', 'CHARACTER', 'VARCHAR', 'VARYING CHARACTER', 'NCHAR', 'NATIVE CHARACTER', 'NVARCHAR', 'CLOB',
             'BLOB',
             'BOOLEAN',
             'DATE', 'DATETIME',
         ];
+    }
+
+    public function columnTypesWithLength(): array
+    {
+        return ['CHARACTER', 'VARCHAR', 'VARYING CHARACTER', 'NCHAR', 'NATIVE CHARACTER', 'NVARCHAR', 'DECIMAL', 'NUMERIC'];
     }
 
     public function defaultColumnType(): string

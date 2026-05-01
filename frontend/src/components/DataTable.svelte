@@ -14,6 +14,8 @@
     import { createEventDispatcher, tick } from "svelte";
     import { api } from "../lib/api.js";
     import { toast } from "../lib/store.js";
+    import Input from "./ui/Input.svelte";
+    import SearchableSelect from "./ui/SearchableSelect.svelte";
 
     export let columns = []; // full column defs: {name,type,nullable,key,default}
     export let rows = [];
@@ -71,8 +73,12 @@
         pendingEdits = rest;
     }
 
+    function isInteractiveTarget(e) {
+        return !!e.target.closest("input, button, select, label");
+    }
+
     function handleRowClick(i, e) {
-        if (e.target.tagName === "INPUT") return;
+        if (isInteractiveTarget(e)) return;
         // Keep selected when clicking into an editing row
         selectedRow = selectedRow === i ? (pendingEdits[i] ? i : null) : i;
     }
@@ -200,19 +206,26 @@
     let editColForm = {
         name: "",
         type: "",
+        typeLength: "",
         nullable: true,
         default: "",
         autoIncrement: false,
     };
     let addingCol = false;
-    $: defaultColType = capabilities?.defaultColumnType ?? "";
+    $: _defaultParsed = parseColumnType(capabilities?.defaultColumnType ?? "");
+    $: defaultColBase = _defaultParsed.base;
+    $: defaultColLength = _defaultParsed.length;
     let newColForm = {
         name: "",
         type: "",
+        typeLength: "",
         nullable: true,
         default: "",
         autoIncrement: false,
     };
+
+    $: editTypeSupportsLength = supportsLength(editColForm.type, capabilities);
+    $: newTypeSupportsLength = supportsLength(newColForm.type, capabilities);
 
     let structBusy = false;
     let selectedCol = null; // index of selected column row
@@ -303,9 +316,11 @@
     function startEditCol(idx) {
         const col = columns[idx];
         editingColIdx = idx;
+        const { base, length } = parseColumnType(col.type ?? "");
         editColForm = {
             name: col.name,
-            type: col.type,
+            type: base,
+            typeLength: length,
             nullable: col.nullable !== false,
             autoIncrement: isAutoIncrement(col),
             default:
@@ -320,7 +335,7 @@
     }
 
     function handleColClick(i, e) {
-        if (e.target.tagName === "INPUT") return;
+        if (isInteractiveTarget(e)) return;
         selectedCol = selectedCol === i ? (editingColIdx === i ? i : null) : i;
     }
 
@@ -347,7 +362,7 @@
         try {
             await api.modifyColumn(db, table, origName, {
                 name: editColForm.name.trim(),
-                type: editColForm.type.trim(),
+                type: buildType(editColForm.type, editTypeSupportsLength ? editColForm.typeLength : ""),
                 nullable: editColForm.nullable,
                 autoIncrement: editColForm.autoIncrement,
                 default:
@@ -370,7 +385,7 @@
         try {
             await api.addColumn(db, table, {
                 name: newColForm.name.trim(),
-                type: newColForm.type.trim(),
+                type: buildType(newColForm.type, newTypeSupportsLength ? newColForm.typeLength : ""),
                 nullable: newColForm.nullable,
                 autoIncrement: newColForm.autoIncrement,
                 default: newColForm.default !== "" ? newColForm.default : null,
@@ -379,7 +394,8 @@
             addingCol = false;
             newColForm = {
                 name: "",
-                type: defaultColType,
+                type: defaultColBase,
+                typeLength: defaultColLength,
                 nullable: true,
                 default: "",
                 autoIncrement: false,
@@ -395,6 +411,26 @@
     /*
      * Generic helpers
      */
+
+    function parseColumnType(type) {
+        if (!type) return { base: "", length: "" };
+        const m = type.match(/^(.+?)\((.+)\)$/);
+        return m
+            ? { base: m[1].trim(), length: m[2].trim() }
+            : { base: type, length: "" };
+    }
+
+    function buildType(base, length) {
+        const b = base.trim();
+        const l = length.trim();
+        return b && l ? `${b}(${l})` : b;
+    }
+
+    function supportsLength(typeBase, caps) {
+        return (caps?.columnTypesWithLength ?? []).some(
+            (t) => t.toUpperCase() === typeBase.toUpperCase(),
+        );
+    }
 
     function formatCell(v) {
         if (v === null || v === undefined) return null;
@@ -582,7 +618,7 @@
                                     if (
                                         canEditRows &&
                                         !editing &&
-                                        e.target.tagName !== "INPUT"
+                                        !isInteractiveTarget(e)
                                     )
                                         startEditRow(i);
                                 }}
@@ -600,8 +636,8 @@
                                                 c.name,
                                             )}
                                         >
-                                            <input
-                                                class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
+                                            <Input
+                                                class="py-0.75! px-1.75! text-[12px]! min-w-18 rounded-[3px]! box-border"
                                                 value={pendingEdits[i][c.name]}
                                                 on:input={(e) =>
                                                     handleCellInput(
@@ -645,8 +681,8 @@
                                     <td
                                         class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line) last:border-r-0"
                                     >
-                                        <input
-                                            class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
+                                        <Input
+                                            class="py-0.75! px-1.75! text-[12px]! min-w-18 rounded-[3px]! box-border"
                                             bind:value={newRowValues[c.name]}
                                             placeholder={isAutoIncrement(c)
                                                 ? "auto"
@@ -752,7 +788,8 @@
                                 addingCol = true;
                                 newColForm = {
                                     name: "",
-                                    type: defaultColType,
+                                    type: defaultColBase,
+                                    typeLength: defaultColLength,
                                     nullable: true,
                                     default: "",
                                     autoIncrement: false,
@@ -781,6 +818,10 @@
                         <th
                             class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
                             >Type</th
+                        >
+                        <th
+                            class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
+                            >Size</th
                         >
                         <th
                             class="sticky top-0 z-1 bg-(--bg-2) text-left px-3.5 py-2.5 border-b border-b-(--line-strong) border-r border-r-(--line) whitespace-nowrap text-(--ink-0) font-semibold text-[13px]"
@@ -824,7 +865,7 @@
                                 if (
                                     isEditable &&
                                     editingColIdx !== i &&
-                                    e.target.tagName !== "INPUT"
+                                    !isInteractiveTarget(e)
                                 )
                                     startEditCol(i);
                             }}
@@ -850,8 +891,8 @@
                                 <td
                                     class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 >
-                                    <input
-                                        class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
+                                    <Input
+                                        class="py-0.75! px-1.75! text-[12px]! min-w-18 rounded-[3px]! box-border"
                                         bind:value={editColForm.name}
                                         placeholder="column_name"
                                     />
@@ -859,11 +900,23 @@
                                 <td
                                     class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
                                 >
-                                    <input
-                                        class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
-                                        list="col-types"
+                                    <SearchableSelect
+                                        class="w-full min-w-18"
+                                        triggerClass="py-0.75! px-1.75! text-[12px]! rounded-[3px]!"
                                         bind:value={editColForm.type}
-                                        placeholder="VARCHAR(255)"
+                                        options={capabilities?.columnTypes ?? []}
+                                        allowCustom={true}
+                                        placeholder="VARCHAR"
+                                    />
+                                </td>
+                                <td
+                                    class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
+                                >
+                                    <Input
+                                        class="py-0.75! px-1.75! text-[12px]! min-w-14 rounded-[3px]! box-border disabled:opacity-40 disabled:cursor-not-allowed"
+                                        bind:value={editColForm.typeLength}
+                                        placeholder="e.g. 255"
+                                        disabled={!editTypeSupportsLength}
                                     />
                                 </td>
                                 <td
@@ -911,21 +964,31 @@
                                 <td
                                     class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line)"
                                 >
-                                    <input
-                                        class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
+                                    <Input
+                                        class="py-0.75! px-1.75! text-[12px]! min-w-18 rounded-[3px]! box-border"
                                         bind:value={editColForm.default}
                                         placeholder="NULL"
                                     />
                                 </td>
                             {:else}
+                                {@const _p = parseColumnType(col.type ?? "")}
                                 <td
                                     class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) font-semibold text-(--ink-0)"
                                     >{col.name}</td
                                 >
                                 <td
                                     class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ink-1)"
-                                    >{col.type}</td
+                                    >{_p.base || col.type}</td
                                 >
+                                <td
+                                    class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ink-1)"
+                                >
+                                    {#if _p.length}
+                                        {_p.length}
+                                    {:else}
+                                        <span class="text-(--ink-3)">—</span>
+                                    {/if}
+                                </td>
                                 <td
                                     class="mono py-1.75 px-3.5 border-b border-b-(--line) border-r border-r-(--line) text-(--ink-1)"
                                     >{col.nullable !== false ? "YES" : "NO"}</td
@@ -964,19 +1027,30 @@
                             >
                             <td
                                 class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
-                                ><input
-                                    class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
+                                ><Input
+                                    class="py-0.75! px-1.75! text-[12px]! min-w-18 rounded-[3px]! box-border"
                                     bind:value={newColForm.name}
                                     placeholder="column_name"
                                 /></td
                             >
                             <td
                                 class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
-                                ><input
-                                    class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
-                                    list="col-types"
+                                ><SearchableSelect
+                                    class="w-full min-w-18"
+                                    triggerClass="py-0.75! px-1.75! text-[12px]! rounded-[3px]!"
                                     bind:value={newColForm.type}
-                                    placeholder="VARCHAR(255)"
+                                    options={capabilities?.columnTypes ?? []}
+                                    allowCustom={true}
+                                    placeholder="VARCHAR"
+                                /></td
+                            >
+                            <td
+                                class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line) border-r border-r-(--line)"
+                                ><Input
+                                    class="py-0.75! px-1.75! text-[12px]! min-w-14 rounded-[3px]! box-border disabled:opacity-40 disabled:cursor-not-allowed"
+                                    bind:value={newColForm.typeLength}
+                                    placeholder="e.g. 255"
+                                    disabled={!newTypeSupportsLength}
                                 /></td
                             >
                             <td
@@ -1025,8 +1099,8 @@
                             {/if}
                             <td
                                 class="edit-cell py-1! px-1.5! align-middle border-b border-b-(--line)"
-                                ><input
-                                    class="w-full min-w-18 bg-(--bg-1) border border-(--line) rounded-[3px] text-(--ink-0) mono text-[12px] py-0.75 px-1.75 outline-none focus:border-(--acc) placeholder:text-(--ink-3) box-border"
+                                ><Input
+                                    class="py-0.75! px-1.75! text-[12px]! min-w-18 rounded-[3px]! box-border"
                                     bind:value={newColForm.default}
                                     placeholder="NULL"
                                 /></td
@@ -1044,12 +1118,6 @@
         </div>
     </div>
 {/if}
-
-<datalist id="col-types">
-    {#each capabilities?.columnTypes ?? [] as t}
-        <option value={t}></option>
-    {/each}
-</datalist>
 
 <style>
     /* Drop indicators for column drag-to-reorder */

@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
@@ -57,7 +58,8 @@ class MySQLDriver implements
     ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
-    ProvidesListTablesQuery
+    ProvidesListTablesQuery,
+    ProvidesColumnTypesWithLength
 {
     private ?PDO $pdo = null;
     private ?string $pinnedDatabaseName = null;
@@ -87,18 +89,23 @@ class MySQLDriver implements
             'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
             'INT UNSIGNED', 'TINYINT UNSIGNED', 'SMALLINT UNSIGNED',
             'MEDIUMINT UNSIGNED', 'BIGINT UNSIGNED',
-            'DECIMAL(10,2)', 'FLOAT', 'DOUBLE', 'BIT(1)',
+            'DECIMAL', 'FLOAT', 'DOUBLE', 'BIT',
             // String
-            'CHAR(1)', 'VARCHAR(255)', 'TINYTEXT', 'TEXT',
+            'CHAR', 'VARCHAR', 'TINYTEXT', 'TEXT',
             'MEDIUMTEXT', 'LONGTEXT',
-            'BINARY(1)', 'VARBINARY(255)',
+            'BINARY', 'VARBINARY',
             'TINYBLOB', 'BLOB', 'MEDIUMBLOB', 'LONGBLOB',
-            "ENUM('a','b')", "SET('a','b')",
+            'ENUM', 'SET',
             // Date/Time
             'DATE', 'TIME', 'DATETIME', 'TIMESTAMP', 'YEAR',
             // Other
             'JSON',
         ];
+    }
+
+    public function columnTypesWithLength(): array
+    {
+        return ['CHAR', 'VARCHAR', 'BINARY', 'VARBINARY', 'BIT', 'DECIMAL', 'ENUM', 'SET'];
     }
 
     public function defaultColumnType(): string

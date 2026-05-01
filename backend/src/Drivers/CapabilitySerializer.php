@@ -3,6 +3,7 @@
 namespace Quermy\Drivers;
 
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
@@ -66,6 +67,9 @@ final class CapabilitySerializer
         // Data provided by Provides* interfaces.
         $caps['columnTypes'] = $driver instanceof ProvidesColumnTypes
             ? $driver->columnTypes()
+            : [];
+        $caps['columnTypesWithLength'] = $driver instanceof ProvidesColumnTypesWithLength
+            ? $driver->columnTypesWithLength()
             : [];
         $caps['defaultColumnType'] = $driver instanceof ProvidesDefaultColumnType
             ? $driver->defaultColumnType()
