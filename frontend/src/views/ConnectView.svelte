@@ -7,6 +7,7 @@
     import Input from "../components/ui/Input.svelte";
     import Select from "../components/ui/Select.svelte";
     import FormField from "../components/ui/FormField.svelte";
+    import Checkbox from "../components/ui/Checkbox.svelte";
 
     let connections = [];
     let engines = [];
@@ -489,11 +490,7 @@
                     <label
                         class="flex items-center gap-2.5 text-(--ink-1) text-[13px] cursor-pointer select-none py-1"
                     >
-                        <input
-                            type="checkbox"
-                            class="accent-(--acc) w-3.5 h-3.5"
-                            bind:checked={form.save}
-                        />
+                        <Checkbox bind:checked={form.save} />
                         <span>Remember credentials (encrypted in browser)</span>
                     </label>
 
@@ -692,11 +689,7 @@
                     <label
                         class="flex items-center gap-2.5 text-(--ink-1) text-[13px] cursor-pointer select-none py-1"
                     >
-                        <input
-                            type="checkbox"
-                            class="accent-(--acc) w-3.5 h-3.5"
-                            bind:checked={form.save}
-                        />
+                        <Checkbox bind:checked={form.save} />
                         <span>
                             Save this connection (password encrypted at rest)
                         </span>

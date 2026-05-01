@@ -14,6 +14,7 @@
     } from "../lib/vault.js";
     import Btn from "./ui/Btn.svelte";
     import Input from "./ui/Input.svelte";
+    import Checkbox from "./ui/Checkbox.svelte";
 
     // 'loading' | 'setup' | 'unlock' | 'ready'
     let state = "loading";
@@ -110,11 +111,7 @@
             </div>
 
             <label class="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                    type="checkbox"
-                    bind:checked={wantProtected}
-                    class="w-4 h-4 rounded accent-(--acc)"
-                />
+                <Checkbox bind:checked={wantProtected} class="w-4 h-4 rounded" />
                 <span class="text-(--ink-1) text-sm">
                     Encrypt with a master password
                     <span class="text-(--ink-3) text-xs block">

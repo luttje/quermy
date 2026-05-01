@@ -15,6 +15,7 @@
     import { api } from "../lib/api.js";
     import { toast } from "../lib/store.js";
     import Input from "./ui/Input.svelte";
+    import Checkbox from "./ui/Checkbox.svelte";
     import SearchableSelect from "./ui/SearchableSelect.svelte";
 
     export let columns = []; // full column defs: {name,type,nullable,key,default}
@@ -925,11 +926,7 @@
                                     <label
                                         class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                     >
-                                        <input
-                                            type="checkbox"
-                                            class="accent-(--acc)"
-                                            bind:checked={editColForm.nullable}
-                                        />
+                                        <Checkbox bind:checked={editColForm.nullable} />
                                         <span class="mono"
                                             >{editColForm.nullable
                                                 ? "YES"
@@ -947,13 +944,7 @@
                                     <label
                                         class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                     >
-                                        <input
-                                            type="checkbox"
-                                            class="accent-(--acc)"
-                                            bind:checked={
-                                                editColForm.autoIncrement
-                                            }
-                                        />
+                                        <Checkbox bind:checked={editColForm.autoIncrement} />
                                         <span class="mono"
                                             >{editColForm.autoIncrement
                                                 ? "YES"
@@ -1059,11 +1050,7 @@
                                 <label
                                     class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                 >
-                                    <input
-                                        type="checkbox"
-                                        class="accent-(--acc)"
-                                        bind:checked={newColForm.nullable}
-                                    />
+                                    <Checkbox bind:checked={newColForm.nullable} />
                                     <span class="mono"
                                         >{newColForm.nullable
                                             ? "YES"
@@ -1082,13 +1069,7 @@
                                     <label
                                         class="inline-flex items-center gap-1.5 cursor-pointer text-[11.5px] text-(--ink-1) whitespace-nowrap"
                                     >
-                                        <input
-                                            type="checkbox"
-                                            class="accent-(--acc)"
-                                            bind:checked={
-                                                newColForm.autoIncrement
-                                            }
-                                        />
+                                        <Checkbox bind:checked={newColForm.autoIncrement} />
                                         <span class="mono"
                                             >{newColForm.autoIncrement
                                                 ? "YES"

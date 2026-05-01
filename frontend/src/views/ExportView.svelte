@@ -2,6 +2,7 @@
     import { createEventDispatcher, onMount } from "svelte";
     import { api } from "../lib/api.js";
     import Btn from "../components/ui/Btn.svelte";
+    import Checkbox from "../components/ui/Checkbox.svelte";
 
     const dispatch = createEventDispatcher();
 
@@ -246,25 +247,16 @@
                         ? "Structure export is not supported by this database engine"
                         : ""}
                 >
-                    <input
-                        type="checkbox"
+                    <Checkbox
                         bind:checked={includeStructure}
                         disabled={format === "sql" && !supportsGetCreateTable}
-                        class="accent-(--acc) w-3.5 h-3.5 {format === 'sql' &&
-                        !supportsGetCreateTable
-                            ? 'cursor-not-allowed'
-                            : 'cursor-pointer'}"
                     />
                     <span class="text-[13px] text-(--ink-1)">Structure</span>
                 </label>
                 <label
                     class="flex items-center gap-2 cursor-pointer select-none"
                 >
-                    <input
-                        type="checkbox"
-                        bind:checked={includeData}
-                        class="accent-(--acc) w-3.5 h-3.5 cursor-pointer"
-                    />
+                    <Checkbox bind:checked={includeData} />
                     <span class="text-[13px] text-(--ink-1)">Data</span>
                 </label>
             </div>
@@ -355,12 +347,11 @@
                             </button>
 
                             <!-- DB checkbox -->
-                            <input
-                                type="checkbox"
+                            <Checkbox
                                 checked={isAllSelected(db)}
                                 indeterminate={isPartiallySelected(db)}
                                 on:change={() => toggleDb(db)}
-                                class="accent-(--acc) w-3.5 h-3.5 cursor-pointer shrink-0"
+                                class="shrink-0"
                             />
 
                             <!-- DB name (click to expand) -->
@@ -400,19 +391,21 @@
                                         class="flex items-center gap-2 pl-9 pr-3 py-1.5 hover:bg-(--bg-2) cursor-pointer"
                                         on:click={() => toggleTable(db, table)}
                                     >
-                                        <input
-                                            type="checkbox"
+                                        <Checkbox
                                             checked={selected[db]?.has(table)}
-                                            on:click|stopPropagation
+                                            on:click={(e) =>
+                                                e.stopPropagation()}
                                             on:mouseover={(e) => {
                                                 if (e.buttons === 1) {
                                                     toggleTable(db, table);
                                                 }
                                             }}
                                             on:focus={() => {}}
-                                            on:change|stopPropagation={() =>
-                                                toggleTable(db, table)}
-                                            class="accent-(--acc) w-3.5 h-3.5 cursor-pointer shrink-0"
+                                            on:change={(e) => {
+                                                e.stopPropagation();
+                                                toggleTable(db, table);
+                                            }}
+                                            class="shrink-0"
                                         />
                                         <span
                                             class="text-[12.5px] text-(--ink-1) mono truncate select-none"
