@@ -5,8 +5,11 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
+use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
@@ -49,6 +52,9 @@ class MySQLDriver implements
     SupportsFunctionManagement,
     SupportsEventManagement,
     ProvidesColumnTypes,
+    ProvidesDefaultColumnType,
+    ProvidesReferentialActions,
+    ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
     ProvidesListTablesQuery
@@ -93,6 +99,21 @@ class MySQLDriver implements
             // Other
             'JSON',
         ];
+    }
+
+    public function defaultColumnType(): string
+    {
+        return 'VARCHAR(255)';
+    }
+
+    public function referentialActions(): array
+    {
+        return ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'];
+    }
+
+    public function textColumnTypePatterns(): array
+    {
+        return ['char', 'text', 'enum', 'set'];
     }
 
     public function welcomeQuery(): string

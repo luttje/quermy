@@ -3,8 +3,11 @@
 namespace Quermy\Drivers;
 
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
+use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
@@ -63,6 +66,15 @@ final class CapabilitySerializer
         // Data provided by Provides* interfaces.
         $caps['columnTypes'] = $driver instanceof ProvidesColumnTypes
             ? $driver->columnTypes()
+            : [];
+        $caps['defaultColumnType'] = $driver instanceof ProvidesDefaultColumnType
+            ? $driver->defaultColumnType()
+            : '';
+        $caps['referentialActions'] = $driver instanceof ProvidesReferentialActions
+            ? $driver->referentialActions()
+            : [];
+        $caps['textColumnTypePatterns'] = $driver instanceof ProvidesTextColumnTypePatterns
+            ? $driver->textColumnTypePatterns()
             : [];
         $caps['welcomeQuery'] = $driver instanceof ProvidesWelcomeQuery
             ? $driver->welcomeQuery()

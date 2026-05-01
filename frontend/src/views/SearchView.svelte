@@ -21,7 +21,7 @@
     // Identifier quoting helpers
     // -------------------------------------------------------------------------
 
-    $: ioOpen = capabilities?.identifierOpen ?? "`";
+    $: ioOpen = capabilities?.identifierOpen ?? '"';
 
     function quoteIdent(name) {
         if (ioOpen === '"') return '"' + name.replace(/"/g, '""') + '"';
@@ -66,10 +66,17 @@
     // PostgreSQL throws if you LIKE on non-text columns; MySQL/SQLite don't.
     // -------------------------------------------------------------------------
 
-    const TEXT_TYPE_RE = /char|text|string|clob|memo|nvar/i;
+    const TEXT_TYPE_FALLBACK_RE = /char|text|string|clob|memo|nvar/i;
+
+    function isTextColumn(col) {
+        const t = col.type || "";
+        const patterns = capabilities?.textColumnTypePatterns;
+        if (patterns?.length) return patterns.some((p) => t.toLowerCase().includes(p));
+        return TEXT_TYPE_FALLBACK_RE.test(t);
+    }
 
     function getSearchableCols(columns) {
-        const textCols = columns.filter((c) => TEXT_TYPE_RE.test(c.type || ""));
+        const textCols = columns.filter(isTextColumn);
         // Fallback to all columns if no text columns detected (e.g. unknown types)
         return textCols.length > 0 ? textCols : columns;
     }

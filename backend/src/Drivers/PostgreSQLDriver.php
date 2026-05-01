@@ -5,8 +5,11 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
+use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
@@ -46,6 +49,9 @@ class PostgreSQLDriver implements
     SupportsProcedureManagement,
     SupportsFunctionManagement,
     ProvidesColumnTypes,
+    ProvidesDefaultColumnType,
+    ProvidesReferentialActions,
+    ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
     ProvidesListTablesQuery
@@ -91,6 +97,21 @@ class PostgreSQLDriver implements
             'JSON', 'JSONB', 'UUID', 'XML',
             'INTEGER[]', 'TEXT[]',
         ];
+    }
+
+    public function defaultColumnType(): string
+    {
+        return 'TEXT';
+    }
+
+    public function referentialActions(): array
+    {
+        return ['RESTRICT', 'CASCADE', 'SET NULL', 'SET DEFAULT', 'NO ACTION'];
+    }
+
+    public function textColumnTypePatterns(): array
+    {
+        return ['char', 'text'];
     }
 
     public function welcomeQuery(): string

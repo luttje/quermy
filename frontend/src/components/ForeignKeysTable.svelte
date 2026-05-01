@@ -15,13 +15,10 @@
 
     const dispatch = createEventDispatcher();
 
-    const REFERENTIAL_ACTIONS = [
-        "RESTRICT",
-        "CASCADE",
-        "SET NULL",
-        "SET DEFAULT",
-        "NO ACTION",
-    ];
+    const FALLBACK_ACTIONS = ["RESTRICT", "CASCADE", "SET NULL", "SET DEFAULT", "NO ACTION"];
+    $: referentialActions = capabilities?.referentialActions?.length
+        ? capabilities.referentialActions
+        : FALLBACK_ACTIONS;
 
     let showCreateModal = false;
     let creating = false;
@@ -65,7 +62,7 @@
 
     function normalizeAction(action) {
         const value = (action ?? "").toString().trim().toUpperCase();
-        return REFERENTIAL_ACTIONS.includes(value) ? value : "RESTRICT";
+        return referentialActions.includes(value) ? value : (referentialActions[0] ?? "RESTRICT");
     }
 
     function sameColumns(a, b) {
@@ -79,8 +76,8 @@
         createColumns = "";
         createRefTable = "";
         createRefColumns = "";
-        createOnUpdate = "RESTRICT";
-        createOnDelete = "RESTRICT";
+        createOnUpdate = referentialActions[0] ?? "RESTRICT";
+        createOnDelete = referentialActions[0] ?? "RESTRICT";
         showCreateModal = true;
     }
 
@@ -463,7 +460,7 @@
                     ON UPDATE
                 </span>
                 <Select bind:value={createOnUpdate} class="text-[12px] py-2!">
-                    {#each REFERENTIAL_ACTIONS as action}
+                    {#each referentialActions as action}
                         <option value={action}>{action}</option>
                     {/each}
                 </Select>
@@ -473,7 +470,7 @@
                     ON DELETE
                 </span>
                 <Select bind:value={createOnDelete} class="text-[12px] py-2!">
-                    {#each REFERENTIAL_ACTIONS as action}
+                    {#each referentialActions as action}
                         <option value={action}>{action}</option>
                     {/each}
                 </Select>
@@ -576,7 +573,7 @@
                     ON UPDATE
                 </span>
                 <Select bind:value={editOnUpdate} class="text-[12px] py-2!">
-                    {#each REFERENTIAL_ACTIONS as action}
+                    {#each referentialActions as action}
                         <option value={action}>{action}</option>
                     {/each}
                 </Select>
@@ -586,7 +583,7 @@
                     ON DELETE
                 </span>
                 <Select bind:value={editOnDelete} class="text-[12px] py-2!">
-                    {#each REFERENTIAL_ACTIONS as action}
+                    {#each referentialActions as action}
                         <option value={action}>{action}</option>
                     {/each}
                 </Select>

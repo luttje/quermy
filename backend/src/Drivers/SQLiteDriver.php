@@ -5,8 +5,10 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
@@ -42,6 +44,8 @@ class SQLiteDriver implements
     SupportsExplain,
     SupportsViewManagement,
     ProvidesColumnTypes,
+    ProvidesDefaultColumnType,
+    ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
     ProvidesListTablesQuery
@@ -79,6 +83,16 @@ class SQLiteDriver implements
             'BOOLEAN',
             'DATE', 'DATETIME',
         ];
+    }
+
+    public function defaultColumnType(): string
+    {
+        return 'TEXT';
+    }
+
+    public function textColumnTypePatterns(): array
+    {
+        return ['char', 'text', 'clob', 'nvar'];
     }
 
     public function welcomeQuery(): string

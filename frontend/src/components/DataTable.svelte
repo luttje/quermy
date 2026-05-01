@@ -205,9 +205,10 @@
         autoIncrement: false,
     };
     let addingCol = false;
+    $: defaultColType = capabilities?.defaultColumnType ?? "";
     let newColForm = {
         name: "",
-        type: "VARCHAR(255)",
+        type: "",
         nullable: true,
         default: "",
         autoIncrement: false,
@@ -378,7 +379,7 @@
             addingCol = false;
             newColForm = {
                 name: "",
-                type: "VARCHAR(255)",
+                type: defaultColType,
                 nullable: true,
                 default: "",
                 autoIncrement: false,
@@ -751,7 +752,7 @@
                                 addingCol = true;
                                 newColForm = {
                                     name: "",
-                                    type: "VARCHAR(255)",
+                                    type: defaultColType,
                                     nullable: true,
                                     default: "",
                                     autoIncrement: false,

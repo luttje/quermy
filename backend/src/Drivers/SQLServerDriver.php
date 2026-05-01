@@ -5,8 +5,11 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
+use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
+use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
@@ -53,6 +56,9 @@ class SQLServerDriver implements
     SupportsProcedureManagement,
     SupportsFunctionManagement,
     ProvidesColumnTypes,
+    ProvidesDefaultColumnType,
+    ProvidesReferentialActions,
+    ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
     ProvidesListTablesQuery
@@ -96,6 +102,21 @@ class SQLServerDriver implements
             'BIT', 'UNIQUEIDENTIFIER', 'XML', 'JSON',
             'GEOMETRY', 'GEOGRAPHY',
         ];
+    }
+
+    public function defaultColumnType(): string
+    {
+        return 'NVARCHAR(255)';
+    }
+
+    public function referentialActions(): array
+    {
+        return ['CASCADE', 'NO ACTION', 'SET NULL', 'SET DEFAULT'];
+    }
+
+    public function textColumnTypePatterns(): array
+    {
+        return ['char', 'text', 'nvar'];
     }
 
     public function welcomeQuery(): string

@@ -153,7 +153,7 @@
                     class="flex-1"
                     bind:value={newCollation}
                     options={collations}
-                    placeholder="e.g. utf8mb4_unicode_ci"
+                    placeholder={collations.length > 0 ? collations[0] : ""}
                     searchPlaceholder="Filter collations…"
                     clearable
                 />
