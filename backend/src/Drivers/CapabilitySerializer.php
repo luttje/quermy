@@ -24,6 +24,7 @@ use Quermy\Drivers\Capabilities\SupportsDropTable;
 use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyBypass;
 use Quermy\Drivers\Capabilities\SupportsEventManagement;
+use Quermy\Drivers\Capabilities\SupportsTriggerManagement;
 use Quermy\Drivers\Capabilities\SupportsExplain;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
 use Quermy\Drivers\Capabilities\SupportsForeignKeys;
@@ -63,6 +64,7 @@ final class CapabilitySerializer
         SupportsProcedureManagement::class,
         SupportsFunctionManagement::class,
         SupportsEventManagement::class,
+        SupportsTriggerManagement::class,
     ];
 
     public static function serialize(DriverInterface $driver): array

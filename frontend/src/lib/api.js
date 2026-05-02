@@ -93,6 +93,15 @@ export const api = {
   dropFunction: (db, fn) =>
     request('DELETE', `/databases/${encodeURIComponent(db)}/functions/${encodeURIComponent(fn)}`),
 
+  listTriggers: (db, table) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(table)}/triggers`),
+  getTriggerDefinition: (db, trigger) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/triggers/${encodeURIComponent(trigger)}`),
+  saveTriggerDefinition: (db, table, trigger, definition) =>
+    request('PUT', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(table)}/triggers/${encodeURIComponent(trigger)}`, { definition }),
+  dropTrigger: (db, trigger) =>
+    request('DELETE', `/databases/${encodeURIComponent(db)}/triggers/${encodeURIComponent(trigger)}`),
+
   listEvents: (db) => request('GET', `/databases/${encodeURIComponent(db)}/events`),
   getEventDefinition: (db, event) =>
     request('GET', `/databases/${encodeURIComponent(db)}/events/${encodeURIComponent(event)}`),

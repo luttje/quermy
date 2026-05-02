@@ -24,6 +24,7 @@
     import StoredProcedureEditorView from "./views/StoredProcedureEditorView.svelte";
     import StoredFunctionEditorView from "./views/StoredFunctionEditorView.svelte";
     import EventEditorView from "./views/EventEditorView.svelte";
+    import TriggerEditorView from "./views/TriggerEditorView.svelte";
     import Select from "./components/ui/Select.svelte";
 
     let bootstrapping = true;
@@ -284,6 +285,8 @@
                 sql = `-- Indexes on ${qDb}.${qTbl}`;
             } else if (tMode === "foreign-keys") {
                 sql = `-- Foreign key constraints on ${qDb}.${qTbl}`;
+            } else if (tMode === "triggers") {
+                sql = `-- Triggers on ${qDb}.${qTbl}`;
             } else {
                 const tmpl = $capabilities?.structureQueryTemplate;
                 sql = tmpl?.replace("{db}", tDb).replace("{table}", tTbl) ?? "";
@@ -320,6 +323,13 @@
         }
 
         if (tTbl) {
+            if (tMode === "triggers") {
+                defaultDb = tDb;
+                tableContext = { db: tDb, table: tTbl, mode: "triggers" };
+                busy = false;
+                return;
+            }
+
             try {
                 const t0 = performance.now();
                 if (tMode === "indexes") {
@@ -652,6 +662,12 @@
                             db={tableContext.db}
                             capabilities={$capabilities}
                             {databases}
+                        />
+                    {:else if tableContext?.mode === "triggers"}
+                        <TriggerEditorView
+                            db={tableContext.db}
+                            table={tableContext.table}
+                            capabilities={$capabilities}
                         />
                     {:else if result}
                         {#if tableContext?.mode === "indexes"}

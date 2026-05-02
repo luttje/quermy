@@ -7,6 +7,7 @@ use Quermy\Drivers\Capabilities\SupportsAlterTableAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsAlterTableCollation;
 use Quermy\Drivers\Capabilities\SupportsAlterTableEngine;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTriggerManagement;
 use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
@@ -150,6 +151,71 @@ final class TableController extends BaseController
                 throw new RuntimeException('This engine does not support altering auto-increment.');
             }
             $driver->alterTableAutoIncrement($db, $table, (int)$value);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('GET', '/api/databases/{db}/tables/{table}/triggers')]
+    public function listTriggers(string $db, string $table): void
+    {
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsTriggerManagement) {
+                throw new RuntimeException('This engine does not support trigger management.');
+            }
+            Json::send(['triggers' => $driver->listTriggers($db, $table)]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('GET', '/api/databases/{db}/triggers/{trigger}')]
+    public function getTriggerDefinition(string $db, string $trigger): void
+    {
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsTriggerManagement) {
+                throw new RuntimeException('This engine does not support trigger management.');
+            }
+            Json::send([
+                'name'       => $trigger,
+                'definition' => $driver->getTriggerDefinition($db, $trigger),
+            ]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('PUT', '/api/databases/{db}/tables/{table}/triggers/{trigger}')]
+    public function upsertTrigger(string $db, string $table, string $trigger): void
+    {
+        $body       = Json::readBody();
+        $definition = trim((string)($body['definition'] ?? ''));
+        if ($definition === '') Json::error('definition is required', 400);
+
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsTriggerManagement) {
+                throw new RuntimeException('This engine does not support trigger management.');
+            }
+            $driver->upsertTrigger($db, $table, $trigger, $definition);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('DELETE', '/api/databases/{db}/triggers/{trigger}')]
+    public function dropTrigger(string $db, string $trigger): void
+    {
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsTriggerManagement) {
+                throw new RuntimeException('This engine does not support trigger management.');
+            }
+            $driver->dropTrigger($db, $trigger);
             Json::send(['ok' => true]);
         } finally {
             $driver->disconnect();
