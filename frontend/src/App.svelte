@@ -1,7 +1,7 @@
 <script>
     import { onMount, onDestroy } from "svelte";
     import { api } from "./lib/api.js";
-    import { session, capabilities, toast } from "./lib/store.js";
+    import { session, capabilities, toast, sqlErrors } from "./lib/store.js";
 
     import ConnectView from "./views/ConnectView.svelte";
     import ExportView from "./views/ExportView.svelte";
@@ -87,7 +87,6 @@
     let databases = [];
     let busy = false;
     let result = null; // { columns, rows, total, durationMs, isSelect, affected }
-    let errors = []; // [{ message, time }] — persistent SQL error log, newest first
     let tableContext = null; // { db, table|null, mode } — set when browsing via tree
     let defaultDb = null;
     let sqlEditor;
@@ -190,7 +189,7 @@
             capabilities.set(null);
             databases = [];
             result = null;
-            errors = [];
+            sqlErrors.set([]);
             tableContext = null;
             sql = "";
             history.replaceState(null, "", location.pathname);
@@ -214,7 +213,7 @@
                 );
             }
         } catch (e) {
-            errors = [{ message: e.message, time: new Date() }, ...errors];
+            sqlErrors.update((list) => [{ message: e.message, time: new Date() }, ...list]);
         } finally {
             busy = false;
         }
@@ -356,7 +355,7 @@
                     tableContext = { db: tDb, table: tTbl, mode: tMode };
                 }
             } catch (e) {
-                errors = [{ message: e.message, time: new Date() }, ...errors];
+                sqlErrors.update((list) => [{ message: e.message, time: new Date() }, ...list]);
             } finally {
                 busy = false;
             }
@@ -748,7 +747,7 @@
                         </div>
                     {/if}
 
-                    {#if errors.length > 0}
+                    {#if $sqlErrors.length > 0}
                         <div
                             class="shrink-0 bg-(--bg-1) border border-[rgba(255,115,103,0.25)] rounded-lg overflow-hidden h-62.5 overflow-y-auto"
                         >
@@ -761,16 +760,16 @@
                                 >
                                 <span
                                     class="mono text-[9.5px] bg-[rgba(255,115,103,0.15)] text-(--danger) px-1.5 py-px rounded-full font-semibold"
-                                    >{errors.length}</span
+                                    >{$sqlErrors.length}</span
                                 >
                                 <Btn
                                     variant="ghost"
-                                    on:click={() => (errors = [])}
+                                    on:click={() => sqlErrors.set([])}
                                     class="ml-auto text-[11px] px-2 py-0.5 text-(--ink-3)"
                                     >Clear</Btn
                                 >
                             </div>
-                            {#each errors as err}
+                            {#each $sqlErrors as err}
                                 <div
                                     class="px-3 py-2.5 border-b border-(--line) last:border-b-0"
                                 >
