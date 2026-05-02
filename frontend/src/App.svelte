@@ -807,7 +807,7 @@
                 style="width: {rightWidth}px"
             >
                 <VaultGate>
-                    <AIChatPanel />
+                    <AIChatPanel on:runSql={handleRunSql} />
                 </VaultGate>
             </aside>
         </div>

@@ -1,5 +1,6 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, createEventDispatcher } from "svelte";
+    const dispatch = createEventDispatcher();
     import { api } from "../lib/api.js";
     import * as vault from "../lib/vault.js";
     import { getSettings, updateSettings } from "../lib/settings.js";
@@ -52,7 +53,7 @@
     let hasCustomPrompt = false;
 
     // Regenerate the default system prompt whenever the connected engine changes.
-    $: defaultSystemPrompt = buildSystemPrompt($capabilities?.engineId ?? '');
+    $: defaultSystemPrompt = buildSystemPrompt($capabilities?.engineId ?? "");
 
     // When the engine changes and no custom prompt is set, update messages[0] live.
     $: if (defaultSystemPrompt && !hasCustomPrompt) {
@@ -176,55 +177,8 @@
      * Query suggestion run state
      */
 
-    // Maps suggestionId → 'idle' | 'running' | 'done' | 'error'
-    let suggestionStates = {};
-
-    async function runSuggestion(suggestionId, database, sql) {
-        suggestionStates = { ...suggestionStates, [suggestionId]: "running" };
-        try {
-            const result = await api.runQuery(database, sql);
-            suggestionStates = { ...suggestionStates, [suggestionId]: "done" };
-
-            // Attach the result to the suggestion message so it renders inline
-            messages = messages.map((m) =>
-                m.suggestionId === suggestionId
-                    ? {
-                          ...m,
-                          queryResult: formatQueryResult(result),
-                          queryError: null,
-                      }
-                    : m,
-            );
-            setTimeout(scrollToBottom, 0);
-        } catch (err) {
-            suggestionStates = { ...suggestionStates, [suggestionId]: "error" };
-            messages = messages.map((m) =>
-                m.suggestionId === suggestionId
-                    ? { ...m, queryError: err.message, queryResult: null }
-                    : m,
-            );
-            setTimeout(scrollToBottom, 0);
-        }
-    }
-
-    /** Render query results as a markdown table (≤50 rows) or a row-count summary. */
-    function formatQueryResult(result) {
-        const { columns = [], rows = [], durationMs = 0 } = result;
-        if (!rows.length) return `_Query returned no rows (${durationMs}ms)_`;
-
-        if (columns.length && rows.length <= 50) {
-            const header = `| ${columns.map((c) => c.name).join(" | ")} |`;
-            const sep = `| ${columns.map(() => "---").join(" | ")} |`;
-            const body = rows
-                .map(
-                    (r) =>
-                        `| ${columns.map((c) => String(r[c.name] ?? "")).join(" | ")} |`,
-                )
-                .join("\n");
-            return `${header}\n${sep}\n${body}\n\n_${rows.length} row(s) · ${durationMs}ms_`;
-        }
-
-        return `_${rows.length} row(s) returned in ${durationMs}ms_`;
+    function runSuggestion(database, sql) {
+        dispatch("runSql", { db: database, sql });
     }
 
     /*
@@ -351,7 +305,6 @@
     // Start a new conversation but keep the current system prompt and initial greeting
     function clearChat() {
         messages = [messages[0], messages[1]];
-        suggestionStates = {};
     }
 
     function handleMessagesClick(e) {
@@ -539,8 +492,6 @@
             {#each messages as msg}
                 {#if msg.role === "assistant" && msg.isSuggestion}
                     <!-- Query suggestion bubble -->
-                    {@const state =
-                        suggestionStates[msg.suggestionId] ?? "idle"}
                     <div class="flex gap-1.75 items-start">
                         <div
                             class="w-5.5 h-5.5 rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-(--acc) flex items-center justify-center text-[11px] shrink-0 mt-0.5"
@@ -577,16 +528,6 @@
                                     <span></span>
                                 {/if}
                                 <div class="flex items-center gap-1.5 shrink-0">
-                                    {#if state === "done"}
-                                        <span
-                                            class="text-[10.5px] text-emerald-400"
-                                            >✓ ran</span
-                                        >
-                                    {:else if state === "error"}
-                                        <span class="text-[10.5px] text-red-400"
-                                            >✗ failed</span
-                                        >
-                                    {/if}
                                     <button
                                         class="copy-sql-btn text-[10px] px-1.5 py-0.5 bg-(--bg-3) border border-(--line) rounded-[3px] text-(--ink-3) hover:border-(--acc) hover:text-(--acc) transition-colors duration-80"
                                         on:click={(event) => {
@@ -605,46 +546,18 @@
                                         Copy
                                     </button>
                                     <button
-                                        class="run-btn flex gap-1 items-center text-[10.5px] px-2 py-0.5 rounded-[3px] border font-medium transition-colors duration-80
-                                               {state === 'running'
-                                            ? 'bg-(--bg-3) border-(--line) text-(--ink-3) cursor-wait'
-                                            : state === 'done'
-                                              ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/40'
-                                              : 'bg-(--acc)/10 border-(--acc)/40 text-(--acc) hover:bg-(--acc)/20'}"
-                                        disabled={state === "running"}
+                                        class="run-btn flex gap-1 items-center text-[10.5px] px-2 py-0.5 rounded-[3px] border font-medium transition-colors duration-80 bg-(--acc)/10 border-(--acc)/40 text-(--acc) hover:bg-(--acc)/20"
                                         on:click={() =>
                                             runSuggestion(
-                                                msg.suggestionId,
                                                 msg.database,
                                                 msg.sql,
                                             )}
                                     >
-                                        {#if state === "running"}
-                                            Running…
-                                        {:else if state === "done"}
-                                            <RunIcon />
-                                            Run again
-                                        {:else}
-                                            <RunIcon />
-                                            Run
-                                        {/if}
+                                        <RunIcon />
+                                        Run
                                     </button>
                                 </div>
                             </div>
-                            <!-- Inline query result -->
-                            {#if msg.queryResult}
-                                <div
-                                    class="prose-md max-h-100 px-2.75 py-2 border-t border-(--line) text-(--ink-1) overflow-x-auto text-[11.5px]"
-                                >
-                                    {@html parse(msg.queryResult)}
-                                </div>
-                            {:else if msg.queryError}
-                                <p
-                                    class="px-2.75 py-2 border-t border-(--line) text-[11px] text-red-400"
-                                >
-                                    Query failed: {msg.queryError}
-                                </p>
-                            {/if}
                         </div>
                     </div>
                 {:else if msg.role !== "system"}
