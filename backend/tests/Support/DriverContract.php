@@ -12,6 +12,8 @@ use Quermy\Drivers\Capabilities\SupportsReorderColumn;
 use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use Quermy\Drivers\DriverInterface;
 use RuntimeException;
 
@@ -568,6 +570,10 @@ final class DriverContract
         $caps = CapabilitySerializer::serialize($this->driver);
         expect($caps)->toHaveKeys([
             'columnTypes',
+            'columnTypesWithLength',
+            'defaultColumnType',
+            'referentialActions',
+            'textColumnTypePatterns',
             'supportsAutoIncrement',
             'supportsColumnAfter',
             'supportsAddColumn',
@@ -580,10 +586,18 @@ final class DriverContract
             'supportsIndexManagement',
             'supportsForeignKeyManagement',
             'supportsViewManagement',
+            'supportsDropTable',
+            'supportsTruncateTable',
+            'supportsCreateTable',
+            'supportsRenameDatabase',
+            'supportsDropDatabase',
+            'providesTableInfo',
             'welcomeQuery',
             'structureQueryTemplate',
+            'listTablesQuery',
             'identifierOpen',
             'identifierClose',
+            'engineId',
         ])->and($caps['columnTypes'])->toBeArray()->not->toBeEmpty();
 
         // All boolean flags must actually be booleans.
@@ -600,12 +614,23 @@ final class DriverContract
             'supportsIndexManagement',
             'supportsForeignKeyManagement',
             'supportsViewManagement',
+            'supportsDropTable',
+            'supportsTruncateTable',
+            'supportsCreateTable',
+            'supportsRenameDatabase',
+            'supportsDropDatabase',
+            'providesTableInfo',
         ] as $flag) {
             expect($caps[$flag])->toBeBool("$flag must be a bool");
         }
 
+        // Array fields.
+        foreach (['columnTypes', 'columnTypesWithLength', 'referentialActions', 'textColumnTypePatterns'] as $key) {
+            expect($caps[$key])->toBeArray();
+        }
+
         // String fields must be non-empty strings.
-        foreach (['welcomeQuery', 'structureQueryTemplate', 'identifierOpen', 'identifierClose'] as $key) {
+        foreach (['welcomeQuery', 'structureQueryTemplate', 'identifierOpen', 'identifierClose', 'engineId'] as $key) {
             expect($caps[$key])->toBeString()->not->toBeEmpty();
         }
     }
@@ -872,6 +897,75 @@ final class DriverContract
         $pos  = array_flip($cols);
         expect($pos['id'])->toBeGreaterThan($pos['alpha'])
             ->and($pos['id'])->toBeLessThan($pos['beta']);
+    }
+
+    // -------------------------------------------------------------------------
+    // getDatabaseInfo
+    // -------------------------------------------------------------------------
+
+    public function getDatabaseInfoShape(): void
+    {
+        $info = $this->driver->getDatabaseInfo($this->database);
+
+        expect($info)->toHaveKeys(['name', 'charset', 'collation'])
+            ->and($info['name'])->toBe($this->database);
+
+        // charset/collation are engine-dependent and may be null, but when
+        // present they must be non-empty strings.
+        if ($info['charset'] !== null) {
+            expect($info['charset'])->toBeString()->not->toBeEmpty();
+        }
+        if ($info['collation'] !== null) {
+            expect($info['collation'])->toBeString()->not->toBeEmpty();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // SupportsDropTable
+    // -------------------------------------------------------------------------
+
+    public function dropTableCapabilityRoundTrip(): void
+    {
+        assert($this->driver instanceof SupportsDropTable);
+        $table = 'droptable_probe';
+        $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
+        $this->driver->runQuery(
+            $this->database,
+            "CREATE TABLE {$this->q($table)} (id {$this->int()} PRIMARY KEY)"
+        );
+
+        $names = array_column($this->driver->listTables($this->database), 'name');
+        expect($names)->toContain($table);
+
+        $this->driver->dropTable($this->database, $table);
+
+        $names = array_column($this->driver->listTables($this->database), 'name');
+        expect($names)->not->toContain($table);
+    }
+
+    // -------------------------------------------------------------------------
+    // SupportsTruncateTable
+    // -------------------------------------------------------------------------
+
+    public function truncateTableClearsRows(): void
+    {
+        assert($this->driver instanceof SupportsTruncateTable);
+        $table = 'truncate_probe';
+        $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
+        $this->driver->runQuery(
+            $this->database,
+            "CREATE TABLE {$this->q($table)} (id {$this->int()} PRIMARY KEY)"
+        );
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->driver->insertRow($this->database, $table, ['id' => $i]);
+        }
+
+        expect($this->driver->browseTable($this->database, $table, 100, 0)['total'])->toBe(5);
+
+        $this->driver->truncateTable($this->database, $table);
+
+        expect($this->driver->browseTable($this->database, $table, 100, 0)['total'])->toBe(0);
     }
 
 }

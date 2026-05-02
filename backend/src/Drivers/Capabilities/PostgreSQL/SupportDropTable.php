@@ -10,9 +10,8 @@ trait SupportDropTable
     public function dropTable(string $database, string $table, bool $force = false): void
     {
         $this->ensureConnected();
-        $qDb      = $this->quoteIdent($database);
-        $qTbl     = $this->quoteIdent($table);
-        $cascade  = $force ? ' CASCADE' : '';
-        $this->pdo->exec("DROP TABLE $qDb.$qTbl$cascade");
+        $qTbl    = $this->quoteIdent($table);
+        $cascade = $force ? ' CASCADE' : '';
+        $this->pdo->exec("DROP TABLE public.$qTbl$cascade");
     }
 }

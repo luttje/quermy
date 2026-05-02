@@ -175,6 +175,17 @@ it('creates and drops a unique index', fn() => $this->contract->createAndDropUni
 it('creates a composite index on multiple columns', fn() => $this->contract->createCompositeIndex());
 
 /*
+ * Shared contract — getDatabaseInfo
+ */
+it('getDatabaseInfo returns the expected shape', fn() => $this->contract->getDatabaseInfoShape());
+
+/*
+ * Shared contract — drop and truncate table
+ */
+it('dropTable removes the table from the schema', fn() => $this->contract->dropTableCapabilityRoundTrip());
+it('truncateTable clears all rows', fn() => $this->contract->truncateTableClearsRows());
+
+/*
  * SQLite-specific: INTEGER PRIMARY KEY auto-increment
  */
 it('INTEGER PRIMARY KEY acts as an auto-increment alias and reports the insert id', function () {
@@ -270,4 +281,28 @@ it('engineMeta reports connectionType as file', function () {
     expect($engineMeta['identifierOpen'])->toBe('"')
         ->and($engineMeta['identifierClose'])->toBe('"')
         ->and($engineMeta['connectionType'])->toBe('file');
+});
+
+/*
+ * SQLite-specific: getDatabaseInfo returns null charset/collation
+ * SQLite has no character-set or collation concept at the database level.
+ */
+it('getDatabaseInfo returns "main" with null charset and collation', function () {
+    $info = $this->driver->getDatabaseInfo('main');
+
+    expect($info['name'])->toBe('main')
+        ->and($info['charset'])->toBeNull()
+        ->and($info['collation'])->toBeNull();
+});
+
+/*
+ * SQLite-specific: modifyColumn and reorderColumn are not supported
+ * Verify the capability flags rather than calling non-existent methods.
+ */
+it('does not advertise modifyColumn or reorderColumn support', function () {
+    $caps = \Quermy\Drivers\CapabilitySerializer::serialize($this->driver);
+
+    expect($caps['supportsModifyColumn'])->toBeFalse()
+        ->and($caps['supportsReorderColumn'])->toBeFalse()
+        ->and($caps['supportsForeignKeyManagement'])->toBeFalse();
 });

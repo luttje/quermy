@@ -173,6 +173,17 @@ it('creates a composite index on multiple columns', fn() => $this->contract->cre
 it('creates and drops a foreign key constraint', fn() => $this->contract->createAndDropForeignKeyConstraint());
 
 /*
+ * Shared contract — getDatabaseInfo
+ */
+it('getDatabaseInfo returns the expected shape', fn() => $this->contract->getDatabaseInfoShape());
+
+/*
+ * Shared contract — drop and truncate table
+ */
+it('dropTable removes the table from the schema', fn() => $this->contract->dropTableCapabilityRoundTrip());
+it('truncateTable clears all rows', fn() => $this->contract->truncateTableClearsRows());
+
+/*
  * PostgreSQL-specific: incoming foreign keys
  */
 it('reports incoming foreign keys on the parent table', function () {
@@ -325,6 +336,17 @@ it('creates and drops a primary key constraint', function () {
 
     $info = $this->driver->describeTable($this->database, 'pk_mgmt_probe');
     expect($info['primaryKey'])->toBeEmpty();
+});
+
+/*
+ * PostgreSQL-specific: getDatabaseInfo returns charset and collation
+ */
+it('getDatabaseInfo returns a non-null charset and collation for PostgreSQL', function () {
+    $info = $this->driver->getDatabaseInfo($this->database);
+
+    expect($info['name'])->toBe($this->database)
+        ->and($info['charset'])->toBeString()->not->toBeEmpty()
+        ->and($info['collation'])->toBeString()->not->toBeEmpty();
 });
 
 /*
