@@ -1,10 +1,17 @@
 <script>
     import { onMount, onDestroy } from "svelte";
     import { api } from "./lib/api.js";
-    import { session, capabilities, toast, sqlErrors, currentSql } from "./lib/store.js";
+    import {
+        session,
+        capabilities,
+        toast,
+        sqlErrors,
+        currentSql,
+    } from "./lib/store.js";
 
     import ConnectView from "./views/ConnectView.svelte";
     import ExportView from "./views/ExportView.svelte";
+    import ImportView from "./views/ImportView.svelte";
     import VaultGate from "./components/VaultGate.svelte";
     import TreeView from "./components/TreeView.svelte";
     import AIChatPanel from "./components/AIChatPanel.svelte";
@@ -105,6 +112,7 @@
     rightWidth = Math.max(rightWidth, maxSideWidth);
 
     // Modals
+    let showImportModal = false;
     let showExportModal = false;
     let showSearchModal = false;
     let showDbEditModal = false;
@@ -214,7 +222,10 @@
                 );
             }
         } catch (e) {
-            sqlErrors.update((list) => [{ message: e.message, time: new Date(), query: sql.trim() }, ...list]);
+            sqlErrors.update((list) => [
+                { message: e.message, time: new Date(), query: sql.trim() },
+                ...list,
+            ]);
         } finally {
             busy = false;
         }
@@ -228,6 +239,10 @@
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
             e.preventDefault();
             if ($session) showSearchModal = true;
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === "i") {
+            e.preventDefault();
+            if ($session) showImportModal = true;
         }
         if ((e.metaKey || e.ctrlKey) && e.key === "e") {
             e.preventDefault();
@@ -356,7 +371,10 @@
                     tableContext = { db: tDb, table: tTbl, mode: tMode };
                 }
             } catch (e) {
-                sqlErrors.update((list) => [{ message: e.message, time: new Date() }, ...list]);
+                sqlErrors.update((list) => [
+                    { message: e.message, time: new Date() },
+                    ...list,
+                ]);
             } finally {
                 busy = false;
             }
@@ -558,6 +576,14 @@
                 >
                     Search
                     <Kbd>⌘K</Kbd>
+                </Btn>
+                <Btn
+                    variant="ghost"
+                    on:click={() => (showImportModal = true)}
+                    class="text-xs! py-0.5!"
+                >
+                    Import
+                    <Kbd>⌘I</Kbd>
                 </Btn>
                 <Btn
                     variant="ghost"
@@ -819,6 +845,19 @@
             maxWidth="max-w-xl"
         >
             <ExportView on:done={() => (showExportModal = false)} />
+        </Modal>
+
+        <Modal
+            open={showImportModal}
+            title="Import"
+            on:close={() => (showImportModal = false)}
+            maxWidth="max-w-xl"
+        >
+            <ImportView
+                initialDb={tableContext?.db ?? defaultDb ?? ""}
+                initialTable={tableContext?.table ?? ""}
+                on:done={() => (showImportModal = false)}
+            />
         </Modal>
 
         <Modal
