@@ -354,8 +354,9 @@
                                     {#each vt as t}
                                         {@const tk = tableKey(db, t.name)}
                                         <div class="flex flex-col">
+                                            <div class="flex items-center rounded hover:bg-(--bg-2) group/tablerow">
                                             <button
-                                                class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left text-(--ink-1) rounded min-w-0 transition-[background,color] duration-60 hover:bg-(--bg-2) hover:text-(--ink-0)"
+                                                class="cursor-pointer flex-1 flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 text-left text-(--ink-1) min-w-0 transition-[color] duration-60 hover:text-(--ink-0) rounded-l"
                                                 on:click={() =>
                                                     toggleTable(db, t.name)}
                                                 title={t.name}
@@ -375,6 +376,15 @@
                                                     >{t.name}</span
                                                 >
                                             </button>
+                                            {#if capabilities?.providesTableInfo}
+                                            <button
+                                                class="opacity-0 group-hover/tablerow:opacity-100 shrink-0 bg-transparent border-0 text-(--ink-3) cursor-pointer px-1.5 py-1 rounded-r leading-none transition-[opacity,color] duration-60 hover:text-(--ink-1)"
+                                                title="Table settings"
+                                                on:click|stopPropagation={() =>
+                                                    dispatch("editTable", { db, table: t.name })}>⚙</button
+                                            >
+                                            {/if}
+                                            </div>
 
                                             {#if expandedTables.has(tk)}
                                                 <div class="pl-5.5">

@@ -100,6 +100,20 @@ export const api = {
     request('PUT', `/databases/${encodeURIComponent(db)}/events/${encodeURIComponent(event)}`, { definition }),
   dropEvent: (db, event) =>
     request('DELETE', `/databases/${encodeURIComponent(db)}/events/${encodeURIComponent(event)}`),
+  // table settings
+  getTableInfo: (db, t) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/info`),
+  listTableCollations: (db, t) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/collations`),
+  alterTableCollation: (db, t, collation) =>
+    request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/collation`, { collation }),
+  listTableEngines: (db, t) =>
+    request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/engines`),
+  alterTableEngine: (db, t, engine) =>
+    request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/engine`, { engine }),
+  alterTableAutoIncrement: (db, t, value) =>
+    request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/auto-increment`, { value }),
+
   browseTable: (db, t, limit = 100, offset = 0) =>
     request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}?limit=${limit}&offset=${offset}`),
   runQuery: (db, sql) => request('POST', '/query', { database: db, sql }),

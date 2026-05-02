@@ -9,11 +9,15 @@ use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
+use Quermy\Drivers\Capabilities\ProvidesTableInfo;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\SupportsAlterTableAutoIncrement;
+use Quermy\Drivers\Capabilities\SupportsAlterTableCollation;
+use Quermy\Drivers\Capabilities\SupportsAlterTableEngine;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsColumnAfter;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
@@ -48,6 +52,9 @@ class MySQLDriver implements
     SupportsRenameDatabase,
     SupportsDropDatabase,
     SupportsAlterDatabaseCollation,
+    SupportsAlterTableCollation,
+    SupportsAlterTableEngine,
+    SupportsAlterTableAutoIncrement,
     SupportsViewManagement,
     SupportsProcedureManagement,
     SupportsFunctionManagement,
@@ -59,7 +66,8 @@ class MySQLDriver implements
     ProvidesWelcomeQuery,
     ProvidesStructureQueryTemplate,
     ProvidesListTablesQuery,
-    ProvidesColumnTypesWithLength
+    ProvidesColumnTypesWithLength,
+    ProvidesTableInfo
 {
     private ?PDO $pdo = null;
     private ?string $pinnedDatabaseName = null;
@@ -1238,6 +1246,90 @@ class MySQLDriver implements
 
         $all = $this->pdo->query('SELECT COLLATION_NAME FROM information_schema.COLLATIONS ORDER BY COLLATION_NAME');
         return array_map(static fn($r) => $r['COLLATION_NAME'], $all->fetchAll());
+    }
+
+    public function getTableInfo(string $database, string $table): array
+    {
+        $this->ensureConnected();
+        // To get accurate collation/engine/auto_increment info, we need to set disable the metadata cache,
+        // otherwise if the table was altered recently we might get stale info back.
+        $this->pdo->exec("SET SESSION information_schema_stats_expiry = 0");
+        $stmt = $this->pdo->prepare(
+            "SELECT TABLE_COLLATION, ENGINE, AUTO_INCREMENT
+             FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = :tbl AND TABLE_TYPE = 'BASE TABLE'"
+        );
+        $stmt->execute([':db' => $database, ':tbl' => $table]);
+        $row = $stmt->fetch();
+        return [
+            'name'          => $table,
+            'collation'     => $row ? ($row['TABLE_COLLATION'] ?: null) : null,
+            'engine'        => $row ? ($row['ENGINE'] ?: null) : null,
+            'autoIncrement' => ($row && $row['AUTO_INCREMENT'] !== null) ? (int)$row['AUTO_INCREMENT'] : null,
+        ];
+    }
+
+    public function listTableCollations(string $database, string $table): array
+    {
+        $this->ensureConnected();
+        $all = $this->pdo->query('SELECT COLLATION_NAME FROM information_schema.COLLATIONS ORDER BY COLLATION_NAME');
+        return array_map(static fn($r) => $r['COLLATION_NAME'], $all->fetchAll());
+    }
+
+    public function alterTableCollation(string $database, string $table, string $collation): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        $coll = $this->sanitizeCollationName($collation);
+
+        $stmt = $this->pdo->prepare(
+            'SELECT CHARACTER_SET_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME = :coll'
+        );
+        $stmt->execute([':coll' => $coll]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException("Unknown collation: $coll");
+        }
+        $charset = $row['CHARACTER_SET_NAME'];
+
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl CONVERT TO CHARACTER SET `$charset` COLLATE `$coll`");
+    }
+
+    public function listTableEngines(): array
+    {
+        $this->ensureConnected();
+        $stmt = $this->pdo->query('SHOW ENGINES');
+        $engines = [];
+        foreach ($stmt->fetchAll() as $row) {
+            if (in_array(strtoupper((string)$row['Support']), ['YES', 'DEFAULT'], true)) {
+                $engines[] = $row['Engine'];
+            }
+        }
+        sort($engines);
+        return $engines;
+    }
+
+    public function alterTableEngine(string $database, string $table, string $engine): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $engine)) {
+            throw new RuntimeException("Invalid engine name: $engine");
+        }
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl ENGINE = $engine");
+    }
+
+    public function alterTableAutoIncrement(string $database, string $table, int $value): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        if ($value < 1) {
+            throw new RuntimeException('AUTO_INCREMENT value must be >= 1');
+        }
+        $this->pdo->exec("ALTER TABLE $qDb.$qTbl AUTO_INCREMENT = $value");
     }
 
     /*

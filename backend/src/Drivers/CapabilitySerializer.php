@@ -7,11 +7,15 @@ use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
+use Quermy\Drivers\Capabilities\ProvidesTableInfo;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\SupportsAlterTableAutoIncrement;
+use Quermy\Drivers\Capabilities\SupportsAlterTableCollation;
+use Quermy\Drivers\Capabilities\SupportsAlterTableEngine;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsColumnAfter;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
@@ -46,6 +50,9 @@ final class CapabilitySerializer
         SupportsRenameDatabase::class,
         SupportsDropDatabase::class,
         SupportsAlterDatabaseCollation::class,
+        SupportsAlterTableCollation::class,
+        SupportsAlterTableEngine::class,
+        SupportsAlterTableAutoIncrement::class,
         SupportsViewManagement::class,
         SupportsProcedureManagement::class,
         SupportsFunctionManagement::class,
@@ -65,6 +72,8 @@ final class CapabilitySerializer
         }
 
         // Data provided by Provides* interfaces.
+        $caps['providesTableInfo'] = $driver instanceof ProvidesTableInfo;
+
         $caps['columnTypes'] = $driver instanceof ProvidesColumnTypes
             ? $driver->columnTypes()
             : [];

@@ -19,6 +19,7 @@
     import Kbd from "./components/ui/Kbd.svelte";
     import SearchView from "./views/SearchView.svelte";
     import DatabaseEditView from "./views/DatabaseEditView.svelte";
+    import TableEditView from "./views/TableEditView.svelte";
     import ViewEditorView from "./views/ViewEditorView.svelte";
     import StoredProcedureEditorView from "./views/StoredProcedureEditorView.svelte";
     import StoredFunctionEditorView from "./views/StoredFunctionEditorView.svelte";
@@ -107,6 +108,10 @@
     let showSearchModal = false;
     let showDbEditModal = false;
     let editingDb = null;
+
+    let showTableEditModal = false;
+    let editingTableDb = null;
+    let editingTable = null;
 
     onMount(async () => {
         const systemCheck = await api.checkSystem();
@@ -405,6 +410,12 @@
         showDbEditModal = true;
     }
 
+    function handleEditTable(e) {
+        editingTableDb = e.detail.db;
+        editingTable = e.detail.table;
+        showTableEditModal = true;
+    }
+
     function handleDbRenamed(e) {
         const { oldName, newName } = e.detail;
         if (tableContext?.db === oldName) {
@@ -545,6 +556,7 @@
                     on:toggleDb={handleToggleDb}
                     on:openTable={handleOpenTable}
                     on:editDatabase={handleEditDatabase}
+                    on:editTable={handleEditTable}
                 />
             </aside>
             <ResizeHandle orientation="vertical" on:resize={handleLeftResize} />
@@ -774,6 +786,23 @@
                     on:renamed={handleDbRenamed}
                     on:dropped={handleDbDropped}
                     on:close={() => (showDbEditModal = false)}
+                />
+            {/if}
+        </Modal>
+
+        <Modal
+            open={showTableEditModal}
+            title="Table settings"
+            on:close={() => (showTableEditModal = false)}
+            maxWidth="max-w-lg"
+        >
+            {#if showTableEditModal}
+                <TableEditView
+                    db={editingTableDb}
+                    table={editingTable}
+                    capabilities={$capabilities}
+                    on:close={() => (showTableEditModal = false)}
+                    on:changed={() => (showTableEditModal = false)}
                 />
             {/if}
         </Modal>
