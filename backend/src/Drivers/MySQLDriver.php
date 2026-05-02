@@ -22,6 +22,9 @@ use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsColumnAfter;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyBypass;
 use Quermy\Drivers\Capabilities\SupportsEventManagement;
 use Quermy\Drivers\Capabilities\SupportsExplain;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
@@ -51,6 +54,9 @@ class MySQLDriver implements
     SupportsExplain,
     SupportsRenameDatabase,
     SupportsDropDatabase,
+    SupportsDropTable,
+    SupportsTruncateTable,
+    SupportsForeignKeyBypass,
     SupportsAlterDatabaseCollation,
     SupportsAlterTableCollation,
     SupportsAlterTableEngine,
@@ -1238,6 +1244,40 @@ class MySQLDriver implements
         $this->ensureConnected();
         $db = $this->validateIdent($database);
         $this->pdo->exec("DROP DATABASE `$db`");
+    }
+
+    public function dropTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        if ($force) {
+            $this->pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+        }
+        try {
+            $this->pdo->exec("DROP TABLE $qDb.$qTbl");
+        } finally {
+            if ($force) {
+                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+            }
+        }
+    }
+
+    public function truncateTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        $qDb  = $this->quoteIdent($database);
+        $qTbl = $this->quoteIdent($table);
+        if ($force) {
+            $this->pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+        }
+        try {
+            $this->pdo->exec("TRUNCATE TABLE $qDb.$qTbl");
+        } finally {
+            if ($force) {
+                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+            }
+        }
     }
 
     public function listDatabaseCollations(string $database): array

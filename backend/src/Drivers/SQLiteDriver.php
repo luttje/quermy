@@ -19,6 +19,8 @@ use Quermy\Drivers\Capabilities\SupportsForeignKeys;
 use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
 use Quermy\Drivers\Capabilities\SupportsIndexManagement;
 use Quermy\Drivers\Capabilities\SupportsViewManagement;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use RuntimeException;
 
 /**
@@ -44,6 +46,8 @@ class SQLiteDriver implements
     SupportsGetCreateTable,
     SupportsExplain,
     SupportsViewManagement,
+    SupportsDropTable,
+    SupportsTruncateTable,
     ProvidesColumnTypes,
     ProvidesDefaultColumnType,
     ProvidesTextColumnTypePatterns,
@@ -577,6 +581,21 @@ class SQLiteDriver implements
             ];
         }
         return $columns;
+    }
+
+    public function dropTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        $qTbl = $this->quoteIdent($table);
+        $this->pdo->exec("DROP TABLE $qTbl");
+    }
+
+    public function truncateTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        $qTbl = $this->quoteIdent($table);
+        // SQLite has no TRUNCATE; DELETE FROM is equivalent and also resets the rowid sequence.
+        $this->pdo->exec("DELETE FROM $qTbl");
     }
 
     private function quoteIdent(string $name): string

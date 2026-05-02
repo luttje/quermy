@@ -111,6 +111,7 @@
 
     let showTableEditModal = false;
     let editingTableDb = null;
+    let treeView = null;
     let editingTable = null;
 
     onMount(async () => {
@@ -437,6 +438,18 @@
         showDbEditModal = false;
         editingDb = null;
     }
+
+    async function handleTableDropped(e) {
+        const { db, table } = e.detail;
+        if (tableContext?.db === db && tableContext?.table === table) {
+            tableContext = null;
+            result = null;
+        }
+        showTableEditModal = false;
+        editingTable = null;
+        editingTableDb = null;
+        await treeView?.reloadDb(db);
+    }
 </script>
 
 <svelte:window on:keydown={onGlobalKeydown} />
@@ -547,6 +560,7 @@
                 style="width: {leftWidth}px"
             >
                 <TreeView
+                    bind:this={treeView}
                     {databases}
                     {busy}
                     capabilities={$capabilities}
@@ -803,6 +817,7 @@
                     capabilities={$capabilities}
                     on:close={() => (showTableEditModal = false)}
                     on:changed={() => (showTableEditModal = false)}
+                    on:dropped={handleTableDropped}
                 />
             {/if}
         </Modal>

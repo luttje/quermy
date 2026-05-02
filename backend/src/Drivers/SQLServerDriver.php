@@ -17,6 +17,8 @@ use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use Quermy\Drivers\Capabilities\SupportsExplain;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
 use Quermy\Drivers\Capabilities\SupportsForeignKeys;
@@ -52,6 +54,8 @@ class SQLServerDriver implements
     SupportsExplain,
     SupportsRenameDatabase,
     SupportsDropDatabase,
+    SupportsDropTable,
+    SupportsTruncateTable,
     SupportsAlterDatabaseCollation,
     SupportsViewManagement,
     SupportsProcedureManagement,
@@ -1065,6 +1069,26 @@ class SQLServerDriver implements
         $this->ensureConnected();
         $this->validateIdent($database);
         $this->pdo->exec("DROP DATABASE [$database]");
+    }
+
+    public function dropTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec('USE ' . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $qTbl = $this->quoteIdent($table);
+        $this->pdo->exec("DROP TABLE dbo.$qTbl");
+    }
+
+    public function truncateTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        if ($database !== '') {
+            $this->pdo->exec('USE ' . $this->quoteIdent($this->validateIdent($database)));
+        }
+        $qTbl = $this->quoteIdent($table);
+        $this->pdo->exec("TRUNCATE TABLE dbo.$qTbl");
     }
 
     /*

@@ -20,6 +20,9 @@ use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsColumnAfter;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyBypass;
 use Quermy\Drivers\Capabilities\SupportsEventManagement;
 use Quermy\Drivers\Capabilities\SupportsExplain;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
@@ -49,6 +52,9 @@ final class CapabilitySerializer
         SupportsExplain::class,
         SupportsRenameDatabase::class,
         SupportsDropDatabase::class,
+        SupportsDropTable::class,
+        SupportsTruncateTable::class,
+        SupportsForeignKeyBypass::class,
         SupportsAlterDatabaseCollation::class,
         SupportsAlterTableCollation::class,
         SupportsAlterTableEngine::class,

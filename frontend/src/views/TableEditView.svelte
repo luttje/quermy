@@ -5,6 +5,7 @@
     import SearchableSelect from "../components/ui/SearchableSelect.svelte";
     import Input from "../components/ui/Input.svelte";
     import Btn from "../components/ui/Btn.svelte";
+    import Checkbox from "../components/ui/Checkbox.svelte";
 
     export let db = "";
     export let table = "";
@@ -28,6 +29,13 @@
     // auto-increment
     let newAutoIncrement = "";
     let changingAutoIncrement = false;
+
+    // drop / truncate
+    let dropConfirm = "";
+    let dropping = false;
+    let truncateConfirm = "";
+    let truncating = false;
+    let ignoreForeignKeys = false;
 
     onMount(async () => {
         try {
@@ -82,6 +90,34 @@
             toast(e.message, "error");
         } finally {
             changingEngine = false;
+        }
+    }
+
+    async function handleTruncate() {
+        if (truncateConfirm !== table) return;
+        truncating = true;
+        try {
+            await api.truncateTable(db, table, ignoreForeignKeys);
+            toast(`Table "${table}" truncated`, "success");
+            truncateConfirm = "";
+            dispatch("changed", { db, table });
+        } catch (e) {
+            toast(e.message, "error");
+        } finally {
+            truncating = false;
+        }
+    }
+
+    async function handleDrop() {
+        if (dropConfirm !== table) return;
+        dropping = true;
+        try {
+            await api.dropTable(db, table, ignoreForeignKeys);
+            toast(`Table "${table}" dropped`, "success");
+            dispatch("dropped", { db, table });
+        } catch (e) {
+            toast(e.message, "error");
+            dropping = false;
         }
     }
 
@@ -217,6 +253,79 @@
                     {changingAutoIncrement ? "Saving…" : "Apply"}
                 </Btn>
             </div>
+        </section>
+    {/if}
+
+    <!-- danger zone -->
+    {#if capabilities.supportsDropTable || capabilities.supportsTruncateTable}
+        <section
+            class="flex flex-col gap-3 border border-red-900/40 rounded p-3"
+        >
+            <h3
+                class="text-red-400 text-[12px] font-medium uppercase tracking-wide"
+            >
+                Danger zone
+            </h3>
+
+            {#if capabilities.supportsForeignKeyBypass}
+                <label
+                    class="flex items-center gap-2 text-(--ink-2) text-[12px] cursor-pointer select-none"
+                >
+                    <Checkbox bind:checked={ignoreForeignKeys} />
+                    Ignore foreign key constraints
+                </label>
+            {/if}
+
+            {#if capabilities.supportsTruncateTable}
+                <div class="flex flex-col gap-1.5">
+                    <p class="text-(--ink-3) text-[11.5px]">
+                        Truncate removes all rows but keeps the table structure.
+                        Type <span class="mono text-(--ink-1)">{table}</span> to
+                        confirm.
+                    </p>
+                    <div class="flex gap-2">
+                        <Input
+                            type="text"
+                            placeholder="Type table name to confirm"
+                            bind:value={truncateConfirm}
+                            on:keydown={(e) =>
+                                e.key === "Enter" && handleTruncate()}
+                        />
+                        <Btn
+                            variant="danger"
+                            disabled={truncateConfirm !== table || truncating}
+                            on:click={handleTruncate}
+                        >
+                            {truncating ? "Truncating…" : "Truncate"}
+                        </Btn>
+                    </div>
+                </div>
+            {/if}
+
+            {#if capabilities.supportsDropTable}
+                <div class="flex flex-col gap-1.5">
+                    <p class="text-(--ink-3) text-[11.5px]">
+                        Drop permanently deletes the table and all its data. Type
+                        <span class="mono text-(--ink-1)">{table}</span> to confirm.
+                    </p>
+                    <div class="flex gap-2">
+                        <Input
+                            type="text"
+                            placeholder="Type table name to confirm"
+                            bind:value={dropConfirm}
+                            on:keydown={(e) =>
+                                e.key === "Enter" && handleDrop()}
+                        />
+                        <Btn
+                            variant="danger"
+                            disabled={dropConfirm !== table || dropping}
+                            on:click={handleDrop}
+                        >
+                            {dropping ? "Dropping…" : "Drop"}
+                        </Btn>
+                    </div>
+                </div>
+            {/if}
         </section>
     {/if}
 

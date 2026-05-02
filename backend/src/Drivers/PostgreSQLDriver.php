@@ -15,6 +15,9 @@ use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyBypass;
 use Quermy\Drivers\Capabilities\SupportsExplain;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
 use Quermy\Drivers\Capabilities\SupportsForeignKeys;
@@ -46,6 +49,9 @@ class PostgreSQLDriver implements
     SupportsExplain,
     SupportsRenameDatabase,
     SupportsDropDatabase,
+    SupportsDropTable,
+    SupportsTruncateTable,
+    SupportsForeignKeyBypass,
     SupportsViewManagement,
     SupportsProcedureManagement,
     SupportsFunctionManagement,
@@ -979,6 +985,24 @@ class PostgreSQLDriver implements
         $qDb = $this->quoteIdent($database);
         // Note: DROP DATABASE cannot target the currently connected database.
         $this->pdo->exec("DROP DATABASE $qDb");
+    }
+
+    public function dropTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        $qDb      = $this->quoteIdent($database);
+        $qTbl     = $this->quoteIdent($table);
+        $cascade  = $force ? ' CASCADE' : '';
+        $this->pdo->exec("DROP TABLE $qDb.$qTbl$cascade");
+    }
+
+    public function truncateTable(string $database, string $table, bool $force = false): void
+    {
+        $this->ensureConnected();
+        $qDb     = $this->quoteIdent($database);
+        $qTbl    = $this->quoteIdent($table);
+        $cascade = $force ? ' CASCADE' : '';
+        $this->pdo->exec("TRUNCATE $qDb.$qTbl$cascade");
     }
 
     /*

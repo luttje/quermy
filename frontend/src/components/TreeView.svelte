@@ -57,6 +57,14 @@
         return `${db}\0${table ?? ""}\0${mode ?? ""}`;
     }
 
+    export async function reloadDb(db) {
+        delete tableMap[db];
+        tableMap = { ...tableMap };
+        if (expandedDbs.has(db)) {
+            await ensureDbTablesLoaded(db);
+        }
+    }
+
     async function ensureDbTablesLoaded(db) {
         if (tableMap[db]) return true;
 

@@ -113,6 +113,10 @@ export const api = {
     request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/engine`, { engine }),
   alterTableAutoIncrement: (db, t, value) =>
     request('PATCH', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/auto-increment`, { value }),
+  dropTable: (db, t, force = false) =>
+    request('DELETE', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}`, { force }),
+  truncateTable: (db, t, force = false) =>
+    request('POST', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}/truncate`, { force }),
 
   browseTable: (db, t, limit = 100, offset = 0) =>
     request('GET', `/databases/${encodeURIComponent(db)}/tables/${encodeURIComponent(t)}?limit=${limit}&offset=${offset}`),

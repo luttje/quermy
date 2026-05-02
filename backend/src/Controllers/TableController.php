@@ -6,6 +6,8 @@ use Quermy\Drivers\Capabilities\ProvidesTableInfo;
 use Quermy\Drivers\Capabilities\SupportsAlterTableAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsAlterTableCollation;
 use Quermy\Drivers\Capabilities\SupportsAlterTableEngine;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
@@ -91,6 +93,42 @@ final class TableController extends BaseController
                 throw new RuntimeException('This engine does not support altering table engine.');
             }
             $driver->alterTableEngine($db, $table, $engine);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('DELETE', '/api/databases/{db}/tables/{table}')]
+    public function dropTable(string $db, string $table): void
+    {
+        $body  = Json::readBody();
+        $force = (bool)($body['force'] ?? false);
+
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsDropTable) {
+                throw new RuntimeException('This engine does not support dropping tables.');
+            }
+            $driver->dropTable($db, $table, $force);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('POST', '/api/databases/{db}/tables/{table}/truncate')]
+    public function truncateTable(string $db, string $table): void
+    {
+        $body  = Json::readBody();
+        $force = (bool)($body['force'] ?? false);
+
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsTruncateTable) {
+                throw new RuntimeException('This engine does not support truncating tables.');
+            }
+            $driver->truncateTable($db, $table, $force);
             Json::send(['ok' => true]);
         } finally {
             $driver->disconnect();
