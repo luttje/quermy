@@ -109,6 +109,7 @@ final class CapabilitySerializer
         $meta = $driver::engineMeta();
         $caps['identifierOpen']  = $meta['identifierOpen'];
         $caps['identifierClose'] = $meta['identifierClose'];
+        $caps['engineId']        = $meta['id'];
 
         return $caps;
     }

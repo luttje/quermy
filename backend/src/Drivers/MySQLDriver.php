@@ -280,12 +280,6 @@ class MySQLDriver implements
         if ($body === '') {
             throw new RuntimeException('View definition is empty');
         }
-        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
-            throw new RuntimeException('View definition must be a SELECT statement.');
-        }
-        if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
-            throw new RuntimeException('View definition must be a single statement.');
-        }
 
         $qDb = $this->quoteIdent($database);
         $qView = $this->quoteIdent($name);
@@ -295,7 +289,18 @@ class MySQLDriver implements
         // connection itself was opened without dbname.
         $this->pdo->exec("USE $qDb");
 
-        $this->pdo->exec("CREATE OR REPLACE VIEW $qDb.$qView AS\n$body");
+        if (preg_match('/^\s*CREATE\b/i', $body)) {
+            // Full DDL (with ALGORITHM, DEFINER, SQL SECURITY, etc.) provided by the frontend.
+            $this->pdo->exec($body);
+        } else {
+            if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
+                throw new RuntimeException('View definition must be a SELECT or CREATE VIEW statement.');
+            }
+            if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
+                throw new RuntimeException('View definition must be a single statement.');
+            }
+            $this->pdo->exec("CREATE OR REPLACE VIEW $qDb.$qView AS\n$body");
+        }
     }
 
     public function dropView(string $database, string $view): void

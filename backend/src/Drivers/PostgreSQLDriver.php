@@ -242,14 +242,23 @@ class PostgreSQLDriver implements
         if ($body === '') {
             throw new RuntimeException('View definition is empty');
         }
-        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
-            throw new RuntimeException('View definition must be a SELECT statement.');
-        }
-        if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
-            throw new RuntimeException('View definition must be a single statement.');
-        }
         $qView = $this->quoteIdent($name);
-        $this->pdo->exec("CREATE OR REPLACE VIEW public.$qView AS\n$body");
+        if (preg_match('/^\s*CREATE\b/i', $body)) {
+            // Full DDL (including MATERIALIZED VIEW, security_barrier, etc.) provided by the frontend.
+            // Materialized views don't support OR REPLACE — drop first.
+            if (preg_match('/^\s*CREATE\s+MATERIALIZED\b/i', $body)) {
+                $this->pdo->exec("DROP MATERIALIZED VIEW IF EXISTS public.$qView");
+            }
+            $this->pdo->exec($body);
+        } else {
+            if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
+                throw new RuntimeException('View definition must be a SELECT or CREATE VIEW statement.');
+            }
+            if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
+                throw new RuntimeException('View definition must be a single statement.');
+            }
+            $this->pdo->exec("CREATE OR REPLACE VIEW public.$qView AS\n$body");
+        }
     }
 
     public function dropView(string $database, string $view): void

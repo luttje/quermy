@@ -635,6 +635,7 @@
                         <ViewEditorView
                             db={tableContext.db}
                             capabilities={$capabilities}
+                            {databases}
                         />
                     {:else if tableContext?.mode === "stored-procedures"}
                         <StoredProcedureEditorView
@@ -650,6 +651,7 @@
                         <EventEditorView
                             db={tableContext.db}
                             capabilities={$capabilities}
+                            {databases}
                         />
                     {:else if result}
                         {#if tableContext?.mode === "indexes"}

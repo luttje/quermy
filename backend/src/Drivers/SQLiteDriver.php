@@ -207,16 +207,21 @@ class SQLiteDriver implements
         if ($body === '') {
             throw new RuntimeException('View definition is empty');
         }
-        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
-            throw new RuntimeException('View definition must be a SELECT statement.');
-        }
-        if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
-            throw new RuntimeException('View definition must be a single statement.');
-        }
-
         $qView = $this->quoteIdent($name);
-        $this->pdo->exec("DROP VIEW IF EXISTS $qView");
-        $this->pdo->exec("CREATE VIEW $qView AS\n$body");
+        if (preg_match('/^\s*CREATE\b/i', $body)) {
+            // Full DDL provided by the frontend — drop first since SQLite has no OR REPLACE for views.
+            $this->pdo->exec("DROP VIEW IF EXISTS $qView");
+            $this->pdo->exec($body);
+        } else {
+            if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
+                throw new RuntimeException('View definition must be a SELECT or CREATE VIEW statement.');
+            }
+            if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
+                throw new RuntimeException('View definition must be a single statement.');
+            }
+            $this->pdo->exec("DROP VIEW IF EXISTS $qView");
+            $this->pdo->exec("CREATE VIEW $qView AS\n$body");
+        }
     }
 
     public function dropView(string $database, string $view): void
