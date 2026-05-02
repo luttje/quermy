@@ -186,9 +186,7 @@
             expandedDbs = new Set(expandedDbs);
         }
 
-        // Keep table list available when opening db-level nodes (e.g. Views)
-        // so the tree state matches table-level navigation behavior.
-        if (mode && !tableMap[db]) {
+        if (!tableMap[db]) {
             const ok = await ensureDbTablesLoaded(db);
             if (!ok) {
                 expandedDbs.delete(db);
@@ -232,7 +230,11 @@
             const dbButton = dbRefs[db];
 
             if (dbButton) {
-                (dbButton.parentElement ?? dbButton).scrollIntoView({
+                (
+                    dbButton.parentElement?.parentElement ??
+                    dbButton.parentElement ??
+                    dbButton
+                ).scrollIntoView({
                     block: "nearest",
                     behavior: "smooth",
                 });
@@ -362,36 +364,44 @@
                                     {#each vt as t}
                                         {@const tk = tableKey(db, t.name)}
                                         <div class="flex flex-col">
-                                            <div class="flex items-center rounded hover:bg-(--bg-2) group/tablerow">
-                                            <button
-                                                class="cursor-pointer flex-1 flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 text-left text-(--ink-1) min-w-0 transition-[color] duration-60 hover:text-(--ink-0) rounded-l"
-                                                on:click={() =>
-                                                    toggleTable(db, t.name)}
-                                                title={t.name}
+                                            <div
+                                                class="flex items-center rounded hover:bg-(--bg-2) group/tablerow"
                                             >
-                                                <span
-                                                    class="text-[11px] text-(--ink-3) w-2.5 shrink-0 inline-block leading-none transition-transform duration-120 ease-in-out"
-                                                    class:rotate-90={expandedTables.has(
-                                                        tk,
-                                                    )}>›</span
+                                                <button
+                                                    class="cursor-pointer flex-1 flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 text-left text-(--ink-1) min-w-0 transition-[color] duration-60 hover:text-(--ink-0) rounded-l"
+                                                    on:click={() =>
+                                                        toggleTable(db, t.name)}
+                                                    title={t.name}
                                                 >
-                                                <span
-                                                    class="text-[11px] text-(--ink-3) w-3.5 text-center shrink-0"
-                                                    >▦</span
-                                                >
-                                                <span
-                                                    class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[12px]"
-                                                    >{t.name}</span
-                                                >
-                                            </button>
-                                            {#if capabilities?.providesTableInfo}
-                                            <button
-                                                class="opacity-0 group-hover/tablerow:opacity-100 shrink-0 bg-transparent border-0 text-(--ink-3) cursor-pointer px-1.5 py-1 rounded-r leading-none transition-[opacity,color] duration-60 hover:text-(--ink-1)"
-                                                title="Table settings"
-                                                on:click|stopPropagation={() =>
-                                                    dispatch("editTable", { db, table: t.name })}>⚙</button
-                                            >
-                                            {/if}
+                                                    <span
+                                                        class="text-[11px] text-(--ink-3) w-2.5 shrink-0 inline-block leading-none transition-transform duration-120 ease-in-out"
+                                                        class:rotate-90={expandedTables.has(
+                                                            tk,
+                                                        )}>›</span
+                                                    >
+                                                    <span
+                                                        class="text-[11px] text-(--ink-3) w-3.5 text-center shrink-0"
+                                                        >▦</span
+                                                    >
+                                                    <span
+                                                        class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[12px]"
+                                                        >{t.name}</span
+                                                    >
+                                                </button>
+                                                {#if capabilities?.providesTableInfo}
+                                                    <button
+                                                        class="opacity-0 group-hover/tablerow:opacity-100 shrink-0 bg-transparent border-0 text-(--ink-3) cursor-pointer px-1.5 py-1 rounded-r leading-none transition-[opacity,color] duration-60 hover:text-(--ink-1)"
+                                                        title="Table settings"
+                                                        on:click|stopPropagation={() =>
+                                                            dispatch(
+                                                                "editTable",
+                                                                {
+                                                                    db,
+                                                                    table: t.name,
+                                                                },
+                                                            )}>⚙</button
+                                                    >
+                                                {/if}
                                             </div>
 
                                             {#if expandedTables.has(tk)}
