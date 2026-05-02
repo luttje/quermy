@@ -216,7 +216,7 @@ it('DROP COLUMN is skipped on SQLite < 3.35', function () {
     // The contract's addAndDropColumn() already exercises the happy path
     // on SQLite >= 3.35. This test ensures that on older runtimes the
     // driver throws rather than silently doing nothing.
-    $version = $this->driver->runQuery($this->database, 'SELECT sqlite_version() AS v')['rows'][0]['v'];
+    $version = $this->driver->runQuery($this->database, 'SELECT sqlite_version() AS v')[0]['rows'][0]['v'];
 
     if (version_compare($version, '3.35.0', '>=')) {
         // Already covered by the shared contract test; nothing more to verify.

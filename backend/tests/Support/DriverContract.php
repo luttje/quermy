@@ -275,8 +275,8 @@ final class DriverContract
             ->and(strtolower($definition))->toContain(strtolower($table));
 
         $result = $this->driver->runQuery($this->database, "SELECT * FROM {$this->q($view)}");
-        expect($result['isSelect'])->toBeTrue()
-            ->and($result['rows'])->toHaveCount(2);
+        expect($result[0]['isSelect'])->toBeTrue()
+            ->and($result[0]['rows'])->toHaveCount(2);
 
         $this->driver->dropView($this->database, $view);
 
@@ -354,9 +354,9 @@ final class DriverContract
     public function runQueryClassifiesStatements(): void
     {
         $select = $this->driver->runQuery($this->database, 'SELECT 1 AS one');
-        expect($select['isSelect'])->toBeTrue()
-            ->and($select['rows'])->toHaveCount(1)
-            ->and($select['durationMs'])->toBeFloat()->toBeGreaterThanOrEqual(0.0);
+        expect($select[0]['isSelect'])->toBeTrue()
+            ->and($select[0]['rows'])->toHaveCount(1)
+            ->and($select[0]['durationMs'])->toBeFloat()->toBeGreaterThanOrEqual(0.0);
 
         $table = 'runquery_probe';
         $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
@@ -364,21 +364,21 @@ final class DriverContract
             $this->database,
             "CREATE TABLE {$this->q($table)} (id {$this->int()} PRIMARY KEY)"
         );
-        expect($create['isSelect'])->toBeFalse();
+        expect($create[0]['isSelect'])->toBeFalse();
 
         $insert = $this->driver->runQuery($this->database, "INSERT INTO {$this->q($table)} (id) VALUES (1)");
-        expect($insert['isSelect'])->toBeFalse()
-            ->and($insert['affected'])->toBe(1);
+        expect($insert[0]['isSelect'])->toBeFalse()
+            ->and($insert[0]['affected'])->toBe(1);
     }
 
     public function runQueryReturnsColumnMeta(): void
     {
         $result = $this->driver->runQuery($this->database, 'SELECT 1 AS one');
-        expect($result)->toHaveKey('columns')
-            ->and($result['columns'])->toBeArray()
-            ->and($result['columns'])->not->toBeEmpty();
+        expect($result[0])->toHaveKey('columns')
+            ->and($result[0]['columns'])->toBeArray()
+            ->and($result[0]['columns'])->not->toBeEmpty();
 
-        $col = $result['columns'][0];
+        $col = $result[0]['columns'][0];
         expect($col)->toHaveKeys(['name', 'type'])
             ->and($col['name'])->toBe('one');
     }
