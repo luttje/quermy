@@ -3,11 +3,11 @@
     import { api } from "../lib/api.js";
     import * as vault from "../lib/vault.js";
     import { getSettings, updateSettings } from "../lib/settings.js";
-    import { aiKeys, activeAiKey } from "../lib/store.js";
+    import { aiKeys, activeAiKey, capabilities } from "../lib/store.js";
     import { parse } from "../lib/marked.js";
     import AIKeyManager from "./AIKeyManager.svelte";
     import VaultGate from "./VaultGate.svelte";
-    import { quermySystemPrompt } from "../lib/prompts";
+    import { buildSystemPrompt } from "../lib/prompts";
     import "highlight.js/styles/atom-one-dark.css";
     import Btn from "./ui/Btn.svelte";
     import Select from "./ui/Select.svelte";
@@ -25,7 +25,7 @@
     let messages = [
         {
             role: "system",
-            content: quermySystemPrompt,
+            content: buildSystemPrompt(),
         },
         {
             role: "assistant",
@@ -44,9 +44,21 @@
     let showOptions = false;
 
     // Prompt editor state
-    let promptDraft = quermySystemPrompt;
+    let promptDraft = buildSystemPrompt();
     let promptSaving = false;
     let promptError = "";
+
+    // Whether the user has saved a custom system prompt (suppresses engine-driven updates).
+    let hasCustomPrompt = false;
+
+    // Regenerate the default system prompt whenever the connected engine changes.
+    $: defaultSystemPrompt = buildSystemPrompt($capabilities?.engineId ?? '');
+
+    // When the engine changes and no custom prompt is set, update messages[0] live.
+    $: if (defaultSystemPrompt && !hasCustomPrompt) {
+        messages[0] = { role: "system", content: defaultSystemPrompt };
+        messages = messages;
+    }
 
     onMount(async () => {
         try {
@@ -66,6 +78,7 @@
             // Apply persisted system prompt if present
             const saved = getSettings()?.systemPrompt;
             if (saved && typeof saved === "string" && saved.trim()) {
+                hasCustomPrompt = true;
                 messages[0] = { role: "system", content: saved };
                 messages = messages; // trigger reactivity
                 promptDraft = saved;
@@ -89,6 +102,7 @@
         promptSaving = true;
         try {
             updateSettings({ systemPrompt: promptDraft });
+            hasCustomPrompt = true;
             messages[0] = { role: "system", content: promptDraft };
             messages = messages;
             showPromptEditor = false;
@@ -106,9 +120,10 @@
         promptSaving = true;
         try {
             updateSettings({ systemPrompt: null });
-            messages[0] = { role: "system", content: quermySystemPrompt };
+            hasCustomPrompt = false;
+            messages[0] = { role: "system", content: defaultSystemPrompt };
             messages = messages;
-            promptDraft = quermySystemPrompt;
+            promptDraft = defaultSystemPrompt;
             showPromptEditor = false;
             showOptions = false;
         } catch (err) {
