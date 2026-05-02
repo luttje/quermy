@@ -1,7 +1,7 @@
 <script>
     import { onMount, onDestroy } from "svelte";
     import { api } from "./lib/api.js";
-    import { session, capabilities, toast, sqlErrors } from "./lib/store.js";
+    import { session, capabilities, toast, sqlErrors, currentSql } from "./lib/store.js";
 
     import ConnectView from "./views/ConnectView.svelte";
     import ExportView from "./views/ExportView.svelte";
@@ -83,6 +83,7 @@
 
     // --- DB picker + SQL editor state
     let sql = ``;
+    $: currentSql.set(sql);
     let queryDb = "";
     let databases = [];
     let busy = false;
@@ -213,7 +214,7 @@
                 );
             }
         } catch (e) {
-            sqlErrors.update((list) => [{ message: e.message, time: new Date() }, ...list]);
+            sqlErrors.update((list) => [{ message: e.message, time: new Date(), query: sql.trim() }, ...list]);
         } finally {
             busy = false;
         }

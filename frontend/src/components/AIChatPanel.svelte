@@ -4,7 +4,7 @@
     import { api } from "../lib/api.js";
     import * as vault from "../lib/vault.js";
     import { getSettings, updateSettings } from "../lib/settings.js";
-    import { aiKeys, activeAiKey, capabilities } from "../lib/store.js";
+    import { aiKeys, activeAiKey, capabilities, sqlErrors, currentSql } from "../lib/store.js";
     import { parse } from "../lib/marked.js";
     import AIKeyManager from "./AIKeyManager.svelte";
     import VaultGate from "./VaultGate.svelte";
@@ -197,10 +197,31 @@
             if (table) context.push(`table: \`${table}\``);
             else context.push("table: unknown");
 
+            if ($currentSql.trim()) context.push(`current SQL editor:\n${$currentSql.trim()}`);
+
+            const recentErrors = $sqlErrors.slice(0, 3);
+            if (recentErrors.length > 0) {
+                const errorLines = recentErrors.map((err) => {
+                    const ago = formatAgo(err.time);
+                    const lines = [`[${ago}] Error: ${err.message}`];
+                    if (err.query) lines.push(`Query:\n${err.query}`);
+                    return lines.join("\n");
+                });
+                context.push(`\nRECENT SQL ERRORS:\n${errorLines.join("\n\n")}`);
+            }
+
             return `CONTEXT:\n${context.join("\n")}`;
         } catch (_) {}
 
         return null;
+    }
+
+    function formatAgo(date) {
+        const sec = Math.round((Date.now() - date.getTime()) / 1000);
+        if (sec < 60) return `${sec}s ago`;
+        const min = Math.round(sec / 60);
+        if (min < 60) return `${min}m ago`;
+        return `${Math.round(min / 60)}h ago`;
     }
 
     async function send() {

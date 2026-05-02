@@ -6,8 +6,11 @@ export const session = writable(null);
 // Toast notifications.
 export const toasts = writable([]);
 
-// Persistent SQL error log — [{ message, time }], newest first.
+// Persistent SQL error log — [{ message, time, query? }], newest first.
 export const sqlErrors = writable([]);
+
+// Current SQL editor content — kept in sync by App.svelte.
+export const currentSql = writable("");
 
 let nextId = 1;
 export function toast(message, type = 'info') {
