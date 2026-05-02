@@ -42,15 +42,21 @@ interface DriverInterface
     public function browseTable(string $database, string $table, int $limit, int $offset): array;
 
     /**
-     * Execute an arbitrary user-supplied query.
+     * Execute one or more user-supplied statements.
      *
-     * @return array{
+     * Returns one entry per result set produced. Non-SELECT statements
+     * (INSERT, UPDATE, DELETE, DDL, …) produce a result with isSelect=false
+     * and an empty columns/rows array. The durationMs on every entry reflects
+     * the total wall-clock time for the whole batch; per-statement timing is
+     * not available when the driver executes multiple statements in one call.
+     *
+     * @return list<array{
      *   columns: array<int,array{name:string,type:string}>,
      *   rows: array<int,array<string,mixed>>,
      *   affected: int,
      *   isSelect: bool,
      *   durationMs: float
-     * }
+     * }>
      */
     public function runQuery(string $database, string $sql): array;
 

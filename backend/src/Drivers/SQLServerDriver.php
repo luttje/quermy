@@ -327,26 +327,38 @@ class SQLServerDriver implements
 
         $start    = microtime(true);
         $stmt     = $this->pdo->query($sql);
-        $duration = (microtime(true) - $start) * 1000.0;
+        $duration = round((microtime(true) - $start) * 1000.0, 2);
 
-        $isSelect = $stmt->columnCount() > 0;
-        $rows     = $isSelect ? $stmt->fetchAll() : [];
-
-        $columns = [];
-        if ($isSelect) {
-            for ($i = 0; $i < $stmt->columnCount(); $i++) {
-                $meta      = $stmt->getColumnMeta($i) ?: [];
-                $columns[] = ['name' => $meta['name'] ?? "col_$i", 'type' => $meta['native_type'] ?? 'unknown'];
+        $results = [];
+        do {
+            $isSelect = $stmt->columnCount() > 0;
+            $rows     = $isSelect ? $stmt->fetchAll() : [];
+            $columns  = [];
+            if ($isSelect) {
+                for ($i = 0; $i < $stmt->columnCount(); $i++) {
+                    $meta      = $stmt->getColumnMeta($i) ?: [];
+                    $columns[] = ['name' => $meta['name'] ?? "col_$i", 'type' => $meta['native_type'] ?? 'unknown'];
+                }
             }
-        }
+            $results[] = [
+                'columns'    => $columns,
+                'rows'       => $rows,
+                'affected'   => $isSelect ? count($rows) : $stmt->rowCount(),
+                'isSelect'   => $isSelect,
+                'durationMs' => $duration,
+            ];
+        } while ($this->tryNextRowset($stmt));
 
-        return [
-            'columns'    => $columns,
-            'rows'       => $rows,
-            'affected'   => $isSelect ? count($rows) : $stmt->rowCount(),
-            'isSelect'   => $isSelect,
-            'durationMs' => round($duration, 2),
-        ];
+        return $results;
+    }
+
+    private function tryNextRowset(\PDOStatement $stmt): bool
+    {
+        try {
+            return $stmt->nextRowset();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function insertRow(string $database, string $table, array $values): array

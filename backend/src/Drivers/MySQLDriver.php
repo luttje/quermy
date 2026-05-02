@@ -345,32 +345,122 @@ class MySQLDriver implements
             $this->pdo->exec("USE `$database`");
         }
 
-        $start = microtime(true);
-        $stmt  = $this->pdo->query($sql);
-        $duration = (microtime(true) - $start) * 1000.0;
+        // MySQL PDO uses the binary protocol (EMULATE_PREPARES=false) which
+        // rejects multi-statement strings. Split into individual statements and
+        // execute each separately so nextRowset() is not needed.
+        $statements = $this->splitSqlStatements($sql);
+        $results    = [];
 
-        // SELECT-style if columnCount > 0
-        $isSelect = $stmt->columnCount() > 0;
-        $rows = $isSelect ? $stmt->fetchAll() : [];
+        foreach ($statements as $stmt) {
+            $start    = microtime(true);
+            $pdoStmt  = $this->pdo->query($stmt);
+            $duration = round((microtime(true) - $start) * 1000.0, 2);
 
-        $columns = [];
-        if ($isSelect) {
-            for ($i = 0; $i < $stmt->columnCount(); $i++) {
-                $meta = $stmt->getColumnMeta($i) ?: [];
-                $columns[] = [
-                    'name' => $meta['name'] ?? "col_$i",
-                    'type' => $meta['native_type'] ?? ($meta['mysql:decl_type'] ?? 'unknown'),
-                ];
+            $isSelect = $pdoStmt->columnCount() > 0;
+            $rows     = $isSelect ? $pdoStmt->fetchAll() : [];
+            $columns  = [];
+            if ($isSelect) {
+                for ($i = 0; $i < $pdoStmt->columnCount(); $i++) {
+                    $meta      = $pdoStmt->getColumnMeta($i) ?: [];
+                    $columns[] = [
+                        'name' => $meta['name'] ?? "col_$i",
+                        'type' => $meta['native_type'] ?? ($meta['mysql:decl_type'] ?? 'unknown'),
+                    ];
+                }
             }
+            $results[] = [
+                'columns'    => $columns,
+                'rows'       => $rows,
+                'affected'   => $isSelect ? count($rows) : $pdoStmt->rowCount(),
+                'isSelect'   => $isSelect,
+                'durationMs' => $duration,
+            ];
         }
 
-        return [
-            'columns'    => $columns,
-            'rows'       => $rows,
-            'affected'   => $isSelect ? count($rows) : $stmt->rowCount(),
-            'isSelect'   => $isSelect,
-            'durationMs' => round($duration, 2),
-        ];
+        return $results;
+    }
+
+    /**
+     * Split a multi-statement SQL string into individual statements,
+     * respecting single-quoted strings, double-quoted identifiers,
+     * backtick-quoted identifiers, line comments (--) and block comments.
+     *
+     * @return list<string>
+     */
+    private function splitSqlStatements(string $sql): array
+    {
+        $statements     = [];
+        $current        = '';
+        $inSingleQuote  = false;
+        $inDoubleQuote  = false;
+        $inBacktick     = false;
+        $inLineComment  = false;
+        $inBlockComment = false;
+        $len            = strlen($sql);
+
+        for ($i = 0; $i < $len; $i++) {
+            $c    = $sql[$i];
+            $next = $i + 1 < $len ? $sql[$i + 1] : '';
+
+            if ($inLineComment) {
+                if ($c === "\n") $inLineComment = false;
+                $current .= $c;
+                continue;
+            }
+
+            if ($inBlockComment) {
+                if ($c === '*' && $next === '/') {
+                    $inBlockComment = false;
+                    $current .= '*/';
+                    $i++;
+                } else {
+                    $current .= $c;
+                }
+                continue;
+            }
+
+            if ($inSingleQuote) {
+                $current .= $c;
+                if ($c === "'" && $next === "'") { $current .= $next; $i++; } // escaped ''
+                elseif ($c === "'") $inSingleQuote = false;
+                continue;
+            }
+
+            if ($inDoubleQuote) {
+                $current .= $c;
+                if ($c === '"' && $next === '"') { $current .= $next; $i++; } // escaped ""
+                elseif ($c === '"') $inDoubleQuote = false;
+                continue;
+            }
+
+            if ($inBacktick) {
+                $current .= $c;
+                if ($c === '`' && $next === '`') { $current .= $next; $i++; } // escaped ``
+                elseif ($c === '`') $inBacktick = false;
+                continue;
+            }
+
+            if ($c === '-' && $next === '-')     { $inLineComment  = true;  $current .= '--'; $i++; continue; }
+            if ($c === '/' && $next === '*')     { $inBlockComment = true;  $current .= '/*'; $i++; continue; }
+            if ($c === "'")                      { $inSingleQuote  = true;  $current .= $c;         continue; }
+            if ($c === '"')                      { $inDoubleQuote  = true;  $current .= $c;         continue; }
+            if ($c === '`')                      { $inBacktick     = true;  $current .= $c;         continue; }
+
+            if ($c === ';') {
+                $trimmed = trim($current);
+                if ($trimmed !== '') $statements[] = $trimmed;
+                $current = '';
+                continue;
+            }
+
+            $current .= $c;
+        }
+
+        $trimmed = trim($current);
+        if ($trimmed !== '') $statements[] = $trimmed;
+
+        // If nothing was split (no semicolons), return the original SQL as-is
+        return $statements ?: [trim($sql)];
     }
 
     public function insertRow(string $database, string $table, array $values): array

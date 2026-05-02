@@ -419,7 +419,11 @@ final class DatabaseController extends BaseController
 
         $driver = $this->session->open();
         try {
-            Json::send($driver->runQuery($db, $sql));
+            $results = array_map(
+                static fn(array $r) => $r + ['sql' => $sql],
+                $driver->runQuery($db, $sql),
+            );
+            Json::send(['results' => $results]);
         } finally {
             $driver->disconnect();
         }

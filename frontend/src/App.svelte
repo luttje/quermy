@@ -33,6 +33,7 @@
     import EventEditorView from "./views/EventEditorView.svelte";
     import TriggerEditorView from "./views/TriggerEditorView.svelte";
     import Select from "./components/ui/Select.svelte";
+    import TabViewer from "./components/TabViewer.svelte";
 
     let bootstrapping = true;
     let criticalSystemError = null;
@@ -85,6 +86,7 @@
         } else {
             tableContext = null;
             result = null;
+            queryResults = null;
         }
     }
 
@@ -94,7 +96,8 @@
     let queryDb = "";
     let databases = [];
     let busy = false;
-    let result = null; // { columns, rows, total, durationMs, isSelect, affected }
+    let result = null; // { columns, rows, total, durationMs, isSelect, affected } — from table browsing
+    let queryResults = null; // array of results from manual SQL execution
     let tableContext = null; // { db, table|null, mode } — set when browsing via tree
     let defaultDb = null;
     let sqlEditor;
@@ -198,6 +201,7 @@
             capabilities.set(null);
             databases = [];
             result = null;
+            queryResults = null;
             sqlErrors.set([]);
             tableContext = null;
             sql = "";
@@ -212,12 +216,16 @@
         if (!sql.trim() || busy) return;
         busy = true;
         tableContext = null; // manual SQL run clears table context
+        result = null;
+        queryResults = null;
         try {
             const r = await api.runQuery(queryDb, sql);
-            result = r;
-            if (!r.isSelect) {
+            queryResults = r.results;
+            // For a single non-select result, show a toast (matches original UX)
+            if (r.results.length === 1 && !r.results[0].isSelect) {
+                const res = r.results[0];
                 toast(
-                    `OK · ${r.affected} row${r.affected === 1 ? "" : "s"} affected · ${r.durationMs.toFixed(2)} ms`,
+                    `OK · ${res.affected} row${res.affected === 1 ? "" : "s"} affected · ${res.durationMs.toFixed(2)} ms`,
                     "success",
                 );
             }
@@ -320,6 +328,7 @@
         busy = true;
         tableContext = null;
         result = null;
+        queryResults = null;
 
         if (tMode === "views" && !tTbl) {
             defaultDb = tDb;
@@ -711,6 +720,52 @@
                             table={tableContext.table}
                             capabilities={$capabilities}
                         />
+                    {:else if queryResults}
+                        {#if queryResults.length === 1}
+                            {#if queryResults[0].isSelect}
+                                <DataTable
+                                    columns={queryResults[0].columns}
+                                    rows={queryResults[0].rows}
+                                    total={queryResults[0].rows.length}
+                                    durationMs={queryResults[0].durationMs}
+                                    db={null}
+                                    table={null}
+                                    mode="data"
+                                    capabilities={$capabilities}
+                                />
+                            {:else}
+                                <div
+                                    class="bg-(--bg-1) border border-[rgba(127,217,127,0.25)] rounded-lg px-4 py-3.5 flex gap-3 items-center text-(--ink-1) text-[13px]"
+                                >
+                                    <div
+                                        class="mono text-[9.5px] bg-[rgba(127,217,127,0.12)] text-(--ok) px-1.75 py-0.75 rounded-[3px] font-bold tracking-[0.06em]"
+                                    >
+                                        OK
+                                    </div>
+                                    <div>
+                                        <strong class="mono"
+                                            >{queryResults[0].affected}</strong
+                                        >
+                                        row{queryResults[0].affected === 1
+                                            ? ""
+                                            : "s"} affected
+                                        <span class="muted"> · </span>
+                                        <span class="mono"
+                                            >{queryResults[0].durationMs.toFixed(
+                                                2,
+                                            )} ms</span
+                                        >
+                                    </div>
+                                </div>
+                            {/if}
+                        {:else}
+                            <div class="flex-1 min-h-0 -m-2.5 overflow-hidden">
+                                <TabViewer
+                                    results={queryResults}
+                                    capabilities={$capabilities}
+                                />
+                            </div>
+                        {/if}
                     {:else if result}
                         {#if tableContext?.mode === "indexes"}
                             <IndexesTable

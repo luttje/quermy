@@ -210,15 +210,16 @@
 
                     const sql = `SELECT * FROM ${qDb}.${qTbl} WHERE ${conditions} LIMIT 100`;
                     const r = await api.runQuery(db, sql);
+                    const firstResult = r.results?.[0] ?? r;
 
-                    if (r.rows?.length) {
+                    if (firstResult.rows?.length) {
                         results = [
                             ...results,
                             {
                                 db,
                                 table,
-                                columns: r.columns || allCols,
-                                rows: r.rows,
+                                columns: firstResult.columns || allCols,
+                                rows: firstResult.rows,
                             },
                         ];
                     }
