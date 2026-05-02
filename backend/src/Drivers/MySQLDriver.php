@@ -4,13 +4,35 @@ namespace Quermy\Drivers;
 
 use PDO;
 use PDOException;
+use Quermy\Drivers\Capabilities\MySQL\SupportAddColumn;
+use Quermy\Drivers\Capabilities\MySQL\SupportAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\MySQL\SupportAlterTableAutoIncrement;
+use Quermy\Drivers\Capabilities\MySQL\SupportAlterTableCollation;
+use Quermy\Drivers\Capabilities\MySQL\SupportAlterTableEngine;
+use Quermy\Drivers\Capabilities\MySQL\SupportDropColumn;
+use Quermy\Drivers\Capabilities\MySQL\SupportDropDatabase;
+use Quermy\Drivers\Capabilities\MySQL\SupportDropTable;
+use Quermy\Drivers\Capabilities\MySQL\SupportEventManagement;
+use Quermy\Drivers\Capabilities\MySQL\SupportExplain;
+use Quermy\Drivers\Capabilities\MySQL\SupportForeignKeyManagement;
+use Quermy\Drivers\Capabilities\MySQL\SupportForeignKeys;
+use Quermy\Drivers\Capabilities\MySQL\SupportFunctionManagement;
+use Quermy\Drivers\Capabilities\MySQL\SupportGetCreateTable;
+use Quermy\Drivers\Capabilities\MySQL\SupportIndexManagement;
+use Quermy\Drivers\Capabilities\MySQL\SupportModifyColumn;
+use Quermy\Drivers\Capabilities\MySQL\SupportProcedureManagement;
+use Quermy\Drivers\Capabilities\MySQL\SupportRenameDatabase;
+use Quermy\Drivers\Capabilities\MySQL\SupportReorderColumn;
+use Quermy\Drivers\Capabilities\MySQL\SupportTriggerManagement;
+use Quermy\Drivers\Capabilities\MySQL\SupportTruncateTable;
+use Quermy\Drivers\Capabilities\MySQL\SupportViewManagement;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypes;
 use Quermy\Drivers\Capabilities\ProvidesColumnTypesWithLength;
 use Quermy\Drivers\Capabilities\ProvidesDefaultColumnType;
 use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesReferentialActions;
-use Quermy\Drivers\Capabilities\ProvidesTableInfo;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
+use Quermy\Drivers\Capabilities\ProvidesTableInfo;
 use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
@@ -23,11 +45,9 @@ use Quermy\Drivers\Capabilities\SupportsColumnAfter;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
-use Quermy\Drivers\Capabilities\SupportsTruncateTable;
-use Quermy\Drivers\Capabilities\SupportsForeignKeyBypass;
 use Quermy\Drivers\Capabilities\SupportsEventManagement;
-use Quermy\Drivers\Capabilities\SupportsTriggerManagement;
 use Quermy\Drivers\Capabilities\SupportsExplain;
+use Quermy\Drivers\Capabilities\SupportsForeignKeyBypass;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyManagement;
 use Quermy\Drivers\Capabilities\SupportsForeignKeys;
 use Quermy\Drivers\Capabilities\SupportsFunctionManagement;
@@ -37,46 +57,71 @@ use Quermy\Drivers\Capabilities\SupportsModifyColumn;
 use Quermy\Drivers\Capabilities\SupportsProcedureManagement;
 use Quermy\Drivers\Capabilities\SupportsRenameDatabase;
 use Quermy\Drivers\Capabilities\SupportsReorderColumn;
+use Quermy\Drivers\Capabilities\SupportsTriggerManagement;
+use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use RuntimeException;
 
 class MySQLDriver implements
     DriverInterface,
-    SupportsAddColumn,
-    SupportsModifyColumn,
-    SupportsDropColumn,
-    SupportsColumnAfter,
-    SupportsAutoIncrement,
-    SupportsReorderColumn,
-    SupportsIndexManagement,
-    SupportsForeignKeys,
-    SupportsForeignKeyManagement,
-    SupportsGetCreateTable,
-    SupportsExplain,
-    SupportsRenameDatabase,
-    SupportsDropDatabase,
-    SupportsDropTable,
-    SupportsTruncateTable,
-    SupportsForeignKeyBypass,
-    SupportsAlterDatabaseCollation,
-    SupportsAlterTableCollation,
-    SupportsAlterTableEngine,
-    SupportsAlterTableAutoIncrement,
-    SupportsViewManagement,
-    SupportsProcedureManagement,
-    SupportsFunctionManagement,
-    SupportsEventManagement,
-    SupportsTriggerManagement,
     ProvidesColumnTypes,
+    ProvidesColumnTypesWithLength,
     ProvidesDefaultColumnType,
+    ProvidesListTablesQuery,
     ProvidesReferentialActions,
+    ProvidesStructureQueryTemplate,
+    ProvidesTableInfo,
     ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
-    ProvidesStructureQueryTemplate,
-    ProvidesListTablesQuery,
-    ProvidesColumnTypesWithLength,
-    ProvidesTableInfo
+    SupportsAddColumn,
+    SupportsAlterDatabaseCollation,
+    SupportsAlterTableAutoIncrement,
+    SupportsAlterTableCollation,
+    SupportsAlterTableEngine,
+    SupportsAutoIncrement,
+    SupportsColumnAfter,
+    SupportsDropColumn,
+    SupportsDropDatabase,
+    SupportsDropTable,
+    SupportsEventManagement,
+    SupportsExplain,
+    SupportsForeignKeyBypass,
+    SupportsForeignKeyManagement,
+    SupportsForeignKeys,
+    SupportsFunctionManagement,
+    SupportsGetCreateTable,
+    SupportsIndexManagement,
+    SupportsModifyColumn,
+    SupportsProcedureManagement,
+    SupportsRenameDatabase,
+    SupportsReorderColumn,
+    SupportsTriggerManagement,
+    SupportsTruncateTable,
+    SupportsViewManagement
 {
+    use SupportAddColumn,
+        SupportAlterDatabaseCollation,
+        SupportAlterTableAutoIncrement,
+        SupportAlterTableCollation,
+        SupportAlterTableEngine,
+        SupportDropColumn,
+        SupportDropDatabase,
+        SupportDropTable,
+        SupportEventManagement,
+        SupportExplain,
+        SupportForeignKeyManagement,
+        SupportForeignKeys,
+        SupportFunctionManagement,
+        SupportGetCreateTable,
+        SupportIndexManagement,
+        SupportModifyColumn,
+        SupportProcedureManagement,
+        SupportRenameDatabase,
+        SupportReorderColumn,
+        SupportTriggerManagement,
+        SupportTruncateTable,
+        SupportViewManagement;
+
     private ?PDO $pdo = null;
     private ?string $pinnedDatabaseName = null;
 
@@ -230,375 +275,6 @@ class MySQLDriver implements
             ];
         }
         return $out;
-    }
-
-    public function listViews(string $database): array
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot list views for $database");
-        }
-
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare(
-            "SELECT TABLE_NAME
-             FROM information_schema.VIEWS
-             WHERE TABLE_SCHEMA = :db
-             ORDER BY TABLE_NAME"
-        );
-        $stmt->execute([':db' => $database]);
-        return array_map(static fn($r) => $r['TABLE_NAME'], $stmt->fetchAll());
-    }
-
-    public function getViewDefinition(string $database, string $view): string
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot read view in $database");
-        }
-
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare(
-            "SELECT VIEW_DEFINITION
-             FROM information_schema.VIEWS
-             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = :view"
-        );
-        $stmt->execute([':db' => $database, ':view' => $view]);
-        $row = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("View not found: $database.$view");
-        }
-        return trim((string)($row['VIEW_DEFINITION'] ?? ''));
-    }
-
-    public function upsertView(string $database, string $view, string $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot save view in $database");
-        }
-
-        $this->ensureConnected();
-        $database = $this->validateIdent($database);
-        $name = $this->validateIdent($view);
-        $body = trim($definition);
-        if ($body === '') {
-            throw new RuntimeException('View definition is empty');
-        }
-
-        $qDb = $this->quoteIdent($database);
-        $qView = $this->quoteIdent($name);
-
-        // MySQL resolves unqualified identifiers in the view body against the
-        // active catalog. Set it explicitly so CREATE VIEW works even when the
-        // connection itself was opened without dbname.
-        $this->pdo->exec("USE $qDb");
-
-        if (preg_match('/^\s*CREATE\b/i', $body)) {
-            // Full DDL (with ALGORITHM, DEFINER, SQL SECURITY, etc.) provided by the frontend.
-            $this->pdo->exec($body);
-        } else {
-            if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
-                throw new RuntimeException('View definition must be a SELECT or CREATE VIEW statement.');
-            }
-            if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
-                throw new RuntimeException('View definition must be a single statement.');
-            }
-            $this->pdo->exec("CREATE OR REPLACE VIEW $qDb.$qView AS\n$body");
-        }
-    }
-
-    public function dropView(string $database, string $view): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop view in $database");
-        }
-
-        $this->ensureConnected();
-        $name  = $this->validateIdent($view);
-        $qDb   = $this->quoteIdent($database);
-        $qView = $this->quoteIdent($name);
-        $this->pdo->exec("DROP VIEW IF EXISTS $qDb.$qView");
-    }
-
-    public function listProcedures(string $database): array
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot list procedures for $database");
-        }
-
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare(
-            "SELECT ROUTINE_NAME
-             FROM information_schema.ROUTINES
-             WHERE ROUTINE_SCHEMA = :db AND ROUTINE_TYPE = 'PROCEDURE'
-             ORDER BY ROUTINE_NAME"
-        );
-        $stmt->execute([':db' => $database]);
-        return array_map(static fn($r) => $r['ROUTINE_NAME'], $stmt->fetchAll());
-    }
-
-    public function getProcedureDefinition(string $database, string $procedure): string
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot read procedure in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb   = $this->quoteIdent($this->validateIdent($database));
-        $qProc = $this->quoteIdent($procedure);
-        $stmt  = $this->pdo->query("SHOW CREATE PROCEDURE $qDb.$qProc");
-        $row   = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("Procedure not found: $database.$procedure");
-        }
-        return trim((string)($row['Create Procedure'] ?? ''));
-    }
-
-    public function upsertProcedure(string $database, string $procedure, string $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot save procedure in $database");
-        }
-
-        $this->ensureConnected();
-        $name = $this->validateIdent($procedure);
-        $body = trim($definition);
-        if ($body === '') {
-            throw new RuntimeException('Procedure definition is empty');
-        }
-        if (!preg_match('/^\s*CREATE\b/i', $body)) {
-            throw new RuntimeException('Procedure definition must start with CREATE PROCEDURE.');
-        }
-
-        $qDb   = $this->quoteIdent($database);
-        $qProc = $this->quoteIdent($name);
-        $this->pdo->exec("USE $qDb");
-        $this->pdo->exec("DROP PROCEDURE IF EXISTS $qDb.$qProc");
-        $this->pdo->exec($body);
-    }
-
-    public function dropProcedure(string $database, string $procedure): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop procedure in $database");
-        }
-
-        $this->ensureConnected();
-        $name  = $this->validateIdent($procedure);
-        $qDb   = $this->quoteIdent($database);
-        $qProc = $this->quoteIdent($name);
-        $this->pdo->exec("DROP PROCEDURE IF EXISTS $qDb.$qProc");
-    }
-
-    public function listFunctions(string $database): array
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot list functions for $database");
-        }
-
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare(
-            "SELECT ROUTINE_NAME
-             FROM information_schema.ROUTINES
-             WHERE ROUTINE_SCHEMA = :db AND ROUTINE_TYPE = 'FUNCTION'
-             ORDER BY ROUTINE_NAME"
-        );
-        $stmt->execute([':db' => $database]);
-        return array_map(static fn($r) => $r['ROUTINE_NAME'], $stmt->fetchAll());
-    }
-
-    public function getFunctionDefinition(string $database, string $function): string
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot read function in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb   = $this->quoteIdent($this->validateIdent($database));
-        $qFunc = $this->quoteIdent($function);
-        $stmt  = $this->pdo->query("SHOW CREATE FUNCTION $qDb.$qFunc");
-        $row   = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("Function not found: $database.$function");
-        }
-        return trim((string)($row['Create Function'] ?? ''));
-    }
-
-    public function upsertFunction(string $database, string $function, string $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot save function in $database");
-        }
-
-        $this->ensureConnected();
-        $name = $this->validateIdent($function);
-        $body = trim($definition);
-        if ($body === '') {
-            throw new RuntimeException('Function definition is empty');
-        }
-        if (!preg_match('/^\s*CREATE\b/i', $body)) {
-            throw new RuntimeException('Function definition must start with CREATE FUNCTION.');
-        }
-
-        $qDb   = $this->quoteIdent($database);
-        $qFunc = $this->quoteIdent($name);
-        $this->pdo->exec("USE $qDb");
-        $this->pdo->exec("DROP FUNCTION IF EXISTS $qDb.$qFunc");
-        $this->pdo->exec($body);
-    }
-
-    public function dropFunction(string $database, string $function): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop function in $database");
-        }
-
-        $this->ensureConnected();
-        $name  = $this->validateIdent($function);
-        $qDb   = $this->quoteIdent($database);
-        $qFunc = $this->quoteIdent($name);
-        $this->pdo->exec("DROP FUNCTION IF EXISTS $qDb.$qFunc");
-    }
-
-    public function listEvents(string $database): array
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot list events for $database");
-        }
-
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare(
-            "SELECT EVENT_NAME
-             FROM information_schema.EVENTS
-             WHERE EVENT_SCHEMA = :db
-             ORDER BY EVENT_NAME"
-        );
-        $stmt->execute([':db' => $database]);
-        return array_map(static fn($r) => $r['EVENT_NAME'], $stmt->fetchAll());
-    }
-
-    public function getEventDefinition(string $database, string $event): string
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot read event in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb    = $this->quoteIdent($this->validateIdent($database));
-        $qEvent = $this->quoteIdent($event);
-        $stmt   = $this->pdo->query("SHOW CREATE EVENT $qDb.$qEvent");
-        $row    = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("Event not found: $database.$event");
-        }
-        return trim((string)($row['Create Event'] ?? ''));
-    }
-
-    public function upsertEvent(string $database, string $event, string $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot save event in $database");
-        }
-
-        $this->ensureConnected();
-        $name = $this->validateIdent($event);
-        $body = trim($definition);
-        if ($body === '') {
-            throw new RuntimeException('Event definition is empty');
-        }
-        if (!preg_match('/^\s*CREATE\b/i', $body)) {
-            throw new RuntimeException('Event definition must start with CREATE EVENT.');
-        }
-
-        $qDb    = $this->quoteIdent($database);
-        $qEvent = $this->quoteIdent($name);
-        // MySQL resolves unqualified identifiers in the view body against the
-        // active catalog. Set it explicitly so CREATE VIEW works even when the
-        // connection itself was opened without dbname.
-        $this->pdo->exec("USE $qDb");
-        $this->pdo->exec("DROP EVENT IF EXISTS $qDb.$qEvent");
-        $this->pdo->exec($body);
-    }
-
-    public function dropEvent(string $database, string $event): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop event in $database");
-        }
-
-        $this->ensureConnected();
-        $name   = $this->validateIdent($event);
-        $qDb    = $this->quoteIdent($database);
-        $qEvent = $this->quoteIdent($name);
-        $this->pdo->exec("DROP EVENT IF EXISTS $qDb.$qEvent");
-    }
-
-    public function listTriggers(string $database, string $table): array
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot list triggers for $database");
-        }
-
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare(
-            "SELECT TRIGGER_NAME
-             FROM information_schema.TRIGGERS
-             WHERE TRIGGER_SCHEMA = :db AND EVENT_OBJECT_TABLE = :table
-             ORDER BY TRIGGER_NAME"
-        );
-        $stmt->execute([':db' => $database, ':table' => $table]);
-        return array_map(static fn($r) => $r['TRIGGER_NAME'], $stmt->fetchAll());
-    }
-
-    public function getTriggerDefinition(string $database, string $trigger): string
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot read trigger in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb      = $this->quoteIdent($this->validateIdent($database));
-        $qTrigger = $this->quoteIdent($trigger);
-        $stmt     = $this->pdo->query("SHOW CREATE TRIGGER $qDb.$qTrigger");
-        $row      = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("Trigger not found: $database.$trigger");
-        }
-        return trim((string)($row['SQL Original Statement'] ?? ''));
-    }
-
-    public function upsertTrigger(string $database, string $table, string $trigger, string $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot save trigger in $database");
-        }
-
-        $this->ensureConnected();
-        $name = $this->validateIdent($trigger);
-        $body = trim($definition);
-        if ($body === '') {
-            throw new RuntimeException('Trigger definition is empty');
-        }
-        if (!preg_match('/^\s*CREATE\b/i', $body)) {
-            throw new RuntimeException('Trigger definition must start with CREATE TRIGGER.');
-        }
-
-        $qDb      = $this->quoteIdent($database);
-        $qTrigger = $this->quoteIdent($name);
-        $this->pdo->exec("USE $qDb");
-        $this->pdo->exec("DROP TRIGGER IF EXISTS $qDb.$qTrigger");
-        $this->pdo->exec($body);
-    }
-
-    public function dropTrigger(string $database, string $trigger): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop trigger in $database");
-        }
-
-        $this->ensureConnected();
-        $name     = $this->validateIdent($trigger);
-        $qDb      = $this->quoteIdent($database);
-        $qTrigger = $this->quoteIdent($name);
-        $this->pdo->exec("DROP TRIGGER IF EXISTS $qDb.$qTrigger");
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array
@@ -779,107 +455,6 @@ class MySQLDriver implements
         return ['affected' => $stmt->rowCount()];
     }
 
-    public function addColumn(string $database, string $table, array $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot add column in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        $qCol = $this->quoteIdent($definition['name'] ?? '');
-        $type = $this->sanitizeColumnType($definition['type'] ?? '');
-        $null = ($definition['nullable'] ?? true) ? '' : ' NOT NULL';
-        $ai   = !empty($definition['autoIncrement']) ? ' AUTO_INCREMENT' : '';
-        // AUTO_INCREMENT columns must not have a DEFAULT clause
-        $def  = empty($definition['autoIncrement'])
-                    ? (isset($definition['default']) && $definition['default'] !== null
-                        ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
-                        : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : ''))
-                    : '';
-        $after = !empty($definition['after'])
-                    ? ' AFTER ' . $this->quoteIdent($definition['after'])
-                    : '';
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl ADD COLUMN $qCol $type$null$def$ai$after");
-    }
-
-    public function modifyColumn(string $database, string $table, string $columnName, array $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot modify column in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        $qOld = $this->quoteIdent($columnName);
-        $qNew = $this->quoteIdent($definition['name'] ?? $columnName);
-        $type = $this->sanitizeColumnType($definition['type'] ?? '');
-        $null = ($definition['nullable'] ?? true) ? '' : ' NOT NULL';
-        // AUTO_INCREMENT columns must not have a DEFAULT clause
-        $ai  = !empty($definition['autoIncrement']) ? ' AUTO_INCREMENT' : '';
-        $def  = empty($definition['autoIncrement'])
-                    ? (isset($definition['default']) && $definition['default'] !== null
-                        ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
-                        : (($definition['nullable'] ?? true) ? ' DEFAULT NULL' : ''))
-                    : '';
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl CHANGE COLUMN $qOld $qNew $type$null$def$ai");
-    }
-
-    public function dropColumn(string $database, string $table, string $columnName): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop column in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        $qCol = $this->quoteIdent($columnName);
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl DROP COLUMN $qCol");
-    }
-
-    public function reorderColumn(string $database, string $table, string $columnName, ?string $afterColumn): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot reorder column in $database");
-        }
-
-        $this->ensureConnected();
-
-        // Fetch the current column definition so we can re-issue it with a position clause.
-        $stmt = $this->pdo->prepare(
-            "SELECT COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA
-             FROM information_schema.COLUMNS
-             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = :tbl AND COLUMN_NAME = :col"
-        );
-        $stmt->execute([':db' => $database, ':tbl' => $table, ':col' => $columnName]);
-        $row = $stmt->fetch();
-
-        if ($row === false) {
-            throw new RuntimeException("Column not found: $columnName");
-        }
-
-        $qDb    = $this->quoteIdent($database);
-        $qTbl   = $this->quoteIdent($table);
-        $qCol   = $this->quoteIdent($columnName);
-        $type   = $this->sanitizeColumnType($row['COLUMN_TYPE']);
-        $null   = $row['IS_NULLABLE'] === 'YES' ? '' : ' NOT NULL';
-        $extra  = strtolower($row['EXTRA'] ?? '');
-        $ai     = str_contains($extra, 'auto_increment') ? ' AUTO_INCREMENT' : '';
-        $def    = ($ai === '')
-                    ? (isset($row['COLUMN_DEFAULT']) && $row['COLUMN_DEFAULT'] !== null
-                        ? ' DEFAULT ' . $this->pdo->quote((string)$row['COLUMN_DEFAULT'])
-                        : ($row['IS_NULLABLE'] === 'YES' ? ' DEFAULT NULL' : ''))
-                    : '';
-        $position = $afterColumn !== null
-                        ? ' AFTER ' . $this->quoteIdent($afterColumn)
-                        : ' FIRST';
-
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl MODIFY COLUMN $qCol $type$null$def$ai$position");
-    }
-
     public function describeTable(string $database, string $table): array
     {
         if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
@@ -949,78 +524,6 @@ class MySQLDriver implements
             'columns'    => $columns,
             'primaryKey' => $primaryKey,
             'indexes'    => $indexes,
-        ];
-    }
-
-    public function getForeignKeys(string $database, string $table): array
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot get foreign keys for $database");
-        }
-
-        $this->ensureConnected();
-
-        // Outgoing: this table → others.
-        $outStmt = $this->pdo->prepare(
-            "SELECT k.COLUMN_NAME, k.REFERENCED_TABLE_SCHEMA, k.REFERENCED_TABLE_NAME,
-                    k.REFERENCED_COLUMN_NAME, k.CONSTRAINT_NAME,
-                    r.UPDATE_RULE, r.DELETE_RULE
-             FROM information_schema.KEY_COLUMN_USAGE k
-             JOIN information_schema.REFERENTIAL_CONSTRAINTS r
-               ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
-              AND r.CONSTRAINT_NAME   = k.CONSTRAINT_NAME
-             WHERE k.TABLE_SCHEMA = :db
-               AND k.TABLE_NAME   = :tbl
-               AND k.REFERENCED_TABLE_NAME IS NOT NULL
-             ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION"
-        );
-        $outStmt->execute([':db' => $database, ':tbl' => $table]);
-        $outgoing = [];
-        foreach ($outStmt->fetchAll() as $r) {
-            $outgoing[] = [
-                'column'             => $r['COLUMN_NAME'],
-                'referencedDatabase' => $r['REFERENCED_TABLE_SCHEMA'],
-                'referencedTable'    => $r['REFERENCED_TABLE_NAME'],
-                'referencedColumn'   => $r['REFERENCED_COLUMN_NAME'],
-                'constraintName'     => $r['CONSTRAINT_NAME'],
-                'onUpdate'           => $r['UPDATE_RULE'],
-                'onDelete'           => $r['DELETE_RULE'],
-            ];
-        }
-
-        // Incoming: others → this table.
-        $inStmt = $this->pdo->prepare(
-            "SELECT k.TABLE_SCHEMA  AS REFERENCING_SCHEMA,
-                    k.TABLE_NAME    AS REFERENCING_TABLE,
-                    k.COLUMN_NAME   AS REFERENCING_COLUMN,
-                    k.REFERENCED_COLUMN_NAME,
-                    k.CONSTRAINT_NAME,
-                    r.UPDATE_RULE, r.DELETE_RULE
-             FROM information_schema.KEY_COLUMN_USAGE k
-             JOIN information_schema.REFERENTIAL_CONSTRAINTS r
-               ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
-              AND r.CONSTRAINT_NAME   = k.CONSTRAINT_NAME
-             WHERE k.REFERENCED_TABLE_SCHEMA = :db
-               AND k.REFERENCED_TABLE_NAME   = :tbl
-             ORDER BY k.TABLE_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME, k.ORDINAL_POSITION"
-        );
-        $inStmt->execute([':db' => $database, ':tbl' => $table]);
-        $incoming = [];
-        foreach ($inStmt->fetchAll() as $r) {
-            $incoming[] = [
-                'column'              => $r['REFERENCED_COLUMN_NAME'],
-                'referencingDatabase' => $r['REFERENCING_SCHEMA'],
-                'referencingTable'    => $r['REFERENCING_TABLE'],
-                'referencingColumn'   => $r['REFERENCING_COLUMN'],
-                'constraintName'      => $r['CONSTRAINT_NAME'],
-                'onUpdate'            => $r['UPDATE_RULE'],
-                'onDelete'            => $r['DELETE_RULE'],
-            ];
-        }
-
-        return [
-            'outgoing' => $outgoing,
-            'incoming' => $incoming,
         ];
     }
 
@@ -1114,142 +617,6 @@ class MySQLDriver implements
         return ['tables' => $tables, 'columns' => $columns];
     }
 
-    public function getCreateTable(string $database, string $table): string
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot get create table for $database");
-        }
-
-        $this->ensureConnected();
-        $database = $this->validateIdent($database);
-        $table    = $this->validateIdent($table);
-
-        $stmt = $this->pdo->query("SHOW CREATE TABLE `$database`.`$table`");
-        $row  = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("Table not found: $database.$table");
-        }
-        // SHOW CREATE TABLE returns either ['Table' => ..., 'Create Table' => DDL]
-        // or for views ['View' => ..., 'Create View' => DDL]. Pick whichever
-        // "Create *" key is present.
-        foreach ($row as $key => $val) {
-            if (str_starts_with((string)$key, 'Create ')) {
-                return (string)$val;
-            }
-        }
-        throw new RuntimeException('Unexpected SHOW CREATE TABLE output.');
-    }
-
-    public function explainQuery(string $database, string $sql): array
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot explain query for $database");
-        }
-
-        $this->ensureConnected();
-
-        // Defense in depth — the tool already checks this, but the driver
-        // is the last line of defense and shouldn't trust its caller.
-        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $sql)) {
-            throw new RuntimeException('explainQuery only accepts SELECT statements.');
-        }
-        // Reject multi-statement payloads. We can't fully parse SQL with a
-        // regex but we can refuse the obvious case where someone tries to
-        // chain a destructive statement after the SELECT.
-        if (preg_match('/;\s*\S/', rtrim($sql, "; \t\n\r"))) {
-            throw new RuntimeException('explainQuery accepts only a single statement.');
-        }
-
-        if ($database !== '') {
-            $database = $this->validateIdent($database);
-            $this->pdo->exec("USE `$database`");
-        }
-
-        // Plain (tabular) EXPLAIN is enough for the agent — FORMAT=JSON is
-        // richer but bulkier and harder for the LLM to read.
-        $stmt = $this->pdo->query('EXPLAIN ' . $sql);
-        return $stmt->fetchAll();
-    }
-
-    public function createIndex(string $database, string $table, array $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot create index in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        $cols = implode(', ', array_map([$this, 'quoteIdent'], $definition['columns']));
-
-        if (!empty($definition['primary'])) {
-            $this->pdo->exec("ALTER TABLE $qDb.$qTbl ADD PRIMARY KEY ($cols)");
-        } else {
-            $this->validateIdent($definition['name']);
-            $qIdx = $this->quoteIdent($definition['name']);
-            $uniq = !empty($definition['unique']) ? 'UNIQUE ' : '';
-            $this->pdo->exec("CREATE {$uniq}INDEX $qIdx ON $qDb.$qTbl ($cols)");
-        }
-    }
-
-    public function dropIndex(string $database, string $table, string $indexName, bool $isPrimary): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop index in $database");
-        }
-
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-
-        if ($isPrimary) {
-            $this->pdo->exec("ALTER TABLE $qDb.$qTbl DROP PRIMARY KEY");
-        } else {
-            $this->validateIdent($indexName);
-            $qIdx = $this->quoteIdent($indexName);
-            $this->pdo->exec("DROP INDEX $qIdx ON $qDb.$qTbl");
-        }
-    }
-
-    public function createForeignKey(string $database, string $table, array $definition): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot create foreign key in $database");
-        }
-
-        $this->ensureConnected();
-        $this->validateIdent($definition['name']);
-        $this->validateIdent($definition['referencedTable']);
-        $qDb     = $this->quoteIdent($database);
-        $qTbl    = $this->quoteIdent($table);
-        $qCons   = $this->quoteIdent($definition['name']);
-        $qRef    = $this->quoteIdent($definition['referencedTable']);
-        $cols    = implode(', ', array_map([$this, 'quoteIdent'], $definition['columns']));
-        $refCols = implode(', ', array_map([$this, 'quoteIdent'], $definition['referencedColumns']));
-        $onUpdate = $this->sanitizeReferentialAction($definition['onUpdate'] ?? 'RESTRICT');
-        $onDelete = $this->sanitizeReferentialAction($definition['onDelete'] ?? 'RESTRICT');
-
-        $this->pdo->exec(
-            "ALTER TABLE $qDb.$qTbl ADD CONSTRAINT $qCons "
-            . "FOREIGN KEY ($cols) REFERENCES $qDb.$qRef ($refCols) "
-            . "ON UPDATE $onUpdate ON DELETE $onDelete"
-        );
-    }
-
-    public function dropForeignKey(string $database, string $table, string $constraintName): void
-    {
-        if ($this->pinnedDatabaseName !== null && $this->pinnedDatabaseName !== $database) {
-            throw new RuntimeException("Connected to {$this->pinnedDatabaseName}, cannot drop foreign key in $database");
-        }
-
-        $this->ensureConnected();
-        $this->validateIdent($constraintName);
-        $qDb   = $this->quoteIdent($database);
-        $qTbl  = $this->quoteIdent($table);
-        $qCons = $this->quoteIdent($constraintName);
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl DROP FOREIGN KEY $qCons");
-    }
-
     public function getDatabaseInfo(string $database): array
     {
         $this->ensureConnected();
@@ -1264,105 +631,6 @@ class MySQLDriver implements
             'charset'   => $row['charset']   ?? null,
             'collation' => $row['collation'] ?? null,
         ];
-    }
-
-    public function renameDatabase(string $database, string $newName): void
-    {
-        $this->ensureConnected();
-        $db  = $this->validateIdent($database);
-        $ndb = $this->validateIdent($newName);
-
-        // Capture charset/collation from the source schema
-        $info    = $this->getDatabaseInfo($db);
-        $charset = $this->validateIdent($info['charset'] ?? 'utf8mb4');
-        $coll    = $this->sanitizeCollationName($info['collation'] ?? 'utf8mb4_unicode_ci');
-
-        // Create the target database
-        $this->pdo->exec("CREATE DATABASE `$ndb` CHARACTER SET `$charset` COLLATE `$coll`");
-
-        // Move every base table (MySQL has no single-step RENAME DATABASE)
-        $stmt = $this->pdo->prepare(
-            "SELECT TABLE_NAME FROM information_schema.TABLES " .
-            "WHERE TABLE_SCHEMA = :db AND TABLE_TYPE = 'BASE TABLE'"
-        );
-        $stmt->execute([':db' => $db]);
-        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-        foreach ($tables as $table) {
-            $t = $this->validateIdent($table);
-            $this->pdo->exec("RENAME TABLE `$db`.`$t` TO `$ndb`.`$t`");
-        }
-
-        // Drop the (now-empty) source database
-        $this->pdo->exec("DROP DATABASE `$db`");
-    }
-
-    public function alterDatabaseCollation(string $database, string $collation): void
-    {
-        $this->ensureConnected();
-        $db   = $this->validateIdent($database);
-        $coll = $this->sanitizeCollationName($collation);
-
-        // Resolve the character set for this collation
-        $stmt = $this->pdo->prepare(
-            'SELECT CHARACTER_SET_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME = :coll'
-        );
-        $stmt->execute([':coll' => $coll]);
-        $row = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("Unknown collation: $coll");
-        }
-        $charset = $this->validateIdent($row['CHARACTER_SET_NAME']);
-        $this->pdo->exec("ALTER DATABASE `$db` CHARACTER SET `$charset` COLLATE `$coll`");
-    }
-
-    public function dropDatabase(string $database): void
-    {
-        $this->ensureConnected();
-        $db = $this->validateIdent($database);
-        $this->pdo->exec("DROP DATABASE `$db`");
-    }
-
-    public function dropTable(string $database, string $table, bool $force = false): void
-    {
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        if ($force) {
-            $this->pdo->exec('SET FOREIGN_KEY_CHECKS=0');
-        }
-        try {
-            $this->pdo->exec("DROP TABLE $qDb.$qTbl");
-        } finally {
-            if ($force) {
-                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=1');
-            }
-        }
-    }
-
-    public function truncateTable(string $database, string $table, bool $force = false): void
-    {
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        if ($force) {
-            $this->pdo->exec('SET FOREIGN_KEY_CHECKS=0');
-        }
-        try {
-            $this->pdo->exec("TRUNCATE TABLE $qDb.$qTbl");
-        } finally {
-            if ($force) {
-                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=1');
-            }
-        }
-    }
-
-    public function listDatabaseCollations(string $database): array
-    {
-        $this->ensureConnected();
-
-        $all = $this->pdo->query('SELECT COLLATION_NAME FROM information_schema.COLLATIONS ORDER BY COLLATION_NAME');
-        return array_map(static fn($r) => $r['COLLATION_NAME'], $all->fetchAll());
     }
 
     public function getTableInfo(string $database, string $table): array
@@ -1386,82 +654,9 @@ class MySQLDriver implements
         ];
     }
 
-    public function listTableCollations(string $database, string $table): array
-    {
-        $this->ensureConnected();
-        $all = $this->pdo->query('SELECT COLLATION_NAME FROM information_schema.COLLATIONS ORDER BY COLLATION_NAME');
-        return array_map(static fn($r) => $r['COLLATION_NAME'], $all->fetchAll());
-    }
-
-    public function alterTableCollation(string $database, string $table, string $collation): void
-    {
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        $coll = $this->sanitizeCollationName($collation);
-
-        $stmt = $this->pdo->prepare(
-            'SELECT CHARACTER_SET_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME = :coll'
-        );
-        $stmt->execute([':coll' => $coll]);
-        $row = $stmt->fetch();
-        if (!$row) {
-            throw new RuntimeException("Unknown collation: $coll");
-        }
-        $charset = $row['CHARACTER_SET_NAME'];
-
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl CONVERT TO CHARACTER SET `$charset` COLLATE `$coll`");
-    }
-
-    public function listTableEngines(): array
-    {
-        $this->ensureConnected();
-        $stmt = $this->pdo->query('SHOW ENGINES');
-        $engines = [];
-        foreach ($stmt->fetchAll() as $row) {
-            if (in_array(strtoupper((string)$row['Support']), ['YES', 'DEFAULT'], true)) {
-                $engines[] = $row['Engine'];
-            }
-        }
-        sort($engines);
-        return $engines;
-    }
-
-    public function alterTableEngine(string $database, string $table, string $engine): void
-    {
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        if (!preg_match('/^[A-Za-z0-9_]+$/', $engine)) {
-            throw new RuntimeException("Invalid engine name: $engine");
-        }
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl ENGINE = $engine");
-    }
-
-    public function alterTableAutoIncrement(string $database, string $table, int $value): void
-    {
-        $this->ensureConnected();
-        $qDb  = $this->quoteIdent($database);
-        $qTbl = $this->quoteIdent($table);
-        if ($value < 1) {
-            throw new RuntimeException('AUTO_INCREMENT value must be >= 1');
-        }
-        $this->pdo->exec("ALTER TABLE $qDb.$qTbl AUTO_INCREMENT = $value");
-    }
-
     /*
      * Private helpers
      */
-
-    private function sanitizeReferentialAction(string $action): string
-    {
-        $valid  = ['CASCADE', 'RESTRICT', 'SET NULL', 'SET DEFAULT', 'NO ACTION'];
-        $action = strtoupper(trim($action));
-        if (!in_array($action, $valid, true)) {
-            throw new RuntimeException("Invalid referential action: $action");
-        }
-        return $action;
-    }
 
     private function ensureConnected(): void
     {

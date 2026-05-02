@@ -11,16 +11,25 @@ use Quermy\Drivers\Capabilities\ProvidesListTablesQuery;
 use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
+use Quermy\Drivers\Capabilities\SQLite\SupportAddColumn;
+use Quermy\Drivers\Capabilities\SQLite\SupportDropColumn;
+use Quermy\Drivers\Capabilities\SQLite\SupportDropTable;
+use Quermy\Drivers\Capabilities\SQLite\SupportExplain;
+use Quermy\Drivers\Capabilities\SQLite\SupportForeignKeys;
+use Quermy\Drivers\Capabilities\SQLite\SupportGetCreateTable;
+use Quermy\Drivers\Capabilities\SQLite\SupportIndexManagement;
+use Quermy\Drivers\Capabilities\SQLite\SupportTruncateTable;
+use Quermy\Drivers\Capabilities\SQLite\SupportViewManagement;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
+use Quermy\Drivers\Capabilities\SupportsDropTable;
 use Quermy\Drivers\Capabilities\SupportsExplain;
 use Quermy\Drivers\Capabilities\SupportsForeignKeys;
 use Quermy\Drivers\Capabilities\SupportsGetCreateTable;
 use Quermy\Drivers\Capabilities\SupportsIndexManagement;
-use Quermy\Drivers\Capabilities\SupportsViewManagement;
-use Quermy\Drivers\Capabilities\SupportsDropTable;
 use Quermy\Drivers\Capabilities\SupportsTruncateTable;
+use Quermy\Drivers\Capabilities\SupportsViewManagement;
 use RuntimeException;
 
 /**
@@ -38,24 +47,34 @@ use RuntimeException;
  */
 class SQLiteDriver implements
     DriverInterface,
-    SupportsAddColumn,
-    SupportsDropColumn,
-    SupportsAutoIncrement,
-    SupportsIndexManagement,
-    SupportsForeignKeys,
-    SupportsGetCreateTable,
-    SupportsExplain,
-    SupportsViewManagement,
-    SupportsDropTable,
-    SupportsTruncateTable,
     ProvidesColumnTypes,
+    ProvidesColumnTypesWithLength,
     ProvidesDefaultColumnType,
+    ProvidesListTablesQuery,
+    ProvidesStructureQueryTemplate,
     ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
-    ProvidesStructureQueryTemplate,
-    ProvidesListTablesQuery,
-    ProvidesColumnTypesWithLength
+    SupportsAddColumn,
+    SupportsAutoIncrement,
+    SupportsDropColumn,
+    SupportsDropTable,
+    SupportsExplain,
+    SupportsForeignKeys,
+    SupportsGetCreateTable,
+    SupportsIndexManagement,
+    SupportsTruncateTable,
+    SupportsViewManagement
 {
+    use SupportAddColumn,
+        SupportDropColumn,
+        SupportIndexManagement,
+        SupportForeignKeys,
+        SupportGetCreateTable,
+        SupportExplain,
+        SupportViewManagement,
+        SupportDropTable,
+        SupportTruncateTable;
+
     private ?PDO $pdo = null;
 
     public static function engineId(): string
@@ -164,72 +183,6 @@ class SQLiteDriver implements
             $out[] = ['name' => $row['name'], 'rows' => null, 'size' => null];
         }
         return $out;
-    }
-
-    public function listViews(string $database): array
-    {
-        $this->ensureConnected();
-        $stmt = $this->pdo->query(
-            "SELECT name
-             FROM sqlite_master
-             WHERE type = 'view' AND name NOT LIKE 'sqlite_%'
-             ORDER BY name"
-        );
-        return array_map(static fn($r) => $r['name'], $stmt->fetchAll());
-    }
-
-    public function getViewDefinition(string $database, string $view): string
-    {
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare(
-            "SELECT sql
-             FROM sqlite_master
-             WHERE type = 'view' AND name = :view"
-        );
-        $stmt->execute([':view' => $view]);
-        $row = $stmt->fetch();
-        if (!$row || !isset($row['sql'])) {
-            throw new RuntimeException("View not found: $view");
-        }
-
-        $sql = trim((string)$row['sql']);
-        if (preg_match('/\bAS\b(.*)$/is', $sql, $m)) {
-            return trim($m[1]);
-        }
-        return $sql;
-    }
-
-    public function upsertView(string $database, string $view, string $definition): void
-    {
-        $this->ensureConnected();
-        $name = $this->validateIdent($view);
-        $body = trim($definition);
-        if ($body === '') {
-            throw new RuntimeException('View definition is empty');
-        }
-        $qView = $this->quoteIdent($name);
-        if (preg_match('/^\s*CREATE\b/i', $body)) {
-            // Full DDL provided by the frontend — drop first since SQLite has no OR REPLACE for views.
-            $this->pdo->exec("DROP VIEW IF EXISTS $qView");
-            $this->pdo->exec($body);
-        } else {
-            if (!preg_match('/^\s*(SELECT|WITH)\b/i', $body)) {
-                throw new RuntimeException('View definition must be a SELECT or CREATE VIEW statement.');
-            }
-            if (preg_match('/;\s*\S/', rtrim($body, "; \t\n\r"))) {
-                throw new RuntimeException('View definition must be a single statement.');
-            }
-            $this->pdo->exec("DROP VIEW IF EXISTS $qView");
-            $this->pdo->exec("CREATE VIEW $qView AS\n$body");
-        }
-    }
-
-    public function dropView(string $database, string $view): void
-    {
-        $this->ensureConnected();
-        $name  = $this->validateIdent($view);
-        $qView = $this->quoteIdent($name);
-        $this->pdo->exec("DROP VIEW IF EXISTS $qView");
     }
 
     public function browseTable(string $database, string $table, int $limit, int $offset): array
@@ -342,36 +295,6 @@ class SQLiteDriver implements
         return ['affected' => $stmt->rowCount()];
     }
 
-    public function addColumn(string $database, string $table, array $definition): void
-    {
-        $this->ensureConnected();
-        $qTbl = $this->quoteIdent($table);
-        $qCol = $this->quoteIdent($definition['name'] ?? '');
-        $type = $this->sanitizeColumnType($definition['type'] ?? '');
-        $null = ($definition['nullable'] ?? true) ? '' : ' NOT NULL';
-        $def  = empty($definition['autoIncrement'])
-                    ? (isset($definition['default']) && $definition['default'] !== null
-                        ? ' DEFAULT ' . $this->pdo->quote((string)$definition['default'])
-                        : '')
-                    : '';
-        // SQLite ADD COLUMN does not support AFTER or position hints.
-        $this->pdo->exec("ALTER TABLE $qTbl ADD COLUMN $qCol $type$null$def");
-    }
-
-    public function dropColumn(string $database, string $table, string $columnName): void
-    {
-        $this->ensureConnected();
-        if (!$this->sqliteVersionAtLeast('3.35.0')) {
-            throw new RuntimeException(
-                'DROP COLUMN requires SQLite 3.35.0 or later. '
-                . 'Current version: ' . $this->sqliteVersion()
-            );
-        }
-        $qTbl = $this->quoteIdent($table);
-        $qCol = $this->quoteIdent($columnName);
-        $this->pdo->exec("ALTER TABLE $qTbl DROP COLUMN $qCol");
-    }
-
     public function describeTable(string $database, string $table): array
     {
         $this->ensureConnected();
@@ -401,28 +324,6 @@ class SQLiteDriver implements
         }
 
         return ['columns' => $columns, 'primaryKey' => array_values($primaryKey), 'indexes' => $byIndex];
-    }
-
-    public function getForeignKeys(string $database, string $table): array
-    {
-        $this->ensureConnected();
-        $qTbl  = $this->quoteIdent($table);
-        $stmt  = $this->pdo->query("PRAGMA foreign_key_list($qTbl)");
-        $outgoing = [];
-        foreach ($stmt->fetchAll() as $r) {
-            $outgoing[] = [
-                'column'             => $r['from'],
-                'referencedDatabase' => 'main',
-                'referencedTable'    => $r['table'],
-                'referencedColumn'   => $r['to'],
-                'constraintName'     => 'fk_' . $r['id'],
-                'onUpdate'           => $r['on_update'],
-                'onDelete'           => $r['on_delete'],
-            ];
-        }
-
-        // SQLite PRAGMA doesn't give incoming FKs directly; skip for now.
-        return ['outgoing' => $outgoing, 'incoming' => []];
     }
 
     public function sampleTable(string $database, string $table, int $limit): array
@@ -485,62 +386,6 @@ class SQLiteDriver implements
         return ['tables' => $tables, 'columns' => $columns];
     }
 
-    public function getCreateTable(string $database, string $table): string
-    {
-        $this->ensureConnected();
-        $stmt = $this->pdo->prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = :tbl");
-        $stmt->execute([':tbl' => $table]);
-        $row = $stmt->fetch();
-        if (!$row || !$row['sql']) {
-            throw new RuntimeException("Table not found: $table");
-        }
-        return $row['sql'];
-    }
-
-    public function explainQuery(string $database, string $sql): array
-    {
-        $this->ensureConnected();
-        if (!preg_match('/^\s*(SELECT|WITH)\b/i', $sql)) {
-            throw new RuntimeException('explainQuery only accepts SELECT statements.');
-        }
-        if (preg_match('/;\s*\S/', rtrim($sql, "; \t\n\r"))) {
-            throw new RuntimeException('explainQuery accepts only a single statement.');
-        }
-        $stmt = $this->pdo->query('EXPLAIN QUERY PLAN ' . $sql);
-        return $stmt->fetchAll();
-    }
-
-    public function createIndex(string $database, string $table, array $definition): void
-    {
-        $this->ensureConnected();
-        if (!empty($definition['primary'])) {
-            throw new RuntimeException(
-                'SQLite does not support adding a primary key after table creation. '
-                . 'To change a primary key, recreate the table.'
-            );
-        }
-        $this->validateIdent($definition['name']);
-        $this->validateIdent($table);
-        $qTbl = $this->quoteIdent($table);
-        $qIdx = $this->quoteIdent($definition['name']);
-        $cols = implode(', ', array_map([$this, 'quoteIdent'], $definition['columns']));
-        $uniq = !empty($definition['unique']) ? 'UNIQUE ' : '';
-        $this->pdo->exec("CREATE {$uniq}INDEX $qIdx ON $qTbl ($cols)");
-    }
-
-    public function dropIndex(string $database, string $table, string $indexName, bool $isPrimary): void
-    {
-        $this->ensureConnected();
-        if ($isPrimary) {
-            throw new RuntimeException(
-                'SQLite does not support dropping a primary key without recreating the table.'
-            );
-        }
-        $this->validateIdent($indexName);
-        $qIdx = $this->quoteIdent($indexName);
-        $this->pdo->exec("DROP INDEX $qIdx");
-    }
-
     public function getDatabaseInfo(string $database): array
     {
         return [
@@ -586,21 +431,6 @@ class SQLiteDriver implements
             ];
         }
         return $columns;
-    }
-
-    public function dropTable(string $database, string $table, bool $force = false): void
-    {
-        $this->ensureConnected();
-        $qTbl = $this->quoteIdent($table);
-        $this->pdo->exec("DROP TABLE $qTbl");
-    }
-
-    public function truncateTable(string $database, string $table, bool $force = false): void
-    {
-        $this->ensureConnected();
-        $qTbl = $this->quoteIdent($table);
-        // SQLite has no TRUNCATE; DELETE FROM is equivalent and also resets the rowid sequence.
-        $this->pdo->exec("DELETE FROM $qTbl");
     }
 
     private function quoteIdent(string $name): string
