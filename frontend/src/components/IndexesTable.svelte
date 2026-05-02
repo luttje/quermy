@@ -5,6 +5,7 @@
     import Btn from "./ui/Btn.svelte";
     import Input from "./ui/Input.svelte";
     import Select from "./ui/Select.svelte";
+    import SearchableSelect from "./ui/SearchableSelect.svelte";
     import Modal from "./Modal.svelte";
 
     export let db;
@@ -14,18 +15,30 @@
 
     const dispatch = createEventDispatcher();
 
+    // --- Meta options ---
+    let columnOptions = [];
+
+    async function loadColumnOptions() {
+        try {
+            const r = await api.browseTable(db, table, 1, 0);
+            columnOptions = (r.columns ?? []).map((c) => c.name);
+        } catch (_) {
+            columnOptions = [];
+        }
+    }
+
     let showCreateModal = false;
     let creating = false;
     let createType = "index";
     let createName = "";
-    let createColumns = "";
+    let createColumnsList = [""];
 
     let showEditModal = false;
     let savingEdit = false;
     let editTarget = null;
     let editType = "index";
     let editName = "";
-    let editColumns = "";
+    let editColumnsList = [""];
 
     let showDeleteModal = false;
     let dropping = false;
@@ -74,13 +87,6 @@
         return text.slice(0, maxLen - 1) + "…";
     }
 
-    function parseColumns(raw) {
-        return raw
-            .split(",")
-            .map((c) => c.trim())
-            .filter(Boolean);
-    }
-
     function indexType(idx) {
         if (idx?.primary) return "primary";
         if (idx?.unique) return "unique";
@@ -96,8 +102,9 @@
         if (!canCreate) return;
         createType = typeOptions[0]?.value ?? "index";
         createName = "";
-        createColumns = "";
+        createColumnsList = [""];
         showCreateModal = true;
+        loadColumnOptions();
     }
 
     function closeCreateModal() {
@@ -117,7 +124,7 @@
             return;
         }
 
-        const cols = parseColumns(createColumns);
+        const cols = createColumnsList.filter(Boolean);
         if (!cols.length) {
             toast("Enter at least one column", "error");
             return;
@@ -150,8 +157,9 @@
         editTarget = idx;
         editType = indexType(idx);
         editName = idx?.primary ? "" : (idx?.name ?? "");
-        editColumns = (idx?.columns ?? []).join(", ");
+        editColumnsList = idx?.columns?.length ? [...idx.columns] : [""];
         showEditModal = true;
+        loadColumnOptions();
     }
 
     function closeEditModal() {
@@ -171,7 +179,7 @@
             return;
         }
 
-        const cols = parseColumns(editColumns);
+        const cols = editColumnsList.filter(Boolean);
         if (!cols.length) {
             toast("Enter at least one column", "error");
             return;
@@ -375,26 +383,46 @@
                     bind:value={createName}
                     class="text-[12px] py-2!"
                     placeholder="e.g. idx_users_email"
-                    on:keydown={(e) => {
-                        if (e.key === "Enter") createIndex();
-                    }}
                 />
             </label>
         {/if}
 
-        <label class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1">
             <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                 Columns
             </span>
-            <Input
-                bind:value={createColumns}
-                class="text-[12px] py-2!"
-                placeholder="e.g. user_id, created_at"
-                on:keydown={(e) => {
-                    if (e.key === "Enter") createIndex();
-                }}
-            />
-        </label>
+            <div class="flex flex-col gap-1">
+                {#each createColumnsList as _, i}
+                    <div class="flex items-center gap-1">
+                        <div class="flex-1">
+                            <SearchableSelect
+                                bind:value={createColumnsList[i]}
+                                options={columnOptions}
+                                placeholder="Select column…"
+                                allowCustom={true}
+                                triggerClass="text-[12px] py-2! px-3!"
+                            />
+                        </div>
+                        {#if createColumnsList.length > 1}
+                            <Btn
+                                variant="ghost"
+                                class="text-[12px] px-2 py-1! shrink-0"
+                                on:click={() => { createColumnsList = createColumnsList.filter((_, idx) => idx !== i); }}
+                            >
+                                ×
+                            </Btn>
+                        {/if}
+                    </div>
+                {/each}
+                <Btn
+                    variant="ghost"
+                    class="text-[11px] px-2 py-0.5! self-start mt-0.5"
+                    on:click={() => { createColumnsList = [...createColumnsList, ""]; }}
+                >
+                    + Add column
+                </Btn>
+            </div>
+        </div>
     </div>
 
     <div slot="footer" class="px-5 py-3 bg-(--bg-2) flex justify-end gap-2">
@@ -404,7 +432,7 @@
         <Btn
             variant="primary"
             disabled={creating ||
-                !createColumns.trim() ||
+                !createColumnsList.some(Boolean) ||
                 (createType !== "primary" && !createName.trim())}
             on:click={createIndex}
         >
@@ -450,26 +478,46 @@
                     bind:value={editName}
                     class="text-[12px] py-2!"
                     placeholder="e.g. idx_users_email"
-                    on:keydown={(e) => {
-                        if (e.key === "Enter") saveEditedIndex();
-                    }}
                 />
             </label>
         {/if}
 
-        <label class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1">
             <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                 Columns
             </span>
-            <Input
-                bind:value={editColumns}
-                class="text-[12px] py-2!"
-                placeholder="e.g. user_id, created_at"
-                on:keydown={(e) => {
-                    if (e.key === "Enter") saveEditedIndex();
-                }}
-            />
-        </label>
+            <div class="flex flex-col gap-1">
+                {#each editColumnsList as _, i}
+                    <div class="flex items-center gap-1">
+                        <div class="flex-1">
+                            <SearchableSelect
+                                bind:value={editColumnsList[i]}
+                                options={columnOptions}
+                                placeholder="Select column…"
+                                allowCustom={true}
+                                triggerClass="text-[12px] py-2! px-3!"
+                            />
+                        </div>
+                        {#if editColumnsList.length > 1}
+                            <Btn
+                                variant="ghost"
+                                class="text-[12px] px-2 py-1! shrink-0"
+                                on:click={() => { editColumnsList = editColumnsList.filter((_, idx) => idx !== i); }}
+                            >
+                                ×
+                            </Btn>
+                        {/if}
+                    </div>
+                {/each}
+                <Btn
+                    variant="ghost"
+                    class="text-[11px] px-2 py-0.5! self-start mt-0.5"
+                    on:click={() => { editColumnsList = [...editColumnsList, ""]; }}
+                >
+                    + Add column
+                </Btn>
+            </div>
+        </div>
     </div>
 
     <div slot="footer" class="px-5 py-3 bg-(--bg-2) flex justify-end gap-2">
@@ -479,7 +527,7 @@
         <Btn
             variant="primary"
             disabled={savingEdit ||
-                !editColumns.trim() ||
+                !editColumnsList.some(Boolean) ||
                 (editType !== "primary" && !editName.trim())}
             on:click={saveEditedIndex}
         >

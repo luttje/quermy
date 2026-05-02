@@ -5,6 +5,7 @@
     import Btn from "./ui/Btn.svelte";
     import Input from "./ui/Input.svelte";
     import Select from "./ui/Select.svelte";
+    import SearchableSelect from "./ui/SearchableSelect.svelte";
     import Modal from "./Modal.svelte";
 
     export let db;
@@ -20,25 +21,54 @@
         ? capabilities.referentialActions
         : FALLBACK_ACTIONS;
 
+    // --- Meta options ---
+    let tableOptions = [];
+    let srcColumnOptions = [];
+    let refColumnOptions = [];
+
+    async function loadMeta() {
+        try {
+            const [tablesRes, colsRes] = await Promise.all([
+                api.listTables(db),
+                api.browseTable(db, table, 1, 0),
+            ]);
+            tableOptions = (tablesRes.tables ?? []).map((t) => t.name);
+            srcColumnOptions = (colsRes.columns ?? []).map((c) => c.name);
+        } catch (_) {}
+    }
+
+    async function loadRefColumnOptions(refTable) {
+        if (!refTable) { refColumnOptions = []; return; }
+        try {
+            const r = await api.browseTable(db, refTable, 1, 0);
+            refColumnOptions = (r.columns ?? []).map((c) => c.name);
+        } catch (_) {
+            refColumnOptions = [];
+        }
+    }
+
+    // --- Create modal ---
     let showCreateModal = false;
     let creating = false;
     let createName = "";
-    let createColumns = "";
+    let createColumnsList = [""];
     let createRefTable = "";
-    let createRefColumns = "";
+    let createRefColumnsList = [""];
     let createOnUpdate = "RESTRICT";
     let createOnDelete = "RESTRICT";
 
+    // --- Edit modal ---
     let showEditModal = false;
     let savingEdit = false;
     let editTarget = null;
     let editName = "";
-    let editColumns = "";
+    let editColumnsList = [""];
     let editRefTable = "";
-    let editRefColumns = "";
+    let editRefColumnsList = [""];
     let editOnUpdate = "RESTRICT";
     let editOnDelete = "RESTRICT";
 
+    // --- Delete modal ---
     let showDeleteModal = false;
     let dropping = false;
     let deleteTarget = null;
@@ -46,12 +76,9 @@
 
     $: canManage = capabilities?.supportsForeignKeyManagement ?? false;
 
-    function parseColumns(raw) {
-        return raw
-            .split(",")
-            .map((c) => c.trim())
-            .filter(Boolean);
-    }
+    // Reload ref table columns when selection changes
+    $: if (showCreateModal) loadRefColumnOptions(createRefTable);
+    $: if (showEditModal) loadRefColumnOptions(editRefTable);
 
     function columnsPreview(columns, maxLen = 90) {
         const text = (columns ?? []).join(", ");
@@ -73,12 +100,14 @@
     function openCreateModal() {
         if (!canManage) return;
         createName = "";
-        createColumns = "";
+        createColumnsList = [""];
         createRefTable = "";
-        createRefColumns = "";
+        createRefColumnsList = [""];
         createOnUpdate = referentialActions[0] ?? "RESTRICT";
         createOnDelete = referentialActions[0] ?? "RESTRICT";
+        refColumnOptions = [];
         showCreateModal = true;
+        loadMeta();
     }
 
     function closeCreateModal() {
@@ -89,8 +118,8 @@
     async function createForeignKey() {
         if (!canManage) return;
 
-        const cols = parseColumns(createColumns);
-        const refCols = parseColumns(createRefColumns);
+        const cols = createColumnsList.filter(Boolean);
+        const refCols = createRefColumnsList.filter(Boolean);
 
         if (!createName.trim()) {
             toast("Constraint name is required", "error");
@@ -139,12 +168,14 @@
 
         editTarget = fk;
         editName = fk.constraintName;
-        editColumns = (fk.columns ?? []).join(", ");
+        editColumnsList = fk.columns?.length ? [...fk.columns] : [""];
         editRefTable = fk.referencedTable ?? "";
-        editRefColumns = (fk.referencedColumns ?? []).join(", ");
+        editRefColumnsList = fk.referencedColumns?.length ? [...fk.referencedColumns] : [""];
         editOnUpdate = normalizeAction(fk.onUpdate);
         editOnDelete = normalizeAction(fk.onDelete);
+        refColumnOptions = [];
         showEditModal = true;
+        loadMeta();
     }
 
     function closeEditModal() {
@@ -155,8 +186,8 @@
     async function saveEditedForeignKey() {
         if (!canManage || !editTarget?.constraintName) return;
 
-        const cols = parseColumns(editColumns);
-        const refCols = parseColumns(editRefColumns);
+        const cols = editColumnsList.filter(Boolean);
+        const refCols = editRefColumnsList.filter(Boolean);
 
         if (!editName.trim()) {
             toast("Constraint name is required", "error");
@@ -421,38 +452,95 @@
         </label>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <label class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1">
                 <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                     Source Columns
                 </span>
-                <Input
-                    bind:value={createColumns}
-                    class="text-[12px] py-2!"
-                    placeholder="e.g. user_id"
-                />
-            </label>
-            <label class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1">
+                    {#each createColumnsList as _, i}
+                        <div class="flex items-center gap-1">
+                            <div class="flex-1">
+                                <SearchableSelect
+                                    bind:value={createColumnsList[i]}
+                                    options={srcColumnOptions}
+                                    placeholder="Select column…"
+                                    allowCustom={true}
+                                    triggerClass="text-[12px] py-2! px-3!"
+                                />
+                            </div>
+                            {#if createColumnsList.length > 1}
+                                <Btn
+                                    variant="ghost"
+                                    class="text-[12px] px-2 py-1! shrink-0"
+                                    on:click={() => { createColumnsList = createColumnsList.filter((_, idx) => idx !== i); }}
+                                >
+                                    ×
+                                </Btn>
+                            {/if}
+                        </div>
+                    {/each}
+                    <Btn
+                        variant="ghost"
+                        class="text-[11px] px-2 py-0.5! self-start mt-0.5"
+                        on:click={() => { createColumnsList = [...createColumnsList, ""]; }}
+                    >
+                        + Add column
+                    </Btn>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
                 <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                     Referenced Table
                 </span>
-                <Input
+                <SearchableSelect
                     bind:value={createRefTable}
-                    class="text-[12px] py-2!"
-                    placeholder="e.g. users"
+                    options={tableOptions}
+                    placeholder="Select table…"
+                    allowCustom={true}
+                    triggerClass="text-[12px] py-2! px-3!"
                 />
-            </label>
+            </div>
         </div>
 
-        <label class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1">
             <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                 Referenced Columns
             </span>
-            <Input
-                bind:value={createRefColumns}
-                class="text-[12px] py-2!"
-                placeholder="e.g. id"
-            />
-        </label>
+            <div class="flex flex-col gap-1">
+                {#each createRefColumnsList as _, i}
+                    <div class="flex items-center gap-1">
+                        <div class="flex-1">
+                            <SearchableSelect
+                                bind:value={createRefColumnsList[i]}
+                                options={refColumnOptions}
+                                placeholder={createRefTable ? "Select column…" : "Select a table first…"}
+                                allowCustom={true}
+                                disabled={!createRefTable}
+                                triggerClass="text-[12px] py-2! px-3!"
+                            />
+                        </div>
+                        {#if createRefColumnsList.length > 1}
+                            <Btn
+                                variant="ghost"
+                                class="text-[12px] px-2 py-1! shrink-0"
+                                on:click={() => { createRefColumnsList = createRefColumnsList.filter((_, idx) => idx !== i); }}
+                            >
+                                ×
+                            </Btn>
+                        {/if}
+                    </div>
+                {/each}
+                <Btn
+                    variant="ghost"
+                    class="text-[11px] px-2 py-0.5! self-start mt-0.5"
+                    disabled={!createRefTable}
+                    on:click={() => { createRefColumnsList = [...createRefColumnsList, ""]; }}
+                >
+                    + Add column
+                </Btn>
+            </div>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <label class="flex flex-col gap-1">
@@ -486,9 +574,9 @@
             variant="primary"
             disabled={creating ||
                 !createName.trim() ||
-                !createColumns.trim() ||
+                !createColumnsList.some(Boolean) ||
                 !createRefTable.trim() ||
-                !createRefColumns.trim()}
+                !createRefColumnsList.some(Boolean)}
             on:click={createForeignKey}
         >
             {creating ? "Creating…" : "Create FK"}
@@ -518,54 +606,99 @@
                 bind:value={editName}
                 class="text-[12px] py-2!"
                 placeholder="e.g. fk_orders_user_id"
-                on:keydown={(e) => {
-                    if (e.key === "Enter") saveEditedForeignKey();
-                }}
             />
         </label>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <label class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1">
                 <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                     Source Columns
                 </span>
-                <Input
-                    bind:value={editColumns}
-                    class="text-[12px] py-2!"
-                    placeholder="e.g. user_id"
-                    on:keydown={(e) => {
-                        if (e.key === "Enter") saveEditedForeignKey();
-                    }}
-                />
-            </label>
-            <label class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1">
+                    {#each editColumnsList as _, i}
+                        <div class="flex items-center gap-1">
+                            <div class="flex-1">
+                                <SearchableSelect
+                                    bind:value={editColumnsList[i]}
+                                    options={srcColumnOptions}
+                                    placeholder="Select column…"
+                                    allowCustom={true}
+                                    triggerClass="text-[12px] py-2! px-3!"
+                                />
+                            </div>
+                            {#if editColumnsList.length > 1}
+                                <Btn
+                                    variant="ghost"
+                                    class="text-[12px] px-2 py-1! shrink-0"
+                                    on:click={() => { editColumnsList = editColumnsList.filter((_, idx) => idx !== i); }}
+                                >
+                                    ×
+                                </Btn>
+                            {/if}
+                        </div>
+                    {/each}
+                    <Btn
+                        variant="ghost"
+                        class="text-[11px] px-2 py-0.5! self-start mt-0.5"
+                        on:click={() => { editColumnsList = [...editColumnsList, ""]; }}
+                    >
+                        + Add column
+                    </Btn>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
                 <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                     Referenced Table
                 </span>
-                <Input
+                <SearchableSelect
                     bind:value={editRefTable}
-                    class="text-[12px] py-2!"
-                    placeholder="e.g. users"
-                    on:keydown={(e) => {
-                        if (e.key === "Enter") saveEditedForeignKey();
-                    }}
+                    options={tableOptions}
+                    placeholder="Select table…"
+                    allowCustom={true}
+                    triggerClass="text-[12px] py-2! px-3!"
                 />
-            </label>
+            </div>
         </div>
 
-        <label class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1">
             <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
                 Referenced Columns
             </span>
-            <Input
-                bind:value={editRefColumns}
-                class="text-[12px] py-2!"
-                placeholder="e.g. id"
-                on:keydown={(e) => {
-                    if (e.key === "Enter") saveEditedForeignKey();
-                }}
-            />
-        </label>
+            <div class="flex flex-col gap-1">
+                {#each editRefColumnsList as _, i}
+                    <div class="flex items-center gap-1">
+                        <div class="flex-1">
+                            <SearchableSelect
+                                bind:value={editRefColumnsList[i]}
+                                options={refColumnOptions}
+                                placeholder={editRefTable ? "Select column…" : "Select a table first…"}
+                                allowCustom={true}
+                                disabled={!editRefTable}
+                                triggerClass="text-[12px] py-2! px-3!"
+                            />
+                        </div>
+                        {#if editRefColumnsList.length > 1}
+                            <Btn
+                                variant="ghost"
+                                class="text-[12px] px-2 py-1! shrink-0"
+                                on:click={() => { editRefColumnsList = editRefColumnsList.filter((_, idx) => idx !== i); }}
+                            >
+                                ×
+                            </Btn>
+                        {/if}
+                    </div>
+                {/each}
+                <Btn
+                    variant="ghost"
+                    class="text-[11px] px-2 py-0.5! self-start mt-0.5"
+                    disabled={!editRefTable}
+                    on:click={() => { editRefColumnsList = [...editRefColumnsList, ""]; }}
+                >
+                    + Add column
+                </Btn>
+            </div>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <label class="flex flex-col gap-1">
@@ -599,9 +732,9 @@
             variant="primary"
             disabled={savingEdit ||
                 !editName.trim() ||
-                !editColumns.trim() ||
+                !editColumnsList.some(Boolean) ||
                 !editRefTable.trim() ||
-                !editRefColumns.trim()}
+                !editRefColumnsList.some(Boolean)}
             on:click={saveEditedForeignKey}
         >
             {savingEdit ? "Saving…" : "Save FK"}
