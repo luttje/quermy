@@ -115,6 +115,9 @@
     let treeView = null;
     let editingTable = null;
 
+    let showCreateTableModal = false;
+    let creatingTableDb = null;
+
     onMount(async () => {
         const systemCheck = await api.checkSystem();
         if (!systemCheck.ok) {
@@ -427,6 +430,18 @@
         showTableEditModal = true;
     }
 
+    function handleCreateTable(e) {
+        creatingTableDb = e.detail.db;
+        showCreateTableModal = true;
+    }
+
+    async function handleTableCreated(e) {
+        const { db, table } = e.detail;
+        showCreateTableModal = false;
+        creatingTableDb = null;
+        await treeView?.reloadDb(db);
+    }
+
     function handleDbRenamed(e) {
         const { oldName, newName } = e.detail;
         if (tableContext?.db === oldName) {
@@ -581,6 +596,7 @@
                     on:openTable={handleOpenTable}
                     on:editDatabase={handleEditDatabase}
                     on:editTable={handleEditTable}
+                    on:createTable={handleCreateTable}
                 />
             </aside>
             <ResizeHandle orientation="vertical" on:resize={handleLeftResize} />
@@ -836,6 +852,23 @@
                     on:close={() => (showTableEditModal = false)}
                     on:changed={() => (showTableEditModal = false)}
                     on:dropped={handleTableDropped}
+                />
+            {/if}
+        </Modal>
+
+        <Modal
+            open={showCreateTableModal}
+            title="Create table"
+            on:close={() => (showCreateTableModal = false)}
+            maxWidth="max-w-lg"
+        >
+            {#if showCreateTableModal}
+                <TableEditView
+                    db={creatingTableDb}
+                    mode="create"
+                    capabilities={$capabilities}
+                    on:close={() => (showCreateTableModal = false)}
+                    on:created={handleTableCreated}
                 />
             {/if}
         </Modal>

@@ -16,6 +16,7 @@
     import ForeignKeysIcon from "~icons/heroicons/arrows-right-left-solid";
     import TriggersIcon from "~icons/heroicons/bolt-solid";
     import ConfigIcon from "~icons/heroicons/cog-6-tooth-solid";
+    import PlusIcon from "~icons/heroicons/plus-solid";
     import CollapseAllIcon from "~icons/heroicons/chevron-double-up-solid";
 
     export let databases = [];
@@ -322,6 +323,16 @@
                                 ></span>
                             {/if}
                         </button>
+                        {#if capabilities?.supportsCreateTable}
+                            <button
+                                class="opacity-0 group-hover/dbrow:opacity-100 shrink-0 bg-transparent border-0 text-(--ink-3) cursor-pointer px-1.5 py-1 leading-none transition-[opacity,color] duration-60 hover:text-(--ink-1)"
+                                title="Create table"
+                                on:click|stopPropagation={() =>
+                                    dispatch("createTable", { db })}
+                            >
+                                <PlusIcon />
+                            </button>
+                        {/if}
                         <button
                             class="opacity-0 group-hover/dbrow:opacity-100 shrink-0 bg-transparent border-0 text-(--ink-3) cursor-pointer px-1.5 py-1 rounded-r leading-none transition-[opacity,color] duration-60 hover:text-(--ink-1)"
                             title="Database settings"

@@ -5,6 +5,7 @@ namespace Quermy\Drivers;
 use PDO;
 use PDOException;
 use Quermy\Drivers\Capabilities\PostgreSQL\SupportAddColumn;
+use Quermy\Drivers\Capabilities\PostgreSQL\SupportCreateTable;
 use Quermy\Drivers\Capabilities\PostgreSQL\SupportDropColumn;
 use Quermy\Drivers\Capabilities\PostgreSQL\SupportDropDatabase;
 use Quermy\Drivers\Capabilities\PostgreSQL\SupportDropTable;
@@ -28,6 +29,7 @@ use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
+use Quermy\Drivers\Capabilities\SupportsCreateTable;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
@@ -63,6 +65,7 @@ class PostgreSQLDriver implements
     ProvidesTextColumnTypePatterns,
     ProvidesWelcomeQuery,
     SupportsAddColumn,
+    SupportsCreateTable,
     SupportsDropColumn,
     SupportsDropDatabase,
     SupportsDropTable,
@@ -80,6 +83,7 @@ class PostgreSQLDriver implements
     SupportsViewManagement
 {
     use SupportAddColumn,
+        SupportCreateTable,
         SupportDropColumn,
         SupportDropDatabase,
         SupportDropTable,

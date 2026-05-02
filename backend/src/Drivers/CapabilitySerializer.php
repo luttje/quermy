@@ -20,6 +20,7 @@ use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsColumnAfter;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
+use Quermy\Drivers\Capabilities\SupportsCreateTable;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
 use Quermy\Drivers\Capabilities\SupportsTruncateTable;
 use Quermy\Drivers\Capabilities\SupportsForeignKeyBypass;
@@ -53,6 +54,7 @@ final class CapabilitySerializer
         SupportsExplain::class,
         SupportsRenameDatabase::class,
         SupportsDropDatabase::class,
+        SupportsCreateTable::class,
         SupportsDropTable::class,
         SupportsTruncateTable::class,
         SupportsForeignKeyBypass::class,

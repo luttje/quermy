@@ -9,6 +9,7 @@ use Quermy\Drivers\Capabilities\MySQL\SupportAlterDatabaseCollation;
 use Quermy\Drivers\Capabilities\MySQL\SupportAlterTableAutoIncrement;
 use Quermy\Drivers\Capabilities\MySQL\SupportAlterTableCollation;
 use Quermy\Drivers\Capabilities\MySQL\SupportAlterTableEngine;
+use Quermy\Drivers\Capabilities\MySQL\SupportCreateTable;
 use Quermy\Drivers\Capabilities\MySQL\SupportDropColumn;
 use Quermy\Drivers\Capabilities\MySQL\SupportDropDatabase;
 use Quermy\Drivers\Capabilities\MySQL\SupportDropTable;
@@ -42,6 +43,7 @@ use Quermy\Drivers\Capabilities\SupportsAlterTableCollation;
 use Quermy\Drivers\Capabilities\SupportsAlterTableEngine;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsColumnAfter;
+use Quermy\Drivers\Capabilities\SupportsCreateTable;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
@@ -80,6 +82,7 @@ class MySQLDriver implements
     SupportsAlterTableEngine,
     SupportsAutoIncrement,
     SupportsColumnAfter,
+    SupportsCreateTable,
     SupportsDropColumn,
     SupportsDropDatabase,
     SupportsDropTable,
@@ -104,6 +107,7 @@ class MySQLDriver implements
         SupportAlterTableAutoIncrement,
         SupportAlterTableCollation,
         SupportAlterTableEngine,
+        SupportCreateTable,
         SupportDropColumn,
         SupportDropDatabase,
         SupportDropTable,

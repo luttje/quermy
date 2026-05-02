@@ -6,6 +6,7 @@ use Quermy\Drivers\Capabilities\ProvidesTableInfo;
 use Quermy\Drivers\Capabilities\SupportsAlterTableAutoIncrement;
 use Quermy\Drivers\Capabilities\SupportsAlterTableCollation;
 use Quermy\Drivers\Capabilities\SupportsAlterTableEngine;
+use Quermy\Drivers\Capabilities\SupportsCreateTable;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
 use Quermy\Drivers\Capabilities\SupportsTriggerManagement;
 use Quermy\Drivers\Capabilities\SupportsTruncateTable;
@@ -19,6 +20,27 @@ final class TableController extends BaseController
     public function __construct(
         private ConnectionSessionInterface $session,
     ) {}
+
+    #[Route('POST', '/api/databases/{db}/tables')]
+    public function createTable(string $db): void
+    {
+        $body      = Json::readBody();
+        $name      = trim((string)($body['name'] ?? ''));
+        if ($name === '') Json::error('name is required', 400);
+        $collation = trim((string)($body['collation'] ?? '')) ?: null;
+        $engine    = trim((string)($body['engine'] ?? '')) ?: null;
+
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsCreateTable) {
+                throw new RuntimeException('This engine does not support creating tables.');
+            }
+            $driver->createTable($db, $name, $collation, $engine);
+            Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
 
     #[Route('GET', '/api/databases/{db}/tables/{table}/info')]
     public function getTableInfo(string $db, string $table): void

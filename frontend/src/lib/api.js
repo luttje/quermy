@@ -62,6 +62,7 @@ export const api = {
   // data
   getDatabaseInfo: (db) => request('GET', `/databases/${encodeURIComponent(db)}/info`),
   listDatabaseCollations: (db) => request('GET', `/databases/${encodeURIComponent(db)}/collations`),
+  listDatabaseEngines: (db) => request('GET', `/databases/${encodeURIComponent(db)}/engines`),
   renameDatabase: (db, newName) => request('POST', `/databases/${encodeURIComponent(db)}/rename`, { newName }),
   alterDatabaseCollation: (db, collation) => request('PATCH', `/databases/${encodeURIComponent(db)}/collation`, { collation }),
   dropDatabase: (db) => request('DELETE', `/databases/${encodeURIComponent(db)}`),
@@ -69,6 +70,8 @@ export const api = {
   // data
   listDatabases: () => request('GET', '/databases'),
   listTables: (db) => request('GET', `/databases/${encodeURIComponent(db)}/tables`),
+  createTable: (db, name, collation, engine) =>
+    request('POST', `/databases/${encodeURIComponent(db)}/tables`, { name, collation: collation || null, engine: engine || null }),
   listViews: (db) => request('GET', `/databases/${encodeURIComponent(db)}/views`),
   getViewDefinition: (db, view) =>
     request('GET', `/databases/${encodeURIComponent(db)}/views/${encodeURIComponent(view)}`),

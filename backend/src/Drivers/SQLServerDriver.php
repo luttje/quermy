@@ -14,6 +14,7 @@ use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SQLServer\SupportAddColumn;
 use Quermy\Drivers\Capabilities\SQLServer\SupportAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\SQLServer\SupportCreateTable;
 use Quermy\Drivers\Capabilities\SQLServer\SupportDropColumn;
 use Quermy\Drivers\Capabilities\SQLServer\SupportDropDatabase;
 use Quermy\Drivers\Capabilities\SQLServer\SupportDropTable;
@@ -31,6 +32,7 @@ use Quermy\Drivers\Capabilities\SQLServer\SupportViewManagement;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
+use Quermy\Drivers\Capabilities\SupportsCreateTable;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
@@ -70,6 +72,7 @@ class SQLServerDriver implements
     SupportsAddColumn,
     SupportsAlterDatabaseCollation,
     SupportsAutoIncrement,
+    SupportsCreateTable,
     SupportsDropColumn,
     SupportsDropDatabase,
     SupportsDropTable,
@@ -86,21 +89,22 @@ class SQLServerDriver implements
     SupportsViewManagement
 {
     use SupportAddColumn,
-        SupportModifyColumn,
+        SupportAlterDatabaseCollation,
+        SupportCreateTable,
         SupportDropColumn,
-        SupportIndexManagement,
-        SupportForeignKeys,
-        SupportForeignKeyManagement,
-        SupportGetCreateTable,
-        SupportExplain,
-        SupportRenameDatabase,
         SupportDropDatabase,
         SupportDropTable,
-        SupportTruncateTable,
-        SupportAlterDatabaseCollation,
-        SupportViewManagement,
+        SupportExplain,
+        SupportForeignKeyManagement,
+        SupportForeignKeys,
+        SupportFunctionManagement,
+        SupportGetCreateTable,
+        SupportIndexManagement,
+        SupportModifyColumn,
         SupportProcedureManagement,
-        SupportFunctionManagement;
+        SupportRenameDatabase,
+        SupportTruncateTable,
+        SupportViewManagement;
 
     private ?PDO $pdo = null;
 

@@ -12,6 +12,7 @@ use Quermy\Drivers\Capabilities\ProvidesStructureQueryTemplate;
 use Quermy\Drivers\Capabilities\ProvidesTextColumnTypePatterns;
 use Quermy\Drivers\Capabilities\ProvidesWelcomeQuery;
 use Quermy\Drivers\Capabilities\SQLite\SupportAddColumn;
+use Quermy\Drivers\Capabilities\SQLite\SupportCreateTable;
 use Quermy\Drivers\Capabilities\SQLite\SupportDropColumn;
 use Quermy\Drivers\Capabilities\SQLite\SupportDropTable;
 use Quermy\Drivers\Capabilities\SQLite\SupportExplain;
@@ -22,6 +23,7 @@ use Quermy\Drivers\Capabilities\SQLite\SupportTruncateTable;
 use Quermy\Drivers\Capabilities\SQLite\SupportViewManagement;
 use Quermy\Drivers\Capabilities\SupportsAddColumn;
 use Quermy\Drivers\Capabilities\SupportsAutoIncrement;
+use Quermy\Drivers\Capabilities\SupportsCreateTable;
 use Quermy\Drivers\Capabilities\SupportsDropColumn;
 use Quermy\Drivers\Capabilities\SupportsDropTable;
 use Quermy\Drivers\Capabilities\SupportsExplain;
@@ -56,6 +58,7 @@ class SQLiteDriver implements
     ProvidesWelcomeQuery,
     SupportsAddColumn,
     SupportsAutoIncrement,
+    SupportsCreateTable,
     SupportsDropColumn,
     SupportsDropTable,
     SupportsExplain,
@@ -66,6 +69,7 @@ class SQLiteDriver implements
     SupportsViewManagement
 {
     use SupportAddColumn,
+        SupportCreateTable,
         SupportDropColumn,
         SupportIndexManagement,
         SupportForeignKeys,

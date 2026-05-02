@@ -3,6 +3,7 @@
 namespace Quermy\Controllers;
 
 use Quermy\Drivers\Capabilities\SupportsAlterDatabaseCollation;
+use Quermy\Drivers\Capabilities\SupportsAlterTableEngine;
 use Quermy\Drivers\Capabilities\SupportsDropDatabase;
 use Quermy\Drivers\Capabilities\SupportsEventManagement;
 use Quermy\Drivers\Capabilities\SupportsFunctionManagement;
@@ -311,6 +312,20 @@ final class DatabaseController extends BaseController
             }
             $driver->dropEvent($db, $event);
             Json::send(['ok' => true]);
+        } finally {
+            $driver->disconnect();
+        }
+    }
+
+    #[Route('GET', '/api/databases/{db}/engines')]
+    public function listEngines(string $db): void
+    {
+        $driver = $this->session->open();
+        try {
+            if (!$driver instanceof SupportsAlterTableEngine) {
+                throw new RuntimeException('This engine does not support listing storage engines.');
+            }
+            Json::send(['engines' => $driver->listTableEngines()]);
         } finally {
             $driver->disconnect();
         }
