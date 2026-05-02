@@ -12,6 +12,13 @@
     import Btn from "./ui/Btn.svelte";
     import Select from "./ui/Select.svelte";
     import CodeEditor from "./CodeEditor.svelte";
+    import ConfigIcon from "~icons/heroicons/cog-6-tooth-solid";
+    import KeyIcon from "~icons/heroicons/key-solid";
+    import EditIcon from "~icons/heroicons/pencil-square-solid";
+    import ClearIcon from "~icons/heroicons/arrow-path-solid";
+    import AIIcon from "~icons/heroicons/sparkles-solid";
+    import RunIcon from "~icons/heroicons/play-solid";
+    import SendIcon from "~icons/heroicons/paper-airplane-solid";
 
     // Provider metadata — fetched once for model-list lookups.
     let providers = [];
@@ -361,7 +368,9 @@
             <div
                 class="flex items-center gap-1.75 text-[12.5px] font-medium text-(--ink-1)"
             >
-                <span class="text-(--acc) text-[13px]">✦</span>
+                <span class="text-(--acc) text-[13px]">
+                    <AIIcon />
+                </span>
                 <span>AI</span>
                 {#if activeKeyObj && !showOptions && !showKeyManager && !showPromptEditor}
                     <span class="text-[10px] text-(--ink-3) mono">
@@ -379,7 +388,7 @@
                 class="px-2! py-0.5!"
                 title="AI options"
             >
-                ⚙
+                <ConfigIcon />
             </Btn>
         </div>
 
@@ -431,16 +440,21 @@
                             showKeyManager = true;
                         }}
                     >
-                        ⚿ Manage keys
+                        <KeyIcon />
+                        Manage keys
                     </Btn>
-                    <Btn on:click={openPromptEditor}>✎ System prompt</Btn>
+                    <Btn on:click={openPromptEditor}>
+                        <EditIcon />
+                        System prompt
+                    </Btn>
                     <Btn
                         on:click={() => {
                             clearChat();
                             showOptions = false;
                         }}
                     >
-                        ↺ Clear chat
+                        <ClearIcon />
+                        Clear chat
                     </Btn>
                 </div>
             </div>
@@ -485,7 +499,9 @@
         <div
             class="flex-1 flex flex-col items-center justify-center gap-3 p-4 text-center"
         >
-            <span class="text-[28px] opacity-30">⚿</span>
+            <span class="text-[28px] opacity-30">
+                <KeyIcon />
+            </span>
             <p class="text-[12px] text-(--ink-3) leading-relaxed max-w-48">
                 Add an API key to start chatting with an AI provider.
             </p>
@@ -514,7 +530,7 @@
                         <div
                             class="w-5.5 h-5.5 rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-(--acc) flex items-center justify-center text-[11px] shrink-0 mt-0.5"
                         >
-                            ✦
+                            <AIIcon />
                         </div>
                         <div
                             class="query-suggestion min-w-0 max-w-[88%] rounded-lg border border-(--line) bg-(--bg-2) overflow-hidden text-[12px]"
@@ -574,7 +590,7 @@
                                         Copy
                                     </button>
                                     <button
-                                        class="run-btn text-[10.5px] px-2 py-0.5 rounded-[3px] border font-medium transition-colors duration-80
+                                        class="run-btn flex gap-1 items-center text-[10.5px] px-2 py-0.5 rounded-[3px] border font-medium transition-colors duration-80
                                                {state === 'running'
                                             ? 'bg-(--bg-3) border-(--line) text-(--ink-3) cursor-wait'
                                             : state === 'done'
@@ -588,11 +604,15 @@
                                                 msg.sql,
                                             )}
                                     >
-                                        {state === "running"
-                                            ? "Running…"
-                                            : state === "done"
-                                              ? "Run again"
-                                              : "▶ Run"}
+                                        {#if state === "running"}
+                                            Running…
+                                        {:else if state === "done"}
+                                            <RunIcon />
+                                            Run again
+                                        {:else}
+                                            <RunIcon />
+                                            Run
+                                        {/if}
                                     </button>
                                 </div>
                             </div>
@@ -623,7 +643,7 @@
                             <div
                                 class="w-5.5 h-5.5 rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-(--acc) flex items-center justify-center text-[11px] shrink-0 mt-0.5"
                             >
-                                ✦
+                                <AIIcon />
                             </div>
                         {/if}
                         <div
@@ -650,7 +670,7 @@
                     <div
                         class="w-5.5 h-5.5 rounded-full bg-[rgba(200,255,90,0.08)] border border-[rgba(200,255,90,0.2)] text-(--acc) flex items-center justify-center text-[11px] shrink-0 mt-0.5"
                     >
-                        ✦
+                        <AIIcon />
                     </div>
                     {#if streamingReply}
                         <div
@@ -692,8 +712,10 @@
                 class="cursor-pointer w-7.5 h-7.5 bg-(--acc) text-[#0a0c0a] border-0 rounded-(--radius) text-[15px] font-bold flex items-center justify-center shrink-0 transition-[background] duration-80 disabled:bg-(--bg-3) disabled:text-(--ink-3) enabled:hover:bg-(--acc-d)"
                 on:click={send}
                 disabled={!input.trim() || busy || !$activeAiKey}
-                title="Send (Enter)">↑</button
+                title="Send (Enter)"
             >
+                <SendIcon />
+            </button>
         </div>
     {/if}
 </div>

@@ -7,6 +7,8 @@
     import Select from "./ui/Select.svelte";
     import SearchableSelect from "./ui/SearchableSelect.svelte";
     import Modal from "./Modal.svelte";
+    import AddIcon from "~icons/heroicons/plus-solid";
+    import DeleteIcon from "~icons/heroicons/trash-solid";
 
     export let db;
     export let table;
@@ -57,7 +59,10 @@
               ]
             : []),
     ];
-    $: if (typeOptions.length > 0 && !typeOptions.some((o) => o.value === createType)) {
+    $: if (
+        typeOptions.length > 0 &&
+        !typeOptions.some((o) => o.value === createType)
+    ) {
         createType = typeOptions[0].value;
     }
 
@@ -191,9 +196,10 @@
 
         const nextType = editType;
         const nextName = nextType === "primary" ? "" : editName.trim();
-        const sameDefinition = nextType === indexType(editTarget)
-            && nextName === (editTarget.primary ? "" : (editTarget.name ?? ""))
-            && sameColumns(editTarget.columns ?? [], cols);
+        const sameDefinition =
+            nextType === indexType(editTarget) &&
+            nextName === (editTarget.primary ? "" : (editTarget.name ?? "")) &&
+            sameColumns(editTarget.columns ?? [], cols);
 
         if (sameDefinition) {
             showEditModal = false;
@@ -248,7 +254,12 @@
 
         dropping = true;
         try {
-            await api.dropIndex(db, table, deleteTarget.name, deleteTarget.primary);
+            await api.dropIndex(
+                db,
+                table,
+                deleteTarget.name,
+                deleteTarget.primary,
+            );
             toast(
                 deleteTarget.primary
                     ? "Primary key dropped"
@@ -297,7 +308,9 @@
 
     <div class="p-2.5">
         {#if indexes.length === 0}
-            <div class="px-2 py-4 text-center mono text-(--ink-3) text-[11.5px]">
+            <div
+                class="px-2 py-4 text-center mono text-(--ink-3) text-[11.5px]"
+            >
                 No indexes found on this table.
             </div>
         {:else}
@@ -313,7 +326,9 @@
                                     >
                                         {meta.label}
                                     </span>
-                                    <p class="mono text-(--ink-0) text-[12.5px] font-semibold truncate">
+                                    <p
+                                        class="mono text-(--ink-0) text-[12.5px] font-semibold truncate"
+                                    >
                                         {idx.primary ? "PRIMARY" : idx.name}
                                     </p>
                                 </div>
@@ -364,7 +379,9 @@
 >
     <div class="p-5 flex flex-col gap-3.5">
         <label class="flex flex-col gap-1">
-            <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
+            <span
+                class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
+            >
                 Type
             </span>
             <Select bind:value={createType} class="text-[12px] py-2!">
@@ -376,7 +393,9 @@
 
         {#if createType !== "primary"}
             <label class="flex flex-col gap-1">
-                <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
+                <span
+                    class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
+                >
                     Name
                 </span>
                 <Input
@@ -388,7 +407,9 @@
         {/if}
 
         <div class="flex flex-col gap-1">
-            <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
+            <span
+                class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
+            >
                 Columns
             </span>
             <div class="flex flex-col gap-1">
@@ -407,9 +428,14 @@
                             <Btn
                                 variant="ghost"
                                 class="text-[12px] px-2 py-1! shrink-0"
-                                on:click={() => { createColumnsList = createColumnsList.filter((_, idx) => idx !== i); }}
+                                on:click={() => {
+                                    createColumnsList =
+                                        createColumnsList.filter(
+                                            (_, idx) => idx !== i,
+                                        );
+                                }}
                             >
-                                ×
+                                <DeleteIcon />
                             </Btn>
                         {/if}
                     </div>
@@ -417,9 +443,12 @@
                 <Btn
                     variant="ghost"
                     class="text-[11px] px-2 py-0.5! self-start mt-0.5"
-                    on:click={() => { createColumnsList = [...createColumnsList, ""]; }}
+                    on:click={() => {
+                        createColumnsList = [...createColumnsList, ""];
+                    }}
                 >
-                    + Add column
+                    <AddIcon />
+                    Add column
                 </Btn>
             </div>
         </div>
@@ -459,7 +488,9 @@
         </p>
 
         <label class="flex flex-col gap-1">
-            <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
+            <span
+                class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
+            >
                 Type
             </span>
             <Select bind:value={editType} class="text-[12px] py-2!">
@@ -471,7 +502,9 @@
 
         {#if editType !== "primary"}
             <label class="flex flex-col gap-1">
-                <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
+                <span
+                    class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
+                >
                     Name
                 </span>
                 <Input
@@ -483,7 +516,9 @@
         {/if}
 
         <div class="flex flex-col gap-1">
-            <span class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)">
+            <span
+                class="mono text-[10px] uppercase tracking-[0.08em] text-(--ink-3)"
+            >
                 Columns
             </span>
             <div class="flex flex-col gap-1">
@@ -502,9 +537,13 @@
                             <Btn
                                 variant="ghost"
                                 class="text-[12px] px-2 py-1! shrink-0"
-                                on:click={() => { editColumnsList = editColumnsList.filter((_, idx) => idx !== i); }}
+                                on:click={() => {
+                                    editColumnsList = editColumnsList.filter(
+                                        (_, idx) => idx !== i,
+                                    );
+                                }}
                             >
-                                ×
+                                <DeleteIcon />
                             </Btn>
                         {/if}
                     </div>
@@ -512,7 +551,9 @@
                 <Btn
                     variant="ghost"
                     class="text-[11px] px-2 py-0.5! self-start mt-0.5"
-                    on:click={() => { editColumnsList = [...editColumnsList, ""]; }}
+                    on:click={() => {
+                        editColumnsList = [...editColumnsList, ""];
+                    }}
                 >
                     + Add column
                 </Btn>

@@ -1,5 +1,7 @@
 <script>
     import { createEventDispatcher, onMount } from "svelte";
+    import ExpandIcon from "~icons/heroicons/chevron-right-solid";
+    import DownloadIcon from "~icons/heroicons/arrow-down-tray-solid";
     import { api } from "../lib/api.js";
     import Btn from "../components/ui/Btn.svelte";
     import Checkbox from "../components/ui/Checkbox.svelte";
@@ -330,20 +332,7 @@
                                     ? "Collapse"
                                     : "Expand"}
                             >
-                                <svg
-                                    width="8"
-                                    height="8"
-                                    viewBox="0 0 8 8"
-                                    fill="none"
-                                >
-                                    <path
-                                        d="M2 1.5L5.5 4L2 6.5"
-                                        stroke="currentColor"
-                                        stroke-width="1.5"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    />
-                                </svg>
+                                <ExpandIcon />
                             </button>
 
                             <!-- DB checkbox -->
@@ -446,21 +435,7 @@
                 Exporting…
             {:else}
                 Export as {format.toUpperCase()}
-                <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                    class="ml-1"
-                >
-                    <path
-                        d="M6 1v7M3 6l3 3 3-3M1 10h10"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    />
-                </svg>
+                <DownloadIcon />
             {/if}
         </Btn>
     </div>

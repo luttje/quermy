@@ -1,12 +1,16 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
+import Icons from 'unplugin-icons/vite';
 
 export default defineConfig({
     base: './',
     plugins: [
         svelte(),
         tailwindcss(),
+        Icons({
+            compiler: 'svelte',
+        }),
     ],
     build: {
         // Build straight into the PHP public dir so the whole thing is one

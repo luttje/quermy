@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher, tick, onDestroy } from "svelte";
+    import ExpandIcon from "~icons/heroicons/chevron-down-solid";
     import Input from "./Input.svelte";
 
     /**
@@ -340,21 +341,12 @@
             >
         {/if}
 
-        <svg
-            class="w-3 h-3 text-(--ink-3) shrink-0 transition-transform duration-120"
+        <span
+            class="text-(--ink-3) shrink-0 transition-transform duration-120"
             class:rotate-180={open}
-            viewBox="0 0 12 12"
-            fill="none"
-            aria-hidden="true"
         >
-            <path
-                d="M3 4.5L6 7.5L9 4.5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            />
-        </svg>
+            <ExpandIcon />
+        </span>
     </button>
 
     {#if name}

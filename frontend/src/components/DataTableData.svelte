@@ -9,6 +9,7 @@
         isInteractiveTarget,
     } from "../lib/dataTableUtils.js";
     import Input from "./ui/Input.svelte";
+    import NoResultsIcon from "~icons/heroicons/no-symbol-solid";
 
     export let columns = [];
     export let rows = [];
@@ -186,7 +187,9 @@
 >
     {#if columns.length === 0}
         <div class="py-16 px-6 text-center muted">
-            <div class="mono text-[36px] text-(--ink-3) mb-2">∅</div>
+            <div class="mono text-[36px] text-(--ink-3) mb-2">
+                <NoResultsIcon />
+            </div>
             <div>No columns to display.</div>
         </div>
     {:else}

@@ -3,6 +3,20 @@
     import { api } from "../lib/api.js";
     import { toast } from "../lib/store.js";
     import Input from "./ui/Input.svelte";
+    import DatabaseIcon from "~icons/heroicons/circle-stack-solid";
+    import ChevronIcon from "~icons/heroicons/chevron-right-solid";
+    import TableIcon from "~icons/heroicons/table-cells-solid";
+    import DataIcon from "~icons/heroicons/document-text-solid";
+    import StructureIcon from "~icons/heroicons/table-cells-solid";
+    import ViewIcon from "~icons/heroicons/view-columns-solid";
+    import EventIcon from "~icons/heroicons/calendar-solid";
+    import ProcedureIcon from "~icons/heroicons/queue-list-solid";
+    import FunctionIcon from "~icons/heroicons/calculator-solid";
+    import IndexesIcon from "~icons/heroicons/hashtag-solid";
+    import ForeignKeysIcon from "~icons/heroicons/arrows-right-left-solid";
+    import TriggersIcon from "~icons/heroicons/bolt-solid";
+    import ConfigIcon from "~icons/heroicons/cog-6-tooth-solid";
+    import CollapseAllIcon from "~icons/heroicons/chevron-double-up-solid";
 
     export let databases = [];
     export let busy = false;
@@ -24,25 +38,25 @@
         {
             mode: "views",
             label: "Views",
-            icon: "◫",
+            icon: ViewIcon,
             enabled: capabilities?.supportsViewManagement !== false,
         },
         {
             mode: "events",
             label: "Events",
-            icon: "◷",
+            icon: EventIcon,
             enabled: capabilities?.supportsEventManagement !== false,
         },
         {
             mode: "stored-procedures",
             label: "Stored Procedures",
-            icon: "λ",
+            icon: ProcedureIcon,
             enabled: capabilities?.supportsProcedureManagement !== false,
         },
         {
             mode: "stored-functions",
             label: "Stored Functions",
-            icon: "ƒ",
+            icon: FunctionIcon,
             enabled: capabilities?.supportsFunctionManagement !== false,
         },
     ];
@@ -254,8 +268,10 @@
             <button
                 class="bg-transparent border-0 text-(--ink-3) cursor-pointer px-1 py-0.5 rounded-[3px] text-[13px] leading-none transition-[background,color] duration-60 hover:bg-(--bg-2) hover:text-(--ink-1)"
                 title="Collapse all"
-                on:click={collapseAll}>⊟</button
+                on:click={collapseAll}
             >
+                <CollapseAllIcon />
+            </button>
         </div>
         {#if databases.length > 0}
             <div class="px-2 pb-2">
@@ -291,12 +307,14 @@
                             >
                             <span
                                 class="text-[11px] text-[rgba(200,255,90,0.6)] w-3.5 text-center shrink-0"
-                                >◎</span
                             >
+                                <DatabaseIcon />
+                            </span>
                             <span
                                 class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[12px]"
-                                >{db}</span
                             >
+                                {db}
+                            </span>
                             {#if loadingDbs.has(db)}
                                 <span
                                     class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
@@ -308,14 +326,16 @@
                             class="opacity-0 group-hover/dbrow:opacity-100 shrink-0 bg-transparent border-0 text-(--ink-3) cursor-pointer px-1.5 py-1 rounded-r leading-none transition-[opacity,color] duration-60 hover:text-(--ink-1)"
                             title="Database settings"
                             on:click|stopPropagation={() =>
-                                dispatch("editDatabase", { db })}>⚙</button
+                                dispatch("editDatabase", { db })}
                         >
+                            <ConfigIcon />
+                        </button>
                     </div>
 
                     {#if expandedDbs.has(db)}
                         {@const vt = visibleTables(db, tableMap)}
                         <div class="pl-2.5">
-                            <div class="pb-1">
+                            <div class="pb-1 pl-4">
                                 {#each commonDbNodes as node}
                                     <button
                                         class="w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color,opacity] duration-60 {activeNode ===
@@ -337,8 +357,11 @@
                                     >
                                         <span
                                             class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
-                                            >{node.icon}</span
                                         >
+                                            <svelte:component
+                                                this={node.icon}
+                                            />
+                                        </span>
                                         <span
                                             class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
                                             >{node.label}</span
@@ -377,12 +400,15 @@
                                                         class="text-[11px] text-(--ink-3) w-2.5 shrink-0 inline-block leading-none transition-transform duration-120 ease-in-out"
                                                         class:rotate-90={expandedTables.has(
                                                             tk,
-                                                        )}>›</span
+                                                        )}
                                                     >
+                                                        <ChevronIcon />
+                                                    </span>
                                                     <span
                                                         class="text-[11px] text-(--ink-3) w-3.5 text-center shrink-0"
-                                                        >▦</span
                                                     >
+                                                        <TableIcon />
+                                                    </span>
                                                     <span
                                                         class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[12px]"
                                                         >{t.name}</span
@@ -399,8 +425,10 @@
                                                                     db,
                                                                     table: t.name,
                                                                 },
-                                                            )}>⚙</button
+                                                            )}
                                                     >
+                                                        <ConfigIcon />
+                                                    </button>
                                                 {/if}
                                             </div>
 
@@ -424,12 +452,14 @@
                                                     >
                                                         <span
                                                             class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
-                                                            >≡</span
                                                         >
+                                                            <DataIcon />
+                                                        </span>
                                                         <span
                                                             class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
-                                                            >Data</span
                                                         >
+                                                            Data
+                                                        </span>
                                                         {#if busy && activeNode === leafKey(db, t.name, "data")}
                                                             <span
                                                                 class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
@@ -455,12 +485,14 @@
                                                     >
                                                         <span
                                                             class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
-                                                            >#</span
                                                         >
+                                                            <StructureIcon />
+                                                        </span>
                                                         <span
                                                             class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
-                                                            >Structure</span
                                                         >
+                                                            Structure
+                                                        </span>
                                                         {#if busy && activeNode === leafKey(db, t.name, "structure")}
                                                             <span
                                                                 class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
@@ -486,12 +518,14 @@
                                                     >
                                                         <span
                                                             class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
-                                                            >⌗</span
                                                         >
+                                                            <IndexesIcon />
+                                                        </span>
                                                         <span
                                                             class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
-                                                            >Indexes</span
                                                         >
+                                                            Indexes
+                                                        </span>
                                                         {#if busy && activeNode === leafKey(db, t.name, "indexes")}
                                                             <span
                                                                 class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
@@ -517,12 +551,14 @@
                                                     >
                                                         <span
                                                             class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
-                                                            >↗</span
                                                         >
+                                                            <ForeignKeysIcon />
+                                                        </span>
                                                         <span
                                                             class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
-                                                            >Foreign Keys</span
                                                         >
+                                                            Foreign Keys
+                                                        </span>
                                                         {#if busy && activeNode === leafKey(db, t.name, "foreign-keys")}
                                                             <span
                                                                 class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
@@ -531,37 +567,39 @@
                                                         {/if}
                                                     </button>
                                                     {#if capabilities?.supportsTriggerManagement}
-                                                    <button
-                                                        class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
-                                                        leafKey(
-                                                            db,
-                                                            t.name,
-                                                            'triggers',
-                                                        )
-                                                            ? 'bg-[rgba(200,255,90,0.1)] text-(--acc)'
-                                                            : 'muted hover:bg-(--bg-2) hover:text-(--ink-0)'}"
-                                                        on:click={() =>
-                                                            selectLeaf(
+                                                        <button
+                                                            class="cursor-pointer w-full flex items-center gap-1.25 bg-transparent border-0 py-1 px-1 pr-2 text-left rounded min-w-0 transition-[background,color] duration-60 {activeNode ===
+                                                            leafKey(
                                                                 db,
                                                                 t.name,
-                                                                "triggers",
-                                                            )}
-                                                    >
-                                                        <span
-                                                            class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
-                                                            >⚡</span
+                                                                'triggers',
+                                                            )
+                                                                ? 'bg-[rgba(200,255,90,0.1)] text-(--acc)'
+                                                                : 'muted hover:bg-(--bg-2) hover:text-(--ink-0)'}"
+                                                            on:click={() =>
+                                                                selectLeaf(
+                                                                    db,
+                                                                    t.name,
+                                                                    "triggers",
+                                                                )}
                                                         >
-                                                        <span
-                                                            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
-                                                            >Triggers</span
-                                                        >
-                                                        {#if busy && activeNode === leafKey(db, t.name, "triggers")}
                                                             <span
-                                                                class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
-                                                                aria-label="Loading"
-                                                            ></span>
-                                                        {/if}
-                                                    </button>
+                                                                class="text-[11px] w-3.5 text-center shrink-0 text-(--ink-3)"
+                                                            >
+                                                                <TriggersIcon />
+                                                            </span>
+                                                            <span
+                                                                class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap mono text-[11.5px]"
+                                                            >
+                                                                Triggers
+                                                            </span>
+                                                            {#if busy && activeNode === leafKey(db, t.name, "triggers")}
+                                                                <span
+                                                                    class="shrink-0 w-2.5 h-2.5 border-[1.5px] border-(--ink-3) border-t-(--acc) rounded-full animate-spin"
+                                                                    aria-label="Loading"
+                                                                ></span>
+                                                            {/if}
+                                                        </button>
                                                     {/if}
                                                 </div>
                                             {/if}

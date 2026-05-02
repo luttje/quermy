@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher } from "svelte";
+    import CloseIcon from "~icons/heroicons/x-mark-solid";
 
     /** Whether the modal is visible. */
     export let open = false;
@@ -58,20 +59,7 @@
                     class="w-7 h-7 flex items-center justify-center rounded-(--radius) text-(--ink-3) hover:text-(--ink-0) hover:bg-(--bg-3) transition-colors cursor-pointer"
                     aria-label="Close"
                 >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <path
-                            d="M1 1L13 13M13 1L1 13"
-                            stroke="currentColor"
-                            stroke-width="1.75"
-                            stroke-linecap="round"
-                        />
-                    </svg>
+                    <CloseIcon />
                 </button>
             </div>
 

@@ -6,6 +6,9 @@
     import Select from "./ui/Select.svelte";
     import Input from "./ui/Input.svelte";
     import Btn from "./ui/Btn.svelte";
+    import KeyIcon from "~icons/heroicons/key-solid";
+    import AddIcon from "~icons/heroicons/plus-solid";
+    import CancelIcon from "~icons/heroicons/x-mark-solid";
 
     export let onClose = () => {};
 
@@ -198,16 +201,21 @@
         <div
             class="flex items-center gap-1.75 text-[12.5px] font-medium text-(--ink-1)"
         >
-            <span class="text-(--acc) text-[13px]">⚿</span>
+            <span class="text-(--acc) text-[13px]">
+                <KeyIcon />
+            </span>
             <span>API Keys</span>
         </div>
         <div class="flex items-center gap-1.5">
             {#if !showAddForm}
                 <Btn on:click={() => (showAddForm = true)} variant="outline">
-                    + Add Key
+                    <AddIcon />
+                    Add Key
                 </Btn>
             {/if}
-            <Btn on:click={onClose} variant="ghost" title="Back to chat">✕</Btn>
+            <Btn on:click={onClose} variant="ghost" title="Back to chat">
+                <CancelIcon />
+            </Btn>
         </div>
     </div>
 
@@ -317,7 +325,9 @@
             <div
                 class="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center"
             >
-                <span class="text-[28px] opacity-20">⚿</span>
+                <span class="text-[28px] opacity-20">
+                    <KeyIcon />
+                </span>
                 <p class="text-[12px] text-(--ink-3) leading-relaxed max-w-48">
                     No API keys yet. Add one to start chatting with an AI
                     provider.

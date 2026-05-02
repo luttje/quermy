@@ -18,7 +18,7 @@
 <button
     {type}
     {disabled}
-    class="inline-flex items-center gap-2 border rounded-(--radius) px-3.5 py-2 font-medium text-[13px] cursor-pointer transition-[background,border-color,transform] duration-100 ease-out active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed {variantClasses[
+    class="inline-flex flex-wrap justify-center items-center gap-2 border rounded-(--radius) px-3.5 py-2 font-medium text-[13px] cursor-pointer transition-[background,border-color,transform] duration-100 ease-out active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed {variantClasses[
         variant
     ] ?? variantClasses.default} {extraClass}"
     on:click

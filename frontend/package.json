@@ -9,8 +9,10 @@
         "preview": "vite preview"
     },
     "devDependencies": {
+        "@iconify-json/heroicons": "^1.2.3",
         "@sveltejs/vite-plugin-svelte": "^7.0.0",
         "svelte": "^5.55.5",
+        "unplugin-icons": "^23.0.1",
         "vite": "^8.0.10"
     },
     "dependencies": {

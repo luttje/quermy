@@ -3,6 +3,8 @@
     import { api } from "../lib/api.js";
     import Btn from "../components/ui/Btn.svelte";
     import Input from "../components/ui/Input.svelte";
+    import SearchIcon from "~icons/heroicons/magnifying-glass-solid";
+    import NoResultsIcon from "~icons/heroicons/no-symbol-solid";
 
     // -------------------------------------------------------------------------
     // Props
@@ -71,7 +73,8 @@
     function isTextColumn(col) {
         const t = col.type || "";
         const patterns = capabilities?.textColumnTypePatterns;
-        if (patterns?.length) return patterns.some((p) => t.toLowerCase().includes(p));
+        if (patterns?.length)
+            return patterns.some((p) => t.toLowerCase().includes(p));
         return TEXT_TYPE_FALLBACK_RE.test(t);
     }
 
@@ -390,20 +393,7 @@
             <div
                 class="flex flex-col items-center justify-center h-full gap-3 text-(--ink-3) text-[13px] py-16"
             >
-                <svg
-                    width="36"
-                    height="36"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.25"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="opacity-40"
-                >
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                </svg>
+                <SearchIcon class="w-8 h-8 opacity-30" />
                 <div class="text-center">
                     <p>
                         Type a term and press <kbd
@@ -420,21 +410,7 @@
             <div
                 class="flex flex-col items-center justify-center h-full gap-2 text-(--ink-3) text-[13px] py-16"
             >
-                <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.25"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="opacity-30"
-                >
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                    <line x1="8" y1="11" x2="14" y2="11" />
-                </svg>
+                <NoResultsIcon class="w-8 h-8 opacity-30" />
                 <p>
                     No results for <span class="mono text-(--ink-1)"
                         >"{searchTerm}"</span

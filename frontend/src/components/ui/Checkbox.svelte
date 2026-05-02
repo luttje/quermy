@@ -12,7 +12,9 @@
 </script>
 
 <label
-    class="inline-flex items-center justify-center w-3.5 h-3.5 shrink-0 relative {disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} {extraClass}"
+    class="inline-flex items-center justify-center w-3.5 h-3.5 shrink-0 relative {disabled
+        ? 'cursor-not-allowed opacity-50'
+        : 'cursor-pointer'} {extraClass}"
 >
     <input
         bind:this={inputEl}
@@ -36,12 +38,36 @@
         aria-hidden="true"
     >
         {#if indeterminate}
-            <svg class="w-full h-full p-0.5 text-(--bg-0)" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <line x1="2" y1="5" x2="8" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <svg
+                class="w-full h-full p-0.5 text-(--bg-0)"
+                viewBox="0 0 10 10"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <line
+                    x1="2"
+                    y1="5"
+                    x2="8"
+                    y2="5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                />
             </svg>
         {:else if checked}
-            <svg class="w-full h-full p-0.5 text-(--bg-0)" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg
+                class="w-full h-full p-0.5 text-(--bg-0)"
+                viewBox="0 0 10 10"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <polyline
+                    points="1.5,5 4,7.5 8.5,2.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
             </svg>
         {/if}
     </span>
