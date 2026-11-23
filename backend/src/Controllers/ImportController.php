@@ -2,7 +2,7 @@
 
 namespace Quermy\Controllers;
 
-use Quermy\Drivers\CapabilitySerializer;
+use Quermy\Drivers\DriverInterface;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
@@ -33,7 +33,13 @@ final class ImportController extends BaseController
         if ($database === '' || $table === '') {
             Json::error('Database and table are required', 400);
         }
-        if (!in_array($duplicateHandling, ['INSERT', 'INSERT IGNORE', 'REPLACE'], true)) {
+        $onConflict = match ($duplicateHandling) {
+            'INSERT'        => DriverInterface::ON_CONFLICT_FAIL,
+            'INSERT IGNORE' => DriverInterface::ON_CONFLICT_IGNORE,
+            'REPLACE'       => DriverInterface::ON_CONFLICT_REPLACE,
+            default         => null,
+        };
+        if ($onConflict === null) {
             Json::error('Invalid duplicate handling mode', 400);
         }
         if (strlen($delimiter) !== 1) {
@@ -56,15 +62,6 @@ final class ImportController extends BaseController
         $tmpPath = $_FILES['file']['tmp_name'];
         $driver  = $this->session->open();
         try {
-            $caps     = CapabilitySerializer::serialize($driver);
-            $engineId = (string) ($caps['engineId']       ?? 'mysql');
-            $idOpen   = (string) ($caps['identifierOpen']  ?? '`');
-            $idClose  = (string) ($caps['identifierClose'] ?? '`');
-
-            $qi = static function (string $name) use ($idOpen, $idClose): string {
-                return $idOpen . str_replace($idClose, $idClose . $idClose, $name) . $idClose;
-            };
-
             $handle = fopen($tmpPath, 'rb');
             if ($handle === false) {
                 Json::error('Failed to read uploaded file', 500);
@@ -112,17 +109,11 @@ final class ImportController extends BaseController
                     $values[(string) $tableCol] = $value;
                 }
 
-                $sql = $this->buildInsertSql(
-                    $engineId,
-                    $qi,
-                    $table,
-                    array_keys($values),
-                    array_values($values),
-                    $duplicateHandling,
-                );
-
+                // The file's contents are untrusted. insertRow() sends every
+                // value as a bound parameter, so nothing in a CSV cell can
+                // change the statement that runs.
                 try {
-                    $driver->runQuery($database, $sql);
+                    $driver->insertRow($database, $table, $values, $onConflict);
                     $imported++;
                 } catch (\Throwable $e) {
                     $errors[] = ['row' => $dataRow, 'error' => $e->getMessage()];
@@ -138,47 +129,6 @@ final class ImportController extends BaseController
         } finally {
             $driver->disconnect();
         }
-    }
-
-    /**
-     * @param callable(string):string $qi   Identifier quoter.
-     * @param string[]                $cols Column names (unquoted).
-     * @param mixed[]                 $vals Corresponding values.
-     */
-    private function buildInsertSql(
-        string $engineId,
-        callable $qi,
-        string $table,
-        array $cols,
-        array $vals,
-        string $mode,
-    ): string {
-        $quotedTable = $qi($table);
-        $quotedCols  = implode(', ', array_map($qi, $cols));
-        $quotedVals  = implode(', ', array_map(
-            fn($v) => $v === null ? 'NULL' : "'" . addslashes((string) $v) . "'",
-            $vals,
-        ));
-
-        $base = "INSERT INTO {$quotedTable} ({$quotedCols}) VALUES ({$quotedVals})";
-
-        return match ($mode) {
-            'INSERT IGNORE' => match ($engineId) {
-                'mysql', 'mariadb' => "INSERT IGNORE INTO {$quotedTable} ({$quotedCols}) VALUES ({$quotedVals})",
-                'sqlite'           => "INSERT OR IGNORE INTO {$quotedTable} ({$quotedCols}) VALUES ({$quotedVals})",
-                'postgresql'       => "{$base} ON CONFLICT DO NOTHING",
-                default            => $base,
-            },
-            'REPLACE' => match ($engineId) {
-                'mysql', 'mariadb' => "REPLACE INTO {$quotedTable} ({$quotedCols}) VALUES ({$quotedVals})",
-                'sqlite'           => "INSERT OR REPLACE INTO {$quotedTable} ({$quotedCols}) VALUES ({$quotedVals})",
-                'postgresql'       => "{$base} ON CONFLICT DO UPDATE SET " . implode(', ',
-                    array_map(fn($c) => $qi($c) . ' = EXCLUDED.' . $qi($c), $cols)
-                ),
-                default => $base,
-            },
-            default => $base,
-        };
     }
 
     private function uploadErrorMessage(int $code): string

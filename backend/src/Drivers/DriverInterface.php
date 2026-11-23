@@ -60,11 +60,25 @@ interface DriverInterface
      */
     public function runQuery(string $database, string $sql): array;
 
+    /** insertRow(): a row that violates a unique key is an error. */
+    public const ON_CONFLICT_FAIL = 'fail';
+    /** insertRow(): a row that violates a unique key is silently skipped. */
+    public const ON_CONFLICT_IGNORE = 'ignore';
+    /** insertRow(): a row that violates a unique key replaces the existing row. */
+    public const ON_CONFLICT_REPLACE = 'replace';
+
     /**
-     * @param array<string,mixed> $values  column → value
+     * Insert one row. Values are always sent as bound parameters, never
+     * spliced into the SQL text.
+     *
+     * @param array<string,mixed> $values      column → value
+     * @param string              $onConflict  One of the ON_CONFLICT_* constants.
+     *                                         Engines without an equivalent of
+     *                                         IGNORE / REPLACE fall back to a
+     *                                         plain INSERT.
      * @return array{affected:int,insertId:int}
      */
-    public function insertRow(string $database, string $table, array $values): array;
+    public function insertRow(string $database, string $table, array $values, string $onConflict = self::ON_CONFLICT_FAIL): array;
 
     /**
      * @param array<string,mixed> $where   column → value (AND-ed)

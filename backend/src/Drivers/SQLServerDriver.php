@@ -361,8 +361,10 @@ class SQLServerDriver implements
         }
     }
 
-    public function insertRow(string $database, string $table, array $values): array
+    public function insertRow(string $database, string $table, array $values, string $onConflict = self::ON_CONFLICT_FAIL): array
     {
+        // SQL Server has no single-statement IGNORE / REPLACE; every mode is
+        // a plain INSERT and duplicates surface as errors.
         $this->ensureConnected();
         if (empty($values)) throw new RuntimeException('No values provided for insert');
         if ($database !== '') {

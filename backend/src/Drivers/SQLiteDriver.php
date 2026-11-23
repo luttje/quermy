@@ -245,14 +245,20 @@ class SQLiteDriver implements
         }
     }
 
-    public function insertRow(string $database, string $table, array $values): array
+    public function insertRow(string $database, string $table, array $values, string $onConflict = self::ON_CONFLICT_FAIL): array
     {
         $this->ensureConnected();
         if (empty($values)) throw new RuntimeException('No values provided for insert');
         $qTbl = $this->quoteIdent($table);
         $cols = implode(', ', array_map([$this, 'quoteIdent'], array_keys($values)));
         $phs  = implode(', ', array_fill(0, count($values), '?'));
-        $stmt = $this->pdo->prepare("INSERT INTO $qTbl ($cols) VALUES ($phs)");
+        $verb = match ($onConflict) {
+            self::ON_CONFLICT_FAIL    => 'INSERT',
+            self::ON_CONFLICT_IGNORE  => 'INSERT OR IGNORE',
+            self::ON_CONFLICT_REPLACE => 'INSERT OR REPLACE',
+            default => throw new RuntimeException("Unknown conflict mode: $onConflict"),
+        };
+        $stmt = $this->pdo->prepare("$verb INTO $qTbl ($cols) VALUES ($phs)");
         $stmt->execute(array_values($values));
         return ['affected' => $stmt->rowCount(), 'insertId' => (int)$this->pdo->lastInsertId()];
     }

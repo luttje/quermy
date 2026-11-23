@@ -115,6 +115,8 @@ it('manages views through the driver contract', fn() => $this->contract->viewMan
  * Shared contract — CRUD
  */
 it('round-trips CRUD operations', fn() => $this->contract->crudRoundTrip());
+it('stores hostile insert values verbatim', fn() => $this->contract->insertTreatsValuesAsData());
+it('honours insert conflict modes', fn() => $this->contract->insertConflictModes());
 it('browseTable supports offset-based pagination', fn() => $this->contract->browseTablePagination());
 it('refuses delete without a where clause', fn() => $this->contract->deleteRequiresWhere());
 it('refuses update without where or values', fn() => $this->contract->updateRequiresWhereAndValues());

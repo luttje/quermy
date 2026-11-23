@@ -311,14 +311,20 @@ class PostgreSQLDriver implements
         }
     }
 
-    public function insertRow(string $database, string $table, array $values): array
+    public function insertRow(string $database, string $table, array $values, string $onConflict = self::ON_CONFLICT_FAIL): array
     {
         $this->ensureConnected();
         if (empty($values)) throw new RuntimeException('No values provided for insert');
         $qTbl  = $this->quoteIdent($table);
         $cols  = implode(', ', array_map([$this, 'quoteIdent'], array_keys($values)));
         $phs   = implode(', ', array_fill(0, count($values), '?'));
-        $stmt  = $this->pdo->prepare("INSERT INTO public.$qTbl ($cols) VALUES ($phs) RETURNING *");
+        $conflict = match ($onConflict) {
+            self::ON_CONFLICT_FAIL    => '',
+            self::ON_CONFLICT_IGNORE  => ' ON CONFLICT DO NOTHING',
+            self::ON_CONFLICT_REPLACE => $this->upsertClause($database, $table, array_keys($values)),
+            default => throw new RuntimeException("Unknown conflict mode: $onConflict"),
+        };
+        $stmt  = $this->pdo->prepare("INSERT INTO public.$qTbl ($cols) VALUES ($phs)$conflict RETURNING *");
         $stmt->execute(array_values($values));
         $row = $stmt->fetch();
         try {
@@ -327,6 +333,37 @@ class PostgreSQLDriver implements
             $insertId = 0;
         }
         return ['affected' => $stmt->rowCount(), 'insertId' => $insertId];
+    }
+
+    /**
+     * Build the ON CONFLICT clause that makes an INSERT overwrite the existing
+     * row. PostgreSQL has no REPLACE; it needs to be told which key decides
+     * that two rows are "the same", so this uses the table's primary key.
+     *
+     * @param list<string> $columns  Columns being inserted.
+     */
+    private function upsertClause(string $database, string $table, array $columns): string
+    {
+        $primaryKey = $this->describeTable($database, $table)['primaryKey'] ?? [];
+        if ($primaryKey === []) {
+            throw new RuntimeException(
+                "Cannot replace existing rows in $table: the table has no primary key to match rows on."
+            );
+        }
+
+        $target  = implode(', ', array_map([$this, 'quoteIdent'], $primaryKey));
+        $updates = [];
+        foreach ($columns as $col) {
+            if (!in_array($col, $primaryKey, true)) {
+                $q         = $this->quoteIdent((string)$col);
+                $updates[] = "$q = EXCLUDED.$q";
+            }
+        }
+
+        // Only key columns supplied: there is nothing to overwrite.
+        return $updates === []
+            ? " ON CONFLICT ($target) DO NOTHING"
+            : " ON CONFLICT ($target) DO UPDATE SET " . implode(', ', $updates);
     }
 
     public function updateRow(string $database, string $table, array $where, array $values): array

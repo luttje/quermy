@@ -182,6 +182,83 @@ final class DriverContract
             ->toThrow(RuntimeException::class);
     }
 
+    public function insertTreatsValuesAsData(): void
+    {
+        $table = 'insert_hostile_values';
+        $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
+        $this->driver->runQuery(
+            $this->database,
+            "CREATE TABLE {$this->q($table)} (
+                id  {$this->int()} PRIMARY KEY,
+                tag {$this->varchar(200)} NOT NULL
+            )"
+        );
+
+        // Values a CSV file could contain. Each tries to end the string
+        // literal and append its own SQL; with bound parameters they are
+        // stored verbatim and nothing else runs.
+        $hostile = [
+            1 => "x'); DROP TABLE {$table}; --",
+            2 => "back\' OR 1=1; DELETE FROM {$table}; --",
+            3 => 'plain "quoted" `ticks` and a ; semicolon',
+        ];
+        foreach ($hostile as $id => $value) {
+            $this->driver->insertRow($this->database, $table, ['id' => $id, 'tag' => $value]);
+        }
+
+        $browse = $this->driver->browseTable($this->database, $table, 100, 0);
+        $byId   = [];
+        foreach ($browse['rows'] as $row) {
+            $byId[(int)$row['id']] = $row['tag'];
+        }
+        expect($byId)->toBe($hostile);
+    }
+
+    public function insertConflictModes(): void
+    {
+        $table = 'insert_conflict_modes';
+        $this->driver->runQuery($this->database, "DROP TABLE IF EXISTS {$this->q($table)}");
+        $this->driver->runQuery(
+            $this->database,
+            "CREATE TABLE {$this->q($table)} (
+                id  {$this->int()} PRIMARY KEY,
+                tag {$this->varchar(50)} NOT NULL
+            )"
+        );
+
+        $tagOf = function (int $id) use ($table): ?string {
+            foreach ($this->driver->browseTable($this->database, $table, 100, 0)['rows'] as $row) {
+                if ((int)$row['id'] === $id) {
+                    return $row['tag'];
+                }
+            }
+            return null;
+        };
+
+        $this->driver->insertRow($this->database, $table, ['id' => 1, 'tag' => 'first']);
+
+        // Default: a duplicate key is an error and the row is untouched.
+        expect(fn() => $this->driver->insertRow($this->database, $table, ['id' => 1, 'tag' => 'second']))
+            ->toThrow(\Exception::class);
+        expect($tagOf(1))->toBe('first');
+
+        // Ignore: no error, existing row kept.
+        $this->driver->insertRow($this->database, $table, ['id' => 1, 'tag' => 'ignored'], DriverInterface::ON_CONFLICT_IGNORE);
+        expect($tagOf(1))->toBe('first');
+
+        // Replace: no error, existing row overwritten.
+        $this->driver->insertRow($this->database, $table, ['id' => 1, 'tag' => 'replaced'], DriverInterface::ON_CONFLICT_REPLACE);
+        expect($tagOf(1))->toBe('replaced');
+
+        // Both modes still insert rows that don't conflict.
+        $this->driver->insertRow($this->database, $table, ['id' => 2, 'tag' => 'two'], DriverInterface::ON_CONFLICT_IGNORE);
+        $this->driver->insertRow($this->database, $table, ['id' => 3, 'tag' => 'three'], DriverInterface::ON_CONFLICT_REPLACE);
+        expect($this->driver->browseTable($this->database, $table, 100, 0)['total'])->toBe(3);
+
+        expect(fn() => $this->driver->insertRow($this->database, $table, ['id' => 9, 'tag' => 'x'], 'bogus'))
+            ->toThrow(RuntimeException::class);
+    }
+
     public function identifierValidationRejectsInjection(): void
     {
         // A name containing punctuation + DROP TABLE shouldn't be reachable.
