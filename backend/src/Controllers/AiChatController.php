@@ -58,6 +58,13 @@ final class AiChatController extends BaseController
             new SuggestQuery(), // no DB access — just validates and echoes the SQL back
         ];
 
+        // A reply can stream for minutes. Release the session lock so the
+        // rest of the UI keeps working meanwhile; the credentials already
+        // read into $_SESSION stay available to the tools.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         while (ob_get_level() > 0) {
             ob_end_clean();
         }

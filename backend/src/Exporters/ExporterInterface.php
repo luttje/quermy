@@ -11,14 +11,20 @@ namespace Quermy\Exporters;
  *
  * Implementations receive a normalised export structure of the shape:
  *
- *   list<array{
+ *   iterable<array{
  *     database: string,
- *     tables: list<array{
+ *     tables: iterable<array{
  *       table:   string,
- *       columns: list<array<string,mixed>>,  // empty when structure excluded
- *       rows:    list<array<string,mixed>>,  // empty when data excluded
+ *       ddl:     string|null,                    // CREATE TABLE, when available
+ *       columns: list<array<string,mixed>>,      // empty when structure excluded
+ *       rows:    iterable<array<string,mixed>>,  // empty when data excluded
  *     }>
  *   }>
+ *
+ * `rows` may be a generator that fetches from the database page by page, so
+ * a table is never held in memory as a whole. Implementations must therefore
+ * walk it exactly once, front to back, and write as they go — no count(),
+ * no indexing, no second pass.
  */
 interface ExporterInterface
 {
@@ -32,9 +38,10 @@ interface ExporterInterface
     public function extension(): string;
 
     /**
-     * Render the export structure as a single string payload.
+     * Write the export to a stream, piece by piece.
      *
-     * @param list<array{database:string,tables:list<array{table:string,columns:list<array<string,mixed>>,rows:list<array<string,mixed>>}>}> $export
+     * @param iterable<array{database:string,tables:iterable<array{table:string,ddl?:string|null,columns:list<array<string,mixed>>,rows:iterable<array<string,mixed>>}>}> $export
+     * @param resource $out  Writable stream.
      */
-    public function export(array $export): string;
+    public function export(iterable $export, $out): void;
 }

@@ -7,9 +7,13 @@ use Quermy\Exporters\ExporterFactory;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\Json;
 use Quermy\Http\Route;
+use RuntimeException;
 
 final class ExportController extends BaseController
 {
+    /** How much of an export is kept in memory before spilling to a temp file. */
+    private const BUFFER_MEMORY_BYTES = 8 * 1024 * 1024;
+
     public function __construct(
         private readonly ConnectionSessionInterface $session,
     ) {}
@@ -33,6 +37,13 @@ final class ExportController extends BaseController
             Json::error('Must include structure or data', 400);
         }
 
+        // An export can run for a while. Release the session lock so the
+        // user's other requests aren't stuck waiting behind it; the
+        // credentials already read into $_SESSION stay available.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         $driver = $this->session->open();
         try {
             $caps = CapabilitySerializer::serialize($driver);
@@ -44,28 +55,77 @@ final class ExportController extends BaseController
                 'includeData'      => $includeData,
             ]);
 
-            $content  = $exporter->export($export);
-            $filename = 'quermy_export_' . date('Ymd_His') . '.' . $exporter->extension();
-
-            header('Content-Type: ' . $exporter->contentType() . '; charset=utf-8');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            http_response_code(200);
-            echo $content;
+            // Write the export to a temporary stream first: it stays in
+            // memory up to a few megabytes and spills to a temp file on disk
+            // beyond that, so the size of the tables no longer decides how
+            // much memory this request needs. Only once the whole export has
+            // succeeded is anything sent, which keeps failures reportable as
+            // a normal JSON error instead of a silently truncated download.
+            $buffer = fopen('php://temp/maxmemory:' . self::BUFFER_MEMORY_BYTES, 'w+b');
+            if ($buffer === false) {
+                throw new RuntimeException('Could not create a temporary buffer for the export.');
+            }
+            $exporter->export($export, $buffer);
         } finally {
             $driver->disconnect();
         }
+
+        $size     = ftell($buffer);
+        $filename = 'quermy_export_' . date('Ymd_His') . '.' . $exporter->extension();
+        rewind($buffer);
+
+        // Drop PHP's output buffers so the download is passed straight
+        // through rather than being collected in memory again.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        http_response_code(200);
+        header('Content-Type: ' . $exporter->contentType() . '; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        if ($size !== false) {
+            header('Content-Length: ' . $size);
+        }
+        fpassthru($buffer);
+        fclose($buffer);
         exit;
     }
 
     /**
-     * Walk the driver and build the normalised export structure consumed by
-     * every ExporterInterface implementation.
+     * Describe what to export, in the normalised structure consumed by every
+     * ExporterInterface implementation.
+     *
+     * Table metadata (columns, DDL, row count) is fetched here, up front, so
+     * a missing table or a permission problem surfaces before any output is
+     * produced. Row data is not fetched here: each table's `rows` is a
+     * generator that reads the table page by page while the exporter writes.
      *
      * @param mixed                              $driver
      * @param array<string,mixed>                $caps              result of CapabilitySerializer::serialize($driver)
      * @param array<string,array<int,string>>    $selection         database → list of tables
-     * @return list<array{database:string,tables:list<array{table:string,ddl:string|null,columns:list<array<string,mixed>>,rows:list<array<string,mixed>>}>}>
+     * @return list<array{database:string,tables:list<array{table:string,ddl:string|null,columns:list<array<string,mixed>>,rows:iterable<array<string,mixed>>}>}>
      */
+    /**
+     * Yield a table's rows one at a time, fetching 1 000 at a time from the
+     * driver (its built-in page cap). Only one page is in memory at once.
+     *
+     * @param mixed $driver
+     * @return \Generator<int,array<string,mixed>>
+     */
+    private function rows($driver, string $db, string $table, int $total): \Generator
+    {
+        $pageSize = 1000;
+        for ($offset = 0; $offset < $total; $offset += $pageSize) {
+            $page = $driver->browseTable($db, $table, $pageSize, $offset)['rows'];
+            if ($page === []) {
+                return; // table shrank since the row count was taken
+            }
+            foreach ($page as $row) {
+                yield $row;
+            }
+        }
+    }
+
     private function collect(
         $driver,
         array $caps,
@@ -96,17 +156,7 @@ final class ExportController extends BaseController
                 }
 
                 if ($includeData) {
-                    // Paginate in 1 000-row pages to avoid the built-in cap.
-                    $allRows  = [];
-                    $pageSize = 1000;
-                    $offset   = 0;
-                    $total    = $meta['total'];
-                    while ($offset < $total) {
-                        $page    = $driver->browseTable($db, $table, $pageSize, $offset);
-                        $allRows = array_merge($allRows, $page['rows']);
-                        $offset += $pageSize;
-                    }
-                    $tableEntry['rows'] = $allRows;
+                    $tableEntry['rows'] = $this->rows($driver, (string) $db, $table, (int) $meta['total']);
                 }
 
                 if (!$includeStructure) {

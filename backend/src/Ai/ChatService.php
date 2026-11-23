@@ -22,6 +22,9 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
  */
 class ChatService
 {
+    /** Enough for a thorough schema exploration; far below "runaway". */
+    private const MAX_TOOL_CALL_ROUNDS = 25;
+
     /**
      * @param iterable<object> $tools  Tools tagged with #[AsTool]. Pass the
      *                                 services that need request-scoped state
@@ -82,9 +85,12 @@ class ChatService
         $toolbox = new FaultTolerantToolbox(
             new Toolbox($this->materializeTools(), eventDispatcher: $dispatcher),
         );
-        // maxToolCalls: null keeps the previous unbounded behaviour; the
-        // request is still bounded by the time limit below.
-        $agent = new Agent($platform, $model, toolbox: $toolbox, maxToolCalls: null);
+        // Cap how many rounds of tool calls one reply may take. Without a
+        // cap a model that keeps asking for tools (by mistake, or because
+        // text in the database told it to) would query the database and
+        // spend the user's API credit until the time limit below. Going over
+        // the cap ends the reply with an error the UI shows.
+        $agent = new Agent($platform, $model, toolbox: $toolbox, maxToolCalls: self::MAX_TOOL_CALL_ROUNDS);
 
         set_time_limit(60 * 5); // 5 minutes should be enough for now.
 

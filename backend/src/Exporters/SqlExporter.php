@@ -30,47 +30,55 @@ final class SqlExporter implements ExporterInterface
         return 'sql';
     }
 
-    public function export(array $export): string
+    public function export(iterable $export, $out): void
     {
         $qi  = $this->makeQuoter(
             (string) ($this->caps['identifierOpen']  ?? '`'),
             (string) ($this->caps['identifierClose'] ?? '`')
         );
-        $out = "-- Quermy SQL export\n-- Generated: " . date('c') . "\n\n";
+
+        fwrite($out, "-- Quermy SQL export\n-- Generated: " . date('c') . "\n\n");
 
         foreach ($export as $dbEntry) {
-            $db  = $dbEntry['database'];
-            $out .= '-- Database: ' . $qi($db) . "\n\n";
+            $db = $dbEntry['database'];
+            fwrite($out, '-- Database: ' . $qi($db) . "\n\n");
 
             foreach ($dbEntry['tables'] as $tbl) {
                 $table   = $tbl['table'];
                 $columns = $tbl['columns'];
 
                 if ($this->includeStructure && isset($tbl['ddl']) && $tbl['ddl'] !== null) {
-                    $out .= 'DROP TABLE IF EXISTS ' . $qi($db) . '.' . $qi($table) . ";\n";
-                    $out .= $tbl['ddl'] . ";\n\n";
+                    fwrite($out, 'DROP TABLE IF EXISTS ' . $qi($db) . '.' . $qi($table) . ";\n");
+                    fwrite($out, $tbl['ddl'] . ";\n\n");
                 }
 
-                if ($this->includeData && !empty($tbl['rows'])) {
-                    $colNames = implode(
+                if (!$this->includeData) {
+                    continue;
+                }
+
+                $colNames = null;
+                foreach ($tbl['rows'] as $row) {
+                    // Column list is the same for every row; build it once,
+                    // from the first row when no column metadata was given.
+                    $colNames ??= implode(
                         ', ',
                         !empty($columns)
                             ? array_map(fn($c) => $qi($c['name']), $columns)
-                            : array_map($qi, array_keys($tbl['rows'][0]))
+                            : array_map($qi, array_keys($row))
                     );
-                    foreach ($tbl['rows'] as $row) {
-                        $vals = implode(', ', array_map(
-                            fn($v) => $v === null ? 'NULL' : "'" . addslashes((string) $v) . "'",
-                            array_values($row)
-                        ));
-                        $out .= 'INSERT INTO ' . $qi($db) . '.' . $qi($table) . " ({$colNames}) VALUES ({$vals});\n";
-                    }
-                    $out .= "\n";
+
+                    $vals = implode(', ', array_map(
+                        fn($v) => $v === null ? 'NULL' : "'" . addslashes((string) $v) . "'",
+                        array_values($row)
+                    ));
+                    fwrite($out, 'INSERT INTO ' . $qi($db) . '.' . $qi($table) . " ({$colNames}) VALUES ({$vals});\n");
+                }
+
+                if ($colNames !== null) {
+                    fwrite($out, "\n");
                 }
             }
         }
-
-        return $out;
     }
 
     /**

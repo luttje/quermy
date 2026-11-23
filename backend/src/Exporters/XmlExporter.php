@@ -2,10 +2,19 @@
 
 namespace Quermy\Exporters;
 
-use DOMDocument;
+use XMLWriter;
 
+/**
+ * Writes the export as XML.
+ *
+ * Uses XMLWriter rather than building a DOM tree, because a DOM tree holds
+ * the entire document in memory. The writer's buffer is emptied into the
+ * output stream after every table header and every batch of rows.
+ */
 final class XmlExporter implements ExporterInterface
 {
+    private const FLUSH_EVERY_ROWS = 500;
+
     public static function formatId(): string
     {
         return 'xml';
@@ -21,64 +30,81 @@ final class XmlExporter implements ExporterInterface
         return 'xml';
     }
 
-    public function export(array $export): string
+    public function export(iterable $export, $out): void
     {
-        $doc = new DOMDocument('1.0', 'UTF-8');
-        $doc->formatOutput = true;
+        $w = new XMLWriter();
+        $w->openMemory();
+        $w->setIndent(true);
+        $w->setIndentString('  ');
+        $w->startDocument('1.0', 'UTF-8');
 
-        $root = $doc->createElement('export');
-        $root->setAttribute('exporter', 'quermy');
-        $root->setAttribute('generated', date('c'));
-        $doc->appendChild($root);
+        $w->startElement('export');
+        $w->writeAttribute('exporter', 'quermy');
+        $w->writeAttribute('generated', date('c'));
 
         foreach ($export as $dbEntry) {
-            $dbEl = $doc->createElement('database');
-            $dbEl->setAttribute('name', $dbEntry['database']);
-            $root->appendChild($dbEl);
+            $w->startElement('database');
+            $w->writeAttribute('name', (string) $dbEntry['database']);
 
             foreach ($dbEntry['tables'] as $tbl) {
-                $tblEl = $doc->createElement('table');
-                $tblEl->setAttribute('name', $tbl['table']);
-                $dbEl->appendChild($tblEl);
+                $w->startElement('table');
+                $w->writeAttribute('name', (string) $tbl['table']);
 
                 if (!empty($tbl['columns'])) {
-                    $structEl = $doc->createElement('structure');
-                    $tblEl->appendChild($structEl);
+                    $w->startElement('structure');
                     foreach ($tbl['columns'] as $col) {
-                        $colEl = $doc->createElement('column');
+                        $w->startElement('column');
                         foreach ($col as $k => $v) {
                             if (is_bool($v)) {
                                 $v = $v ? 'true' : 'false';
                             }
-                            $colEl->setAttribute((string) $k, $v === null ? '' : (string) $v);
+                            $w->writeAttribute((string) $k, $v === null ? '' : (string) $v);
                         }
-                        $structEl->appendChild($colEl);
+                        $w->endElement();
                     }
+                    $w->endElement();
+                }
+                fwrite($out, $w->flush(true));
+
+                $rowCount = 0;
+                foreach ($tbl['rows'] as $row) {
+                    if ($rowCount === 0) {
+                        $w->startElement('data');
+                    }
+
+                    $w->startElement('row');
+                    foreach ($row as $colName => $val) {
+                        // XML element names must start with a letter/underscore.
+                        $tag = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', (string) $colName);
+                        $tag = ltrim((string) $tag, '.\-0123456789') ?: 'col';
+
+                        $w->startElement($tag);
+                        if ($val === null) {
+                            $w->writeAttribute('null', 'true');
+                        } else {
+                            $w->text((string) $val);
+                        }
+                        $w->endElement();
+                    }
+                    $w->endElement();
+
+                    if (++$rowCount % self::FLUSH_EVERY_ROWS === 0) {
+                        fwrite($out, $w->flush(true));
+                    }
+                }
+                if ($rowCount > 0) {
+                    $w->endElement(); // data
                 }
 
-                if (!empty($tbl['rows'])) {
-                    $dataEl = $doc->createElement('data');
-                    $tblEl->appendChild($dataEl);
-                    foreach ($tbl['rows'] as $row) {
-                        $rowEl = $doc->createElement('row');
-                        $dataEl->appendChild($rowEl);
-                        foreach ($row as $colName => $val) {
-                            // XML element names must start with a letter/underscore.
-                            $tag = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', (string) $colName);
-                            $tag = ltrim((string) $tag, '.\-0123456789') ?: 'col';
-                            $cellEl = $doc->createElement($tag);
-                            if ($val === null) {
-                                $cellEl->setAttribute('null', 'true');
-                            } else {
-                                $cellEl->appendChild($doc->createTextNode((string) $val));
-                            }
-                            $rowEl->appendChild($cellEl);
-                        }
-                    }
-                }
+                $w->endElement(); // table
+                fwrite($out, $w->flush(true));
             }
+
+            $w->endElement(); // database
         }
 
-        return (string) $doc->saveXML();
+        $w->endElement(); // export
+        $w->endDocument();
+        fwrite($out, $w->flush(true));
     }
 }

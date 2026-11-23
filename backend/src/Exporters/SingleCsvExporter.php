@@ -19,34 +19,37 @@ final class SingleCsvExporter implements ExporterInterface
         return 'csv';
     }
 
-    public function export(array $export): string
+    public function export(iterable $export, $out): void
     {
-        $out = "# Quermy CSV export\n# Generated: " . date('c') . "\n\n";
+        fwrite($out, "# Quermy CSV export\n# Generated: " . date('c') . "\n\n");
+
         foreach ($export as $dbEntry) {
             foreach ($dbEntry['tables'] as $tbl) {
-                $out .= '# ' . $dbEntry['database'] . '.' . $tbl['table'] . "\n";
+                fwrite($out, '# ' . $dbEntry['database'] . '.' . $tbl['table'] . "\n");
+
+                $headerWritten = false;
                 if (!empty($tbl['columns'])) {
-                    $out .= $this->csvLine(array_column($tbl['columns'], 'name'));
-                } elseif (!empty($tbl['rows'])) {
-                    // includeStructure=false but includeData=true — derive headers from first row
-                    $out .= $this->csvLine(array_keys($tbl['rows'][0]));
+                    $this->csvLine($out, array_column($tbl['columns'], 'name'));
+                    $headerWritten = true;
                 }
+
                 foreach ($tbl['rows'] as $row) {
-                    $out .= $this->csvLine(array_values($row));
+                    if (!$headerWritten) {
+                        // includeStructure=false but includeData=true — derive headers from first row
+                        $this->csvLine($out, array_keys($row));
+                        $headerWritten = true;
+                    }
+                    $this->csvLine($out, array_values($row));
                 }
-                $out .= "\n";
+
+                fwrite($out, "\n");
             }
         }
-        return $out;
     }
 
-    private function csvLine(array $values): string
+    /** @param resource $out */
+    private function csvLine($out, array $values): void
     {
-        $buf = fopen('php://temp', 'r+');
-        fputcsv($buf, array_map(fn($v) => $v === null ? '' : (string) $v, $values));
-        rewind($buf);
-        $line = stream_get_contents($buf);
-        fclose($buf);
-        return (string) $line;
+        fputcsv($out, array_map(fn($v) => $v === null ? '' : (string) $v, $values));
     }
 }

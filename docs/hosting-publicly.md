@@ -168,5 +168,5 @@ Only enable SQLite on a machine where every person who can reach Quermy is fully
 These matter if people you do not fully trust can reach your instance:
 
 - There is no limit on connection attempts, so Quermy can be used to guess database passwords.
-- Exports are built in memory. Exporting a very large table can exhaust PHP's memory limit.
-- A request to the AI assistant can run for up to five minutes.
+- Exports are written to a temporary file on the server before they are sent, so a very large export needs that much free space in PHP's temp directory, and can still run into PHP's `max_execution_time`.
+- A request to the AI assistant can run for up to five minutes and make up to 25 rounds of tool calls against the database.
