@@ -22,6 +22,11 @@ class ConnectionSession implements ConnectionSessionInterface
      */
     public function bindAdhoc(array $creds): void
     {
+        // Issue a fresh session ID now that the session is about to hold
+        // credentials, and delete the old one. If someone learned or planted
+        // the ID used before connecting, it is worthless afterwards.
+        $this->rotateId();
+
         // Keep only what we need; null-safe for file-type connections
         // (SQLite) that have no host/port/username.
         $_SESSION['quermy_conn'] = [
@@ -43,6 +48,16 @@ class ConnectionSession implements ConnectionSessionInterface
     public function clear(): void
     {
         unset($_SESSION['quermy_conn']);
+
+        // Retire the ID that was tied to the credentials.
+        $this->rotateId();
+    }
+
+    private function rotateId(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
     }
 
     /**

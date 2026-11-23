@@ -11,16 +11,39 @@ use Quermy\Http\RequestGuard;
 use Quermy\Http\ServerConfig;
 use Quermy\Kernel\Container;
 
-// Session cookies are HTTPOnly to prevent JavaScript access, mitigating XSS risks.
-// SameSite=Lax to prevent CSRF on state-changing endpoints while allowing normal navigation.
-// Secure flag is set if we're on HTTPS, ensuring cookies are only sent over secure connections.
+// The URL directory Quermy is served from: '' at the web root, '/quermy' under
+// an alias. Used to scope the session cookie and to strip the prefix from
+// request paths further down.
+$base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+
+// HTTPS as seen by PHP, or as reported by a TLS-terminating proxy in front.
+$isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+    || strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+
+/*
+ * Session
+ *
+ * The session holds the database credentials, so its cookie is locked down:
+ * - HttpOnly: page scripts cannot read it.
+ * - SameSite=Strict: never sent on requests started by another site. Only the
+ *   API uses this cookie and the API is only called by Quermy's own page, so
+ *   nothing legitimate needs a looser setting.
+ * - Secure on HTTPS: never sent over plain HTTP.
+ * - Path limited to Quermy's own directory, so other applications on the
+ *   same host are not sent it.
+ * - Strict mode: PHP refuses session IDs it did not issue itself, so an
+ *   attacker cannot plant a known ID in a victim's browser beforehand.
+ */
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.use_trans_sid', '0');
 session_name('quermy_sid');
 session_set_cookie_params([
     'lifetime' => 0,
-    'path'     => '/',
+    'path'     => $base . '/',
     'httponly' => true,
-    'samesite' => 'Lax',
-    'secure'   => !empty($_SERVER['HTTPS']),
+    'samesite' => 'Strict',
+    'secure'   => $isHttps,
 ]);
 session_start();
 
@@ -73,7 +96,6 @@ $method = $_SERVER['REQUEST_METHOD'];
 $path   = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 
 // Strip the script's directory so deployments under /quermy/ still work.
-$base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 if ($base !== '' && str_starts_with($path, $base)) {
     $path = substr($path, strlen($base));
 }
