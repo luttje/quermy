@@ -39,9 +39,13 @@ The above steps place Quermy into `<LaragonDirectory>/etc/apps/quermy`, along wi
 2. Unzip the file
 3. Point your web server at the `public` directory. <sub>[(view Apache alias example)](tools/releases/laragon/quermy.conf)</sub>
 
-## 🌐 Hosting publicly
+## 🌐 Hosting on a server
 
-Quermy can be hosted on a public server. Each visitor brings their own database credentials and API keys. [View the hosting instructions](docs/hosting-publicly.md) for instructions.
+Quermy is built for your own development machine, but it can also run on a server for other people to use. Each visitor brings their own database credentials and API keys. Doing this safely takes some setup, so read the [hosting guide](docs/hosting-publicly.md) first.
+
+## 🔒 Security
+
+SQLite is disabled by default; see the [troubleshooting guide](docs/troubleshooting.md#sqlite-is-missing-from-the-engine-list) to enable it on your own machine. To report a security problem, see [SECURITY.md](SECURITY.md).
 
 ## 🤯 Troubleshooting
 
