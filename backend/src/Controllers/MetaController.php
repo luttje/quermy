@@ -18,7 +18,17 @@ final class MetaController extends BaseController
     #[Route('GET', '/api/engines')]
     public function engines(): void
     {
-        Json::send(['engines' => DriverFactory::supportedEnginesMeta()]);
+        $engines = DriverFactory::supportedEnginesMeta();
+
+        // Don't offer file engines (SQLite) the server won't accept anyway.
+        if (!ServerConfig::allowsFileEngines()) {
+            $engines = array_values(array_filter(
+                $engines,
+                static fn(array $e) => $e['connectionType'] !== 'file',
+            ));
+        }
+
+        Json::send(['engines' => $engines]);
     }
 
     /**

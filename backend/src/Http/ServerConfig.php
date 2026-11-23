@@ -49,6 +49,19 @@ final class ServerConfig
         ];
     }
 
+    /**
+     * Whether file-based engines (SQLite) may be used.
+     *
+     * Off unless config.php sets 'allow_sqlite' => true. A SQLite connection
+     * opens a path on the *server's* filesystem and, through ATTACH DATABASE,
+     * can create files anywhere PHP may write — so it must be an explicit
+     * decision by whoever runs the instance.
+     */
+    public static function allowsFileEngines(): bool
+    {
+        return (self::data()['allow_sqlite'] ?? false) === true;
+    }
+
     /** True when a server_connection block is configured. */
     public static function isHostedMode(): bool
     {

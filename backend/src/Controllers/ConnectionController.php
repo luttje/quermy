@@ -39,7 +39,18 @@ final class ConnectionController extends BaseController
         $meta = DriverFactory::engineMetaFor($body['engine']);
 
         if ($meta['connectionType'] === 'file') {
+            // File engines read and write the server's filesystem, so they
+            // are only available when the administrator has opted in.
+            if (!ServerConfig::allowsFileEngines()) {
+                Json::error(
+                    $meta['label'] . " is disabled on this server. Set 'allow_sqlite' => true in config.php to enable it.",
+                    403,
+                );
+            }
             $this->requireFields($body, ['database']);
+            if (!is_string($body['database']) || str_contains($body['database'], "\0")) {
+                Json::error('Invalid database path.', 422);
+            }
             $config = ['database' => $body['database']];
         } else {
             $this->requireFields($body, ['host', 'port', 'username']);

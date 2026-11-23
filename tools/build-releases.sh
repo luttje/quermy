@@ -59,6 +59,7 @@ stage_backend() {
   cp -r "${REPO_ROOT}/backend/public"   "${dest}/public"
   cp -r "${REPO_ROOT}/backend/src"      "${dest}/src"
   cp -r "${REPO_ROOT}/backend/vendor"   "${dest}/vendor"
+  cp "${REPO_ROOT}/backend/config.example.php" "${dest}/config.example.php"
 }
 
 # ---------------------------------------------------------------------------

@@ -33,3 +33,18 @@ If all requests to `/api/` endpoints are returning 404 Not Found, it's likely th
     ```bash
     sudo systemctl restart apache2
     ```
+
+## SQLite is missing from the engine list
+
+SQLite is disabled by default. A SQLite connection opens a file on the machine that runs Quermy's PHP backend, and anyone who can connect can read any SQLite file PHP can read and create files anywhere PHP can write. That is fine on your own development machine, but dangerous on a server other people can reach.
+
+To enable it, create a `config.php` next to the `public/` directory (in a source checkout that is `backend/config.php`) with:
+
+```php
+<?php
+return [
+    'allow_sqlite' => true,
+];
+```
+
+Only do this where every user of the Quermy instance is trusted. Never enable it on a publicly hosted instance.

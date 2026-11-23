@@ -15,9 +15,17 @@
  * behaviour where each visitor supplies all connection details themselves.
  */
 return [
+    // SQLite is disabled by default. A SQLite connection opens a file on THIS
+    // server, and anyone who can connect can read any SQLite file PHP can
+    // read and create files anywhere PHP can write (via ATTACH DATABASE).
+    // Only enable this on a machine where every user of Quermy is trusted,
+    // such as your own development machine. Never enable it on a public host.
+    'allow_sqlite' => false,
+
     'server_connection' => [
         // Required: the database engine to use.
         // Supported values: mysql | mariadb | postgresql | sqlite | sqlserver
+        // (sqlite additionally requires 'allow_sqlite' => true above)
         'engine' => 'mysql',
 
         // Required for network engines (everything except sqlite).
