@@ -26,9 +26,12 @@ export default defineConfig({
             // with: `php -S localhost:8000 -t backend/public`
             // This all is handled by .htaccess when you do a production build, so no
             // need to worry about it then.
+            // changeOrigin stays false so the backend sees the same Host the
+            // browser used (localhost:5173). The backend refuses requests
+            // whose Origin header doesn't match their Host.
             '/api': {
                 target: 'http://localhost:8000',
-                changeOrigin: true,
+                changeOrigin: false,
             },
             '/health': {
                 target: 'http://localhost:8000',

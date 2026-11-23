@@ -62,6 +62,30 @@ final class ServerConfig
         return (self::data()['allow_sqlite'] ?? false) === true;
     }
 
+    /**
+     * Hostnames this instance may be addressed by ('allowed_hosts'), or null
+     * when not configured. See RequestGuard::hostAllowed().
+     *
+     * @return list<string>|null
+     */
+    public static function allowedHosts(): ?array
+    {
+        $hosts = self::data()['allowed_hosts'] ?? null;
+        return is_array($hosts) ? array_values(array_filter($hosts, 'is_string')) : null;
+    }
+
+    /**
+     * Extra origins allowed to call the API cross-origin with credentials
+     * ('dev_cors_origins'). Empty unless a developer opts in.
+     *
+     * @return list<string>
+     */
+    public static function devCorsOrigins(): array
+    {
+        $origins = self::data()['dev_cors_origins'] ?? [];
+        return is_array($origins) ? array_values(array_filter($origins, 'is_string')) : [];
+    }
+
     /** True when a server_connection block is configured. */
     public static function isHostedMode(): bool
     {

@@ -22,6 +22,24 @@ return [
     // such as your own development machine. Never enable it on a public host.
     'allow_sqlite' => false,
 
+    // Hostnames this instance may be reached by (without port). Requests for
+    // any other hostname are refused, which stops a malicious website from
+    // pointing its own domain at this server and using Quermy through the
+    // visitor's browser ("DNS rebinding").
+    //
+    // Set this whenever Quermy is reachable by a domain name, for example:
+    //   'allowed_hosts' => ['db.example.com'],
+    // "*.example.com" matches any subdomain.
+    //
+    // When left out, requests from other machines are accepted for any
+    // hostname, and requests from this machine only for localhost, *.test,
+    // *.localhost, this computer's name, and plain IP addresses.
+    // 'allowed_hosts' => ['db.example.com'],
+
+    // Development only: origins allowed to call the API cross-origin with
+    // credentials. Not needed for `npm run dev`, which proxies the API.
+    // 'dev_cors_origins' => ['http://localhost:5173'],
+
     'server_connection' => [
         // Required: the database engine to use.
         // Supported values: mysql | mariadb | postgresql | sqlite | sqlserver

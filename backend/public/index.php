@@ -7,6 +7,8 @@ use Quermy\Http\Router;
 use Quermy\Http\ConnectionSession;
 use Quermy\Controllers\BaseController;
 use Quermy\Http\ConnectionSessionInterface;
+use Quermy\Http\RequestGuard;
+use Quermy\Http\ServerConfig;
 use Quermy\Kernel\Container;
 
 // Session cookies are HTTPOnly to prevent JavaScript access, mitigating XSS risks.
@@ -78,27 +80,38 @@ if ($base !== '' && str_starts_with($path, $base)) {
 $path = '/' . ltrim($path, '/');
 
 /*
- * CORS — development only.
- *
- * In production the compiled frontend is served from the same origin as the
- * PHP backend, so the browser never sends an Origin header and these headers
- * are never emitted.
- *
- * During local development the Vite dev server runs on a different port, so
- * we allow it — but only for localhost/127.0.0.1 origins to prevent a
- * production mis-deployment from accidentally opening the API to all origins.
+ * Request origin checks — see RequestGuard for what each one defends against.
  */
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$isLocalOrigin = (bool) preg_match(
-    '#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#',
-    $origin,
-);
+$hostHeader = (string)($_SERVER['HTTP_HOST'] ?? '');
+$origin     = isset($_SERVER['HTTP_ORIGIN']) ? (string)$_SERVER['HTTP_ORIGIN'] : null;
+$devOrigins = ServerConfig::devCorsOrigins();
 
-if ($isLocalOrigin) {
+if (!RequestGuard::hostAllowed($hostHeader, (string)($_SERVER['REMOTE_ADDR'] ?? ''), ServerConfig::allowedHosts())) {
+    Json::error(
+        "This Quermy instance does not accept requests for this hostname. "
+        . "If the hostname is legitimate, add it to 'allowed_hosts' in config.php.",
+        403,
+    );
+}
+
+if (!RequestGuard::originAllowed($origin, $hostHeader, $devOrigins)) {
+    Json::error('Cross-origin requests are not allowed.', 403);
+}
+
+/*
+ * CORS — opt-in, for development only.
+ *
+ * The compiled frontend is served from the same origin as this backend, and
+ * `npm run dev` proxies /api through Vite, so neither needs CORS. It is only
+ * enabled for origins a developer lists under 'dev_cors_origins' in
+ * config.php, and never for anything else.
+ */
+if (RequestGuard::isDevOrigin($origin, $devOrigins)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Headers: Content-Type');
     header('Access-Control-Allow-Methods: GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    header('Vary: Origin');
 }
 
 if ($method === 'OPTIONS') {
