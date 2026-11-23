@@ -6,6 +6,8 @@ use Quermy\Http\Route;
 use Quermy\Http\Json;
 use Quermy\Http\ConnectionSessionInterface;
 use Quermy\Http\ServerConfig;
+use InvalidArgumentException;
+use Quermy\Drivers\ConnectionParams;
 use Quermy\Drivers\DriverFactory;
 
 final class ConnectionController extends BaseController
@@ -41,12 +43,27 @@ final class ConnectionController extends BaseController
             $config = ['database' => $body['database']];
         } else {
             $this->requireFields($body, ['host', 'port', 'username']);
+
+            // These values are concatenated into the PDO DSN by the drivers,
+            // so they must not be able to smuggle in extra DSN keys. The
+            // validated values are written back to $body because that is
+            // what gets bound to the session below.
+            try {
+                $body['host']     = ConnectionParams::host($body['host']);
+                $body['port']     = ConnectionParams::port($body['port']);
+                $body['username'] = ConnectionParams::username($body['username']);
+                $body['database'] = ConnectionParams::database($body['database'] ?? null);
+            } catch (InvalidArgumentException $e) {
+                Json::error($e->getMessage(), 422);
+            }
+            $body['password'] = is_scalar($body['password'] ?? '') ? (string)($body['password'] ?? '') : '';
+
             $config = [
                 'host'     => $body['host'],
-                'port'     => (int)$body['port'],
+                'port'     => $body['port'],
                 'username' => $body['username'],
-                'password' => (string)($body['password'] ?? ''),
-                'database' => $body['database'] ?? null,
+                'password' => $body['password'],
+                'database' => $body['database'],
             ];
         }
 
