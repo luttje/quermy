@@ -22,6 +22,7 @@
         "@tailwindcss/vite": "^4.3.5",
         "@uiw/codemirror-theme-gruvbox-dark": "^4.25.12",
         "codemirror": "^6.0.2",
+        "dompurify": "^3.5.0",
         "highlight.js": "^11.12.0",
         "marked": "^18.2.1",
         "marked-highlight": "^2.2.4",

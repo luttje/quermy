@@ -19,5 +19,16 @@
     RewriteRule ^ index.html [L]
 </IfModule>
 
+# Security headers for everything served from here (the Content Security
+# Policy itself is set by a <meta> tag in index.html).
+<IfModule mod_headers.c>
+    # Don't let browsers guess content types
+    Header always set X-Content-Type-Options "nosniff"
+    # Never render Quermy inside another site's frame (clickjacking)
+    Header always set X-Frame-Options "DENY"
+    # Don't leak Quermy URLs to sites opened from it
+    Header always set Referrer-Policy "no-referrer"
+</IfModule>
+
 # Sensible defaults
 Options -Indexes

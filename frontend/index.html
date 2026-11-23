@@ -5,6 +5,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
+    <!--
+        Content Security Policy. Scripts may only come from our own origin, so
+        injected markup cannot run code, and nothing may be fetched from or
+        sent to third parties (except the Google Fonts below). It lives in a
+        meta tag so it applies however the app is served (Apache, Nginx, php -S).
+        'unsafe-inline' for styles is needed by CodeMirror and inline style
+        attributes; it does not allow inline scripts.
+    -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <title>Quermy</title>
     <meta name="theme-color"
           content="#0a0c0a" />

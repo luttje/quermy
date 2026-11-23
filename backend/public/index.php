@@ -23,6 +23,17 @@ session_set_cookie_params([
 session_start();
 
 /*
+ * Security headers for API responses. The .htaccess sets the same ones for
+ * Apache; sending them here too covers Nginx and the PHP built-in server.
+ * API responses are data, never documents, so they get a CSP that forbids
+ * everything in case a browser is ever tricked into rendering one.
+ */
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+
+/*
  * Container
  *
  * Register every dependency the controllers can ask for. Adding a new
