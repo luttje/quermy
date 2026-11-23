@@ -3,7 +3,6 @@
 namespace Quermy\Ai;
 
 use Symfony\AI\Agent\Agent;
-use Symfony\AI\Agent\Toolbox\AgentProcessor;
 use Symfony\AI\Agent\Toolbox\Event\ToolCallArgumentsResolved;
 use Symfony\AI\Agent\Toolbox\Event\ToolCallFailed;
 use Symfony\AI\Agent\Toolbox\Event\ToolCallSucceeded;
@@ -57,21 +56,21 @@ class ChatService
         $dispatcher->addListener(ToolCallArgumentsResolved::class, static function (ToolCallArgumentsResolved $e) use (&$events): void {
             $events[] = [
                 'type'      => 'tool_call',
-                'name'      => $e->getMetadata()->getName(),
+                'name'      => $e->getDefinition()->getName(),
                 'arguments' => $e->getArguments(),
             ];
         });
         $dispatcher->addListener(ToolCallSucceeded::class, static function (ToolCallSucceeded $e) use (&$events): void {
             $events[] = [
                 'type' => 'tool_result',
-                'name' => $e->getMetadata()->getName(),
+                'name' => $e->getDefinition()->getName(),
                 'ok'   => true,
             ];
         });
         $dispatcher->addListener(ToolCallFailed::class, static function (ToolCallFailed $e) use (&$events): void {
             $events[] = [
                 'type'  => 'tool_result',
-                'name'  => $e->getMetadata()->getName(),
+                'name'  => $e->getDefinition()->getName(),
                 'ok'    => false,
                 'error' => $e->getException()->getMessage(),
             ];
@@ -83,9 +82,9 @@ class ChatService
         $toolbox = new FaultTolerantToolbox(
             new Toolbox($this->materializeTools(), eventDispatcher: $dispatcher),
         );
-        $processor = new AgentProcessor($toolbox);
-
-        $agent = new Agent($platform, $model, [$processor], [$processor]);
+        // maxToolCalls: null keeps the previous unbounded behaviour; the
+        // request is still bounded by the time limit below.
+        $agent = new Agent($platform, $model, toolbox: $toolbox, maxToolCalls: null);
 
         set_time_limit(60 * 5); // 5 minutes should be enough for now.
 
