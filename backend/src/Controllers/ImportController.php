@@ -121,13 +121,7 @@ final class ImportController extends BaseController
                     $duplicateHandling,
                 );
 
-                $dbg = [];
                 try {
-                    $dbg = [
-                        'sql' => $sql,
-                        'values' => $values,
-                        'database' => $database,
-                    ];
                     $driver->runQuery($database, $sql);
                     $imported++;
                 } catch (\Throwable $e) {
@@ -136,8 +130,6 @@ final class ImportController extends BaseController
                         break;
                     }
                 }
-
-                file_put_contents('import_debug.log', json_encode($dbg) . "\n", FILE_APPEND);
             }
 
             fclose($handle);
