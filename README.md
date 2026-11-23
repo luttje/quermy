@@ -15,6 +15,8 @@ A drop-in SQL companion for W/LAMP stacks. Lightweight alternative to phpMyAdmin
 
 For your convenience there are [pre-built releases of Quermy](https://github.com/luttje/quermy/releases), ready to drop into your stack.
 
+Each release includes a `SHA256SUMS.txt` file. To check that a download is intact, run `sha256sum -c SHA256SUMS.txt --ignore-missing` in the folder you downloaded it to (on Windows: `Get-FileHash <file>.zip` and compare the result with the line for that file).
+
 ### For Laragon users
 
 1. Download the `quermy-laragon-<version>.zip` from the latest release

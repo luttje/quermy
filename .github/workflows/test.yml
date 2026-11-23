@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Third-party actions are pinned to full commit SHAs so a moved or hijacked
+# tag cannot change what runs here. Dependabot keeps the pins up to date.
+
+# Tests only need to read the code.
+permissions:
+  contents: read
+
 jobs:
   pest:
     name: Pest (PHP ${{ matrix.php }})
@@ -18,10 +25,14 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      with:
+        # Don't leave the workflow token in .git/config where build scripts
+        # and dependencies could read it.
+        persist-credentials: false
 
     - name: Set up PHP ${{ matrix.php }}
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
       with:
         php-version: ${{ matrix.php }}
         extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, sockets
@@ -29,7 +40,7 @@ jobs:
         coverage: none
 
     - name: Cache Composer packages
-      uses: actions/cache@v5
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
       with:
         path: backend/vendor
         key: composer-${{ matrix.php }}-${{ hashFiles('backend/composer.json', 'backend/composer.lock') }}
@@ -41,7 +52,7 @@ jobs:
 
     # Our testingcontainers setup can be a bit flaky sometimes, so we retry the tests
     - name: Run tests
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
       with:
         timeout_minutes: 10
         max_attempts: 3

@@ -1,0 +1,11 @@
+# Keeps the commit-SHA pins in .github/workflows/ up to date. Each update
+# arrives as a pull request that shows which version the new SHA belongs to.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
